@@ -1,4 +1,4 @@
-rootProject.name = "NavEase"
+rootProject.name = "NavEase-App"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
@@ -36,3 +36,5 @@ include(":androidApp")
 include(":desktopApp")
 include(":shared")
 include(":webApp")
+include(":navease-ksp")
+include(":navease-runtime")

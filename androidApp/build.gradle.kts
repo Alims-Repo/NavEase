@@ -11,10 +11,14 @@ kotlin {
         jvmTarget = JvmTarget.JVM_11
     }
 }
-dependencies {
-    implementation(projects.shared)
 
+dependencies {
+    // shared pulls in navease-runtime (KMP) and the KSP-generated factory
+    implementation(projects.shared)
     implementation(libs.androidx.activity.compose)
+
+    // Compose dependencies needed by MainActivity (material3 for MaterialTheme)
+    implementation(libs.compose.material3)
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
@@ -44,5 +48,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+    buildFeatures {
+        buildConfig = true
     }
 }
