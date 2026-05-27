@@ -7,20 +7,14 @@ import io.github.alimsrepo.navease.runtime.domain.NavScreen
 
 // ---------------------------------------------------------------------------
 // DEPRECATED — AppNavGraph has been renamed to NavEaseNavGraph.
-//
-// KSP-generated NavEaseHost.kt imports NavEaseNavGraph directly.
-// This file is kept for any code that still references AppNavGraph by name
-// so the project continues to compile during the transition.
 // ---------------------------------------------------------------------------
 
-/**
- * @suppress
- */
+/** @suppress */
 @Deprecated(
     message = "AppNavGraph has been renamed to NavEaseNavGraph. " +
               "If this call is in KSP-generated code, re-run kspCommonMainKotlinMetadata.",
     replaceWith = ReplaceWith(
-        "NavEaseNavGraph(initialScreen, savedStateConfig, screenFactory, onExitRequest)",
+        "NavEaseNavGraph(initialScreen, savedStateConfig, screenFactory, onExitRequest, enableSharedTransitions)",
         "io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph"
     ),
     level = DeprecationLevel.WARNING
@@ -30,11 +24,13 @@ fun AppNavGraph(
     initialScreen: NavKey,
     savedStateConfig: SavedStateConfiguration,
     screenFactory: (NavKey) -> NavScreen,
-    onExitRequest: () -> Unit = {}
+    onExitRequest: () -> Unit = {},
+    enableSharedTransitions: Boolean = false,
 ) = NavEaseNavGraph(
     initialScreen = initialScreen,
     savedStateConfig = savedStateConfig,
     screenFactory = screenFactory,
-    onExitRequest = onExitRequest
+    onExitRequest = onExitRequest,
+    enableSharedTransitions = enableSharedTransitions,
 )
 

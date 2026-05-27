@@ -331,21 +331,30 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
 
                 import androidx.compose.runtime.Composable
                 import io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph
-
                 /**
                  * Generated navigation host. Place this once in your root composable.
                  *
-                 * @param onExitRequest Called when the user presses back on the root screen.
-                 *                      Use this to show an exit dialog or finish the Activity.
-                 *                      Defaults to a no-op (suitable for iOS / web targets).
+                 * @param onExitRequest         Called when back is pressed on the root screen.
+                 *                              Use this to show an exit dialog or finish the Activity.
+                 *                              Defaults to a no-op (suitable for iOS / web targets).
+                 * @param enableSharedTransitions When `true`, wraps the display in a
+                 *                              [SharedTransitionLayout] enabling Compose shared element
+                 *                              transitions between screens. Access the scope inside any
+                 *                              screen via [LocalNavEaseSharedTransitionScope.current] and
+                 *                              the animation scope via [LocalNavAnimatedContentScope.current].
+                 *                              Defaults to `false`.
                  */
                 @Composable
-                fun NavEaseHost(onExitRequest: () -> Unit = {}) {
+                fun NavEaseHost(
+                    onExitRequest: () -> Unit = {},
+                    enableSharedTransitions: Boolean = false,
+                ) {
                     NavEaseNavGraph(
                         initialScreen = AppScreens.startDestination,
                         savedStateConfig = AppScreens.savedStateConfig,
                         screenFactory = ScreenFactory::createScreen,
-                        onExitRequest = onExitRequest
+                        onExitRequest = onExitRequest,
+                        enableSharedTransitions = enableSharedTransitions,
                     )
                 }
             """.trimIndent())

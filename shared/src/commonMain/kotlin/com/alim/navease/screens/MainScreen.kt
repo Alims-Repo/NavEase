@@ -1,5 +1,8 @@
 package com.alim.navease.screens
 
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import io.github.alimsrepo.navease.runtime.annotations.NavEaseArgs
 import io.github.alimsrepo.navease.runtime.annotations.NavEaseResult
 import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
@@ -47,6 +51,7 @@ import io.github.alimsrepo.navease.generated.mainArgs
 import io.github.alimsrepo.navease.generated.navigateToDetail
 import io.github.alimsrepo.navease.runtime.navigation.NavController
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
+import io.github.alimsrepo.navease.runtime.presentation.LocalNavEaseSharedTransitionScope
 
 @NavEaseScreen(route = "Main")
 class MainScreen : NavScreen() {
@@ -57,7 +62,7 @@ class MainScreen : NavScreen() {
     @NavEaseResult
     data class Result(val value: Int)
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalSharedTransitionApi::class)
     @Composable
     override fun Content(
         navKey: NavKey,
@@ -65,6 +70,10 @@ class MainScreen : NavScreen() {
     ) {
         val args = navKey.mainArgs()
         val detailResult by navController.detailResult()
+
+        // Shared transition locals — null when enableSharedTransitions = false (zero overhead)
+        val sharedTransitionScope = LocalNavEaseSharedTransitionScope.current
+        val animatedContentScope = LocalNavAnimatedContentScope.current
 
         Scaffold(
             topBar = {
@@ -155,6 +164,8 @@ class MainScreen : NavScreen() {
                         title = "Typed Arguments",
                         subtitle = "Navigate to a screen passing typed args — accessed via navKey.xxxArgs()",
                         action = "Explore Detail →",
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedContentScope = animatedContentScope,
                         onAction = {
                             navController.navigateToDetail(
                                 featureName = "Typed Arguments",
@@ -351,6 +362,7 @@ class MainScreen : NavScreen() {
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun FeatureCard(
     badge: String,
@@ -359,10 +371,22 @@ private fun FeatureCard(
     title: String,
     subtitle: String,
     action: String,
-    onAction: () -> Unit
+    onAction: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedContentScope: AnimatedContentScope? = null,
 ) {
+    // Apply sharedBounds so the entire card morphs into DetailScreen's header surface
+    val sharedModifier = if (sharedTransitionScope != null && animatedContentScope != null) {
+        with(sharedTransitionScope) {
+            Modifier.sharedBounds(
+                sharedContentState = rememberSharedContentState(key = "feature_card_$title"),
+                animatedVisibilityScope = animatedContentScope,
+            )
+        }
+    } else Modifier
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = sharedModifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)

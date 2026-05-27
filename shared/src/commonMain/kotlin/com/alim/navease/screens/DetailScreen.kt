@@ -1,6 +1,8 @@
 package com.alim.navease.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
@@ -45,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import io.github.alimsrepo.navease.generated.backWithDetailResult
 import io.github.alimsrepo.navease.generated.detailArgs
 import io.github.alimsrepo.navease.runtime.annotations.NavEaseArgs
@@ -52,6 +55,7 @@ import io.github.alimsrepo.navease.runtime.annotations.NavEaseResult
 import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.presentation.LocalNavEaseSharedTransitionScope
 
 @NavEaseScreen(route = "Detail")
 class DetailScreen : NavScreen() {
@@ -62,13 +66,17 @@ class DetailScreen : NavScreen() {
     @NavEaseResult
     data class Result(val liked: Boolean)
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
     @Composable
     override fun Content(
         navKey: NavKey,
         navController: NavController
     ) {
         val args = navKey.detailArgs()
+
+        // Shared transition locals
+        val sharedTransitionScope = LocalNavEaseSharedTransitionScope.current
+        val animatedContentScope = LocalNavAnimatedContentScope.current
 
         // Content entrance animation
         var contentVisible by remember { mutableStateOf(false) }
@@ -105,8 +113,21 @@ class DetailScreen : NavScreen() {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
                         // ── Header badge ───────────────────────────────────────
+                        // sharedBounds matches the FeatureCard in MainScreen —
+                        // the card morphs into this header when navigating to Detail.
+                        val headerSharedModifier = if (sharedTransitionScope != null) {
+                            with(sharedTransitionScope) {
+                                Modifier.sharedBounds(
+                                    sharedContentState = rememberSharedContentState(
+                                        key = "feature_card_${args.featureName}"
+                                    ),
+                                    animatedVisibilityScope = animatedContentScope,
+                                )
+                            }
+                        } else Modifier
+
                         Surface(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = headerSharedModifier.fillMaxWidth(),
                             shape = RoundedCornerShape(20.dp),
                             color = MaterialTheme.colorScheme.tertiaryContainer
                         ) {
