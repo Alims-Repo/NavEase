@@ -44,7 +44,7 @@ class SplashScreen : NavScreen<AppScreens.Splash>() {
                 )
                 result?.let {
                     Text(
-                        text = "Result from Main: ${it.value}",
+                        text = "Result from Main: ${it}",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary
                     )

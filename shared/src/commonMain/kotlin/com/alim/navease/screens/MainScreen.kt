@@ -20,6 +20,8 @@ import io.github.alimsrepo.navease.generated.backWithMainResult
 import io.github.alimsrepo.navease.runtime.data.NavController
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
 
+data class SampleData(val name: String, val count: Int)
+
 @NavEaseScreen(route = "Main")
 class MainScreen  : NavScreen<AppScreens.Main>() {
 
@@ -27,7 +29,7 @@ class MainScreen  : NavScreen<AppScreens.Main>() {
     data class Args(val userId: String, val age: Int)
 
     @NavEaseResult
-    data class Result(val value: Int)
+    data class Result(val value: Int, val sampleData: SampleData)
 
     @Composable
     override fun Content(
@@ -50,7 +52,7 @@ class MainScreen  : NavScreen<AppScreens.Main>() {
                 FlowRow {
                     Button(
                         onClick = {
-                            navController.backWithMainResult(value = 1)
+                            navController.backWithMainResult(value = 1, sampleData = SampleData("Sample", 42))
                         }
                     ) {
                         Text("Return -> 1")
@@ -58,7 +60,7 @@ class MainScreen  : NavScreen<AppScreens.Main>() {
 
                     Button(
                         onClick = {
-                            navController.backWithMainResult(value = 2)
+                            navController.backWithMainResult(value = 2, sampleData = SampleData("Sample", 42))
                         }
                     ) {
                         Text("Return -> 2")
@@ -66,7 +68,7 @@ class MainScreen  : NavScreen<AppScreens.Main>() {
 
                     Button(
                         onClick = {
-                            navController.backWithMainResult(value = 3)
+                            navController.backWithMainResult(value = 3, sampleData = SampleData("Sample", 42))
                         }
                     ) {
                         Text("Return -> 3")
