@@ -3,7 +3,6 @@ package io.github.alimsrepo.navease.runtime.data
 import androidx.compose.runtime.Stable
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
-import io.github.alimsrepo.navease.runtime.domain.AppScreens
 
 @Stable
 class NavController(
@@ -23,8 +22,8 @@ class NavController(
             backStack.removeAt(backStack.size - 2)
     }
 
-    fun getHistory(): List<AppScreens> {
-        return backStack.mapNotNull { it as? AppScreens }
+    fun getHistory(): List<NavKey> {
+        return backStack.toList()
     }
 
     fun popToIndex(index: Int) {

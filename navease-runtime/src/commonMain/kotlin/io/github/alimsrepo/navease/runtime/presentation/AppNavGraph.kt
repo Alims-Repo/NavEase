@@ -7,22 +7,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.alimsrepo.navease.runtime.data.Animations.popTransitionSpec
 import io.github.alimsrepo.navease.runtime.data.Animations.transitionSpec
 import io.github.alimsrepo.navease.runtime.data.NavController
-import io.github.alimsrepo.navease.runtime.domain.AppScreens
-import io.github.alimsrepo.navease.runtime.domain.AppScreens.Companion.savedStateConfig
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
 
+@Suppress("UNCHECKED_CAST")
 @Composable
 fun AppNavGraph(
-    screenFactory: (AppScreens) -> NavScreen<AppScreens>
+    initialScreen: NavKey,
+    savedStateConfig: SavedStateConfiguration,
+    screenFactory: (NavKey) -> NavScreen<*>
 ) {
-
     val applicationStack = rememberNavBackStack(
-        configuration = savedStateConfig, AppScreens.Splash
+        configuration = savedStateConfig, initialScreen,
     )
 
     val navController = remember {
@@ -37,7 +39,7 @@ fun AppNavGraph(
         popTransitionSpec = { popTransitionSpec },
     ) { route ->
         NavEntry(route) {
-            screenFactory(route as AppScreens).Content(
+            (screenFactory(route) as NavScreen<NavKey>).Content(
                 navKey = route,
                 navController = navController
             )

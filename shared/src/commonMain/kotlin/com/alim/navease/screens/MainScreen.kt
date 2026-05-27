@@ -4,35 +4,30 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import io.github.alimsrepo.navease.generated.AppScreens
 import io.github.alimsrepo.navease.runtime.NavEaseScreen
 import io.github.alimsrepo.navease.runtime.data.NavController
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
-import kotlinx.coroutines.delay
 
-@NavEaseScreen(route = "Splash", startDestination = true)
-class SplashScreen : NavScreen<AppScreens.Splash>() {
+@NavEaseScreen(route = "Main")
+class MainScreen  : NavScreen<AppScreens.Main>() {
 
     @Composable
     override fun Content(
-        navKey: AppScreens.Splash,
+        navKey: AppScreens.Main,
         navController: NavController
     ) {
-        LaunchedEffect(Unit) {
-            delay(1000L)
-            navController.navigate(AppScreens.Main)
-        }
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Splash Screen",
+                text = "Main Screen",
                 style = androidx.compose.material3.MaterialTheme.typography.headlineMedium
             )
         }
     }
+
 }

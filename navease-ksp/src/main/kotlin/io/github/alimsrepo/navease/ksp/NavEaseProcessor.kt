@@ -24,17 +24,79 @@ class NavEaseProcessor(
 
         generated = true
 
-        data class ScreenEntry(val route: String, val fqName: String)
+        data class ScreenEntry(
+            val route: String,
+            val fqName: String,
+            val isStart: Boolean
+        )
 
         val entries = symbols.map { cls ->
-            val route = cls.annotations.first().arguments.first().value as String
-            val fqName = cls.qualifiedName!!.asString()
-            ScreenEntry(route, fqName)
+            val annotation = cls.annotations.first { it.shortName.asString() == "NavEaseScreen" }
+            val route = annotation.arguments.first { it.name?.asString() == "route" }.value as String
+            val isStart = annotation.arguments.firstOrNull { it.name?.asString() == "startDestination" }?.value as? Boolean ?: false
+            ScreenEntry(route, cls.qualifiedName!!.asString(), isStart)
         }
 
-        val imports = entries.joinToString("\n") { "import ${it.fqName}" }
-        val whenBranches = entries.joinToString("\n            ") {
-            "AppScreens.${it.route} -> ${it.fqName.substringAfterLast('.')}()"
+        // Fall back to first screen if none marked as startDestination
+        val startEntry = entries.firstOrNull { it.isStart } ?: entries.first()
+
+        generateAppScreens(entries.map { it.route to it.fqName }, startEntry.route)
+        generateScreenFactory(entries.map { it.route to it.fqName })
+        generateNavEaseHost()
+
+        return emptyList()
+    }
+
+    private fun generateAppScreens(entries: List<Pair<String, String>>, startRoute: String) {
+        val subclasses = entries.joinToString("\n    ") { (route, _) ->
+            "@Serializable data object $route : AppScreens()"
+        }
+        val subclassEntries = entries.joinToString("\n                        ") { (route, _) ->
+            "subclass($route::class)"
+        }
+
+        val file = codeGenerator.createNewFile(
+            Dependencies(false),
+            "io.github.alimsrepo.navease.generated",
+            "AppScreens"
+        )
+        file.bufferedWriter().use {
+            it.write("""
+                package io.github.alimsrepo.navease.generated
+
+                import androidx.compose.runtime.Stable
+                import androidx.navigation3.runtime.NavKey
+                import androidx.savedstate.serialization.SavedStateConfiguration
+                import kotlinx.serialization.Serializable
+                import kotlinx.serialization.modules.SerializersModule
+                import kotlinx.serialization.modules.polymorphic
+                import kotlinx.serialization.modules.subclass
+
+                @Stable
+                @Serializable
+                sealed class AppScreens : NavKey {
+                    $subclasses
+
+                    companion object {
+                        val startDestination: AppScreens get() = $startRoute
+
+                        val savedStateConfig = SavedStateConfiguration {
+                            serializersModule = SerializersModule {
+                                polymorphic(NavKey::class) {
+                                        $subclassEntries
+                                }
+                            }
+                        }
+                    }
+                }
+            """.trimIndent())
+        }
+    }
+
+    private fun generateScreenFactory(entries: List<Pair<String, String>>) {
+        val imports = entries.joinToString("\n") { (_, fqName) -> "import $fqName" }
+        val whenBranches = entries.joinToString("\n            ") { (route, fqName) ->
+            "is AppScreens.$route -> ${fqName.substringAfterLast('.')}()"
         }
 
         val file = codeGenerator.createNewFile(
@@ -42,25 +104,48 @@ class NavEaseProcessor(
             "io.github.alimsrepo.navease.generated",
             "ScreenFactory"
         )
-        file.bufferedWriter().use { writer ->
-            writer.write("""
+        file.bufferedWriter().use {
+            it.write("""
                 package io.github.alimsrepo.navease.generated
 
-                import io.github.alimsrepo.navease.runtime.domain.AppScreens
+                import androidx.navigation3.runtime.NavKey
                 import io.github.alimsrepo.navease.runtime.domain.NavScreen
                 $imports
 
                 object ScreenFactory {
-                    @Suppress("UNCHECKED_CAST")
-                    fun createScreen(appScreen: AppScreens): NavScreen<AppScreens> {
+                    fun createScreen(appScreen: NavKey): NavScreen<*> {
                         return when (appScreen) {
                             $whenBranches
-                        } as NavScreen<AppScreens>
+                            else -> error("Unknown screen: ${'$'}appScreen")
+                        }
                     }
                 }
             """.trimIndent())
         }
+    }
 
-        return emptyList()
+    private fun generateNavEaseHost() {
+        val file = codeGenerator.createNewFile(
+            Dependencies(false),
+            "io.github.alimsrepo.navease.generated",
+            "NavEaseHost"
+        )
+        file.bufferedWriter().use {
+            it.write("""
+                package io.github.alimsrepo.navease.generated
+
+                import androidx.compose.runtime.Composable
+                import io.github.alimsrepo.navease.runtime.presentation.AppNavGraph
+
+                @Composable
+                fun NavEaseHost() {
+                    AppNavGraph(
+                        initialScreen = AppScreens.startDestination,
+                        savedStateConfig = AppScreens.savedStateConfig,
+                        screenFactory = ScreenFactory::createScreen
+                    )
+                }
+            """.trimIndent())
+        }
     }
 }
