@@ -47,8 +47,12 @@ import io.github.alimsrepo.navease.runtime.annotations.NavEaseResult
 import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
 import io.github.alimsrepo.navease.generated.backWithMainResult
 import io.github.alimsrepo.navease.generated.detailResult
+import io.github.alimsrepo.navease.generated.galleryDetailResult
 import io.github.alimsrepo.navease.generated.mainArgs
 import io.github.alimsrepo.navease.generated.navigateToDetail
+import io.github.alimsrepo.navease.generated.navigateToGallery
+import io.github.alimsrepo.navease.generated.navigateToProfile
+import io.github.alimsrepo.navease.generated.profileResult
 import io.github.alimsrepo.navease.runtime.navigation.NavController
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import io.github.alimsrepo.navease.runtime.presentation.LocalNavEaseSharedTransitionScope
@@ -70,10 +74,22 @@ class MainScreen : NavScreen() {
     ) {
         val args = navKey.mainArgs()
         val detailResult by navController.detailResult()
+        val galleryDetailResult by navController.galleryDetailResult()
+        val profileResult by navController.profileResult()
 
         // Shared transition locals — null when enableSharedTransitions = false (zero overhead)
         val sharedTransitionScope = LocalNavEaseSharedTransitionScope.current
         val animatedContentScope = LocalNavAnimatedContentScope.current
+
+        // Shared bounds modifier for the user avatar → ProfileScreen
+        val avatarSharedModifier = if (sharedTransitionScope != null && animatedContentScope != null) {
+            with(sharedTransitionScope) {
+                Modifier.sharedBounds(
+                    sharedContentState = rememberSharedContentState(key = "profile_avatar_${args.userId}"),
+                    animatedVisibilityScope = animatedContentScope,
+                )
+            }
+        } else Modifier
 
         Scaffold(
             topBar = {
@@ -113,9 +129,9 @@ class MainScreen : NavScreen() {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            // Avatar circle
+                            // Avatar circle — shared element with ProfileScreen
                             Box(
-                                modifier = Modifier
+                                modifier = avatarSharedModifier
                                     .size(56.dp)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary),
@@ -141,6 +157,19 @@ class MainScreen : NavScreen() {
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                                 )
                             }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        OutlinedButton(
+                            onClick = {
+                                navController.navigateToProfile(
+                                    username = args.userId,
+                                    bio = "KMP developer · Compose enthusiast · Open-source contributor"
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("👤  View Profile  →")
                         }
                     }
                 }
@@ -173,6 +202,43 @@ class MainScreen : NavScreen() {
                                     "The KSP processor generated AppScreens.Detail(featureName, description) " +
                                     "as a @Serializable data class, and a navigateToDetail() extension " +
                                     "on NavController so you never reference generated types directly."
+                            )
+                        }
+                    )
+                }
+
+                // ── Gallery card ───────────────────────────────────────────────
+                item {
+                    FeatureCard(
+                        badge = "03",
+                        badgeColor = MaterialTheme.colorScheme.secondary,
+                        badgeOnColor = MaterialTheme.colorScheme.onSecondary,
+                        title = "Gallery + Shared Bounds",
+                        subtitle = "A list of tech cards — tap one and watch it morph into the detail screen via sharedBounds()",
+                        action = "Open Gallery →",
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedContentScope = animatedContentScope,
+                        onAction = {
+                            navController.navigateToGallery(title = "Tech Showcase")
+                        }
+                    )
+                }
+
+                // ── Profile card ───────────────────────────────────────────────
+                item {
+                    FeatureCard(
+                        badge = "04",
+                        badgeColor = MaterialTheme.colorScheme.primary,
+                        badgeOnColor = MaterialTheme.colorScheme.onPrimary,
+                        title = "Profile + Shared Avatar",
+                        subtitle = "The user avatar above flies to ProfileScreen via sharedBounds() — zero extra APIs",
+                        action = "View Profile →",
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedContentScope = animatedContentScope,
+                        onAction = {
+                            navController.navigateToProfile(
+                                username = args.userId,
+                                bio = "KMP developer · Compose enthusiast · Open-source contributor"
                             )
                         }
                     )
@@ -286,6 +352,82 @@ class MainScreen : NavScreen() {
                                         style = MaterialTheme.typography.bodySmall,
                                         color = if (res.liked) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
                                                 else MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.75f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ── Gallery detail result banner ───────────────────────────────
+                galleryDetailResult?.let { res ->
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            color = if (res.bookmarked) MaterialTheme.colorScheme.secondaryContainer
+                                    else MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(20.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    text = if (res.bookmarked) "🔖" else "✖️",
+                                    style = MaterialTheme.typography.headlineSmall
+                                )
+                                Column {
+                                    Text(
+                                        text = "Result from Gallery Detail",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (res.bookmarked) MaterialTheme.colorScheme.onSecondaryContainer
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "bookmarked = ${res.bookmarked}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (res.bookmarked) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
+                                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ── Profile result banner ──────────────────────────────────────
+                profileResult?.let { res ->
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            color = if (res.followed) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(20.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    text = if (res.followed) "➕" else "✖️",
+                                    style = MaterialTheme.typography.headlineSmall
+                                )
+                                Column {
+                                    Text(
+                                        text = "Result from Profile",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (res.followed) MaterialTheme.colorScheme.onPrimaryContainer
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "followed = ${res.followed}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (res.followed) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
+                                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
                                     )
                                 }
                             }
