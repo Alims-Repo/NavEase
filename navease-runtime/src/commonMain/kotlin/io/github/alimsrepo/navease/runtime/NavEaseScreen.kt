@@ -1,0 +1,8 @@
+package io.github.alimsrepo.navease.runtime
+
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.SOURCE)
+annotation class NavEaseScreen(
+    val route: String
+)
+

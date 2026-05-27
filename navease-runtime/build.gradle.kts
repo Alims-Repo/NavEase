@@ -42,11 +42,12 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
+                implementation(libs.kotlin.stdlib)
 
                 implementation(compose.runtime)
-                implementation(libs.kotlin.stdlib)
-                // Navigation
-                implementation(libs.androidx.navigation3.ui)
+                implementation(libs.compose.material3)
+                // Navigation — exposed as api so consumers (e.g. :shared) can use NavKey directly
+                api(libs.androidx.navigation3.ui)
             }
         }
     }

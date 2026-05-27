@@ -34,22 +34,28 @@ kotlin {
     }
 
     android {
-       namespace = "com.alim.navease.shared"
-       compileSdk = libs.versions.android.compileSdk.get().toInt()
-       minSdk = libs.versions.android.minSdk.get().toInt()
+        namespace = "com.alim.navease.shared"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
 
-       compilerOptions {
-           jvmTarget = JvmTarget.JVM_11
-       }
-       androidResources {
-           enable = true
-       }
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_11
+        }
+        androidResources {
+            enable = true
+        }
     }
 
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
         }
+
+        // Wire KSP commonMain metadata output so the generated ScreenFactory is visible to all targets
+        commonMain {
+            kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+        }
+
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
@@ -61,9 +67,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
 
-            // NavEase: runtime is a KMP library — use 'api' to expose NavEaseKey,
-            // NavEaseController etc. transitively to androidApp consumers.
-            api(project(":navease-runtime"))
+            implementation(project(":navease-runtime"))
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -74,23 +78,17 @@ kotlin {
     }
 }
 
-// ── KSP ───────────────────────────────────────────────────────────────────────
-// ksp(...) cannot be used inside sourceSets.commonMain.dependencies {}.
-// KSP configurations are module-level and platform-specific.
-// The processor still SEES all commonMain symbols because KSP runs during
-// each platform's compilation and has access to the full source tree.
-dependencies {
-    // ── NavEase KSP ────────────────────────────────────────────────────────────
-    // ksp(...) cannot be declared inside sourceSets.commonMain.dependencies {}.
-    // KSP configurations are module-level and platform-specific.
-    //
-    // "kspAndroid" targets the androidMain source set (+ commonMain which is visible
-    // to every Android compilation). This is what produces the NavEaseGeneratedFactory
-    // and the NavEaseHost composable used by MainActivity.
-    add("kspAndroid", project(":navease-ksp"))
 
-    // JVM / Desktop target — generates its own factory for desktop apps.
-    add("kspJvm", project(":navease-ksp"))
+dependencies {
+    // KSP runs once against commonMain — screens are common code, so one generation covers all targets
+    add("kspCommonMainMetadata", project(":navease-ksp"))
 
     androidRuntimeClasspath(libs.compose.uiTooling)
+}
+
+// All platform compilations must wait for commonMain KSP to finish first
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+    if (name != "kspCommonMainKotlinMetadata") {
+        dependsOn("kspCommonMainKotlinMetadata")
+    }
 }
