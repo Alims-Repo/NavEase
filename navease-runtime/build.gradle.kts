@@ -1,63 +1,38 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidMultiplatformLibrary)
-    alias(libs.plugins.androidLint)
+    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
-    android {
-        namespace = "io.github.alimsrepo.navease.runtime"
-        compileSdk {
-            version = release(37)
-        }
-        minSdk = 24
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_11
+    }
+}
+
+android {
+    namespace = "io.github.alimsrepo.navease.runtime"
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
+
+    defaultConfig {
+        minSdk = libs.versions.android.minSdk.get().toInt()
     }
 
-    val xcfName = "navease-runtimeKit"
-
-    iosX64 {
-        binaries.framework {
-            baseName = xcfName
-        }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
+}
 
-    iosArm64 {
-        binaries.framework {
-            baseName = xcfName
-        }
-    }
-
-    iosSimulatorArm64 {
-        binaries.framework {
-            baseName = xcfName
-        }
-    }
-
-
-    sourceSets {
-        commonMain {
-            dependencies {
-                implementation(libs.kotlin.stdlib)
-
-            }
-        }
-
-        commonTest {
-            dependencies {
-                implementation(libs.kotlin.test)
-            }
-        }
-
-        androidMain {
-            dependencies {
-
-            }
-        }
-
-        iosMain {
-            dependencies {
-
-            }
-        }
-    }
+dependencies {
+    implementation(libs.compose.runtime)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.ui)
+    implementation(libs.compose.animation)
+    implementation(libs.compose.material3)
+    implementation(libs.kotlinx.serializationJson)
+    implementation(libs.kotlinx.coroutinesAndroid)
+    implementation(libs.kotlin.stdlib)
 }
