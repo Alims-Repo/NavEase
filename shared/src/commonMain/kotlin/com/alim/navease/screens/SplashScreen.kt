@@ -10,19 +10,20 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import io.github.alimsrepo.navease.generated.AppScreens
+import androidx.navigation3.runtime.NavKey
 import io.github.alimsrepo.navease.generated.mainResult
+import io.github.alimsrepo.navease.generated.navigateToMain
 import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
-import io.github.alimsrepo.navease.runtime.data.NavController
+import io.github.alimsrepo.navease.runtime.navigation.NavController
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import kotlinx.coroutines.delay
 
 @NavEaseScreen(route = "Splash", startDestination = true)
-class SplashScreen : NavScreen<AppScreens.Splash>() {
+class SplashScreen : NavScreen() {
 
     @Composable
     override fun Content(
-        navKey: AppScreens.Splash,
+        navKey: NavKey,
         navController: NavController
     ) {
         // Collect result returned from MainScreen (null until Main navigates back with a value)
@@ -30,7 +31,7 @@ class SplashScreen : NavScreen<AppScreens.Splash>() {
 
         LaunchedEffect(Unit) {
             delay(1000L)
-            navController.navigate(AppScreens.Main("user_a", 10))
+            navController.navigateToMain(userId = "user_a", age = 10)
         }
 
         Box(

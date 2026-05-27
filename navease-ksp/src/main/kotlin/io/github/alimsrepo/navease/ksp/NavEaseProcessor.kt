@@ -39,7 +39,7 @@ class NavEaseProcessor(
     override fun process(resolver: Resolver): List<KSAnnotated> {
         if (generated) return emptyList()
 
-        // Correct FQN: io.github.alimsrepo.navease.runtime.NavEaseScreen
+        // Correct FQN matches the annotations sub-package
         val symbols = resolver
             .getSymbolsWithAnnotation("io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen")
             .filterIsInstance<KSClassDeclaration>()
@@ -89,6 +89,7 @@ class NavEaseProcessor(
         generateAppScreens(entries, startEntry.route, deps)
         generateScreenFactory(entries, deps)
         generateNavEaseResults(entries, deps)
+        generateNavEaseExtensions(entries, deps)
         generateNavEaseHost(deps)
 
         return emptyList()
@@ -191,7 +192,7 @@ class NavEaseProcessor(
                 $imports
 
                 object ScreenFactory {
-                    fun createScreen(appScreen: NavKey): NavScreen<*> {
+                    fun createScreen(appScreen: NavKey): NavScreen {
                         return when (appScreen) {
                             $whenBranches
                             else -> error(
@@ -240,9 +241,9 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
 
                 import androidx.compose.runtime.Composable
                 import androidx.compose.runtime.State
-                import io.github.alimsrepo.navease.runtime.data.NavController
-                import io.github.alimsrepo.navease.runtime.data.backWithResult
-                import io.github.alimsrepo.navease.runtime.data.resultOf
+                import io.github.alimsrepo.navease.runtime.navigation.NavController
+                import io.github.alimsrepo.navease.runtime.navigation.backWithResult
+                import io.github.alimsrepo.navease.runtime.navigation.resultOf
                 $customImports
 
                 // ── Result data classes ──────────────────────────────────────────────────
@@ -260,6 +261,68 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
         }
     }
 
+    private fun generateNavEaseExtensions(entries: List<ScreenEntry>, deps: Dependencies) {
+        // navigateToXxx() — one extension per screen on NavController
+        val navExtensions = entries.joinToString("\n\n") { entry ->
+            val fnName = "navigateTo${entry.route}"
+            val paramList = if (entry.args.isNullOrEmpty()) {
+                "finish: Boolean = false"
+            } else {
+                entry.args.joinToString(", ") { (name, t) -> "$name: ${t.shortName}" } + ", finish: Boolean = false"
+            }
+            val keyConstruct = if (entry.args.isNullOrEmpty()) {
+                "AppScreens.${entry.route}"
+            } else {
+                val argNames = entry.args.joinToString(", ") { (name, _) -> "$name = $name" }
+                "AppScreens.${entry.route}($argNames)"
+            }
+            """fun NavController.$fnName($paramList) {
+    navigate($keyConstruct, finish = finish)
+}"""
+        }
+
+        // xxxArgs() — one extension per screen that has @NavEaseArgs
+        val argsExtensions = entries.filter { !it.args.isNullOrEmpty() }.joinToString("\n\n") { entry ->
+            val simpleName = entry.fqName.substringAfterLast('.')
+            val fnName = "${entry.route.replaceFirstChar { it.lowercaseChar() }}Args"
+            val argAssignments = entry.args!!.joinToString(", ") { (name, _) -> "$name = key.$name" }
+            """fun NavKey.${fnName}(): $simpleName.Args {
+    val key = this as AppScreens.${entry.route}
+    return $simpleName.Args($argAssignments)
+}"""
+        }
+
+        // Collect custom type imports from args across all screens
+        val customImports = importsFrom(entries.flatMap { it.args.orEmpty() })
+        // Collect screen class imports
+        val screenImports = entries
+            .filter { !it.args.isNullOrEmpty() }
+            .joinToString("\n") { "import ${it.fqName}" }
+
+        val body = buildString {
+            append("// ── navigateToXxx() extensions on NavController ─────────────────────────\n\n")
+            append(navExtensions)
+            if (argsExtensions.isNotEmpty()) {
+                append("\n\n// ── xxxArgs() extensions on NavKey ──────────────────────────────────────\n\n")
+                append(argsExtensions)
+            }
+        }
+
+        val file = codeGenerator.createNewFile(deps, "io.github.alimsrepo.navease.generated", "NavEaseExtensions")
+        file.bufferedWriter().use {
+            it.write("""
+                package io.github.alimsrepo.navease.generated
+
+                import androidx.navigation3.runtime.NavKey
+                import io.github.alimsrepo.navease.runtime.navigation.NavController
+                $screenImports
+                $customImports
+
+                $body
+            """.trimIndent())
+        }
+    }
+
     private fun generateNavEaseHost(deps: Dependencies) {
         val file = codeGenerator.createNewFile(deps, "io.github.alimsrepo.navease.generated", "NavEaseHost")
         file.bufferedWriter().use {
@@ -267,7 +330,7 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
                 package io.github.alimsrepo.navease.generated
 
                 import androidx.compose.runtime.Composable
-                import io.github.alimsrepo.navease.runtime.presentation.AppNavGraph
+                import io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph
 
                 /**
                  * Generated navigation host. Place this once in your root composable.
@@ -278,7 +341,7 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
                  */
                 @Composable
                 fun NavEaseHost(onExitRequest: () -> Unit = {}) {
-                    AppNavGraph(
+                    NavEaseNavGraph(
                         initialScreen = AppScreens.startDestination,
                         savedStateConfig = AppScreens.savedStateConfig,
                         screenFactory = ScreenFactory::createScreen,

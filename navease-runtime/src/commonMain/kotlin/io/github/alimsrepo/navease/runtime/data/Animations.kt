@@ -1,47 +1,10 @@
 package io.github.alimsrepo.navease.runtime.data
 
-import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
-
-object Animations {
-
-    const val DURATION = 450
-
-    val enterTransition = slideInHorizontally(
-        initialOffsetX = { fullWidth -> fullWidth },
-        animationSpec = tween(DURATION)
-    )
-
-    val exitTransition = slideOutHorizontally(
-        targetOffsetX = { fullWidth -> -fullWidth / 4 },
-        animationSpec = tween(DURATION)
-    )
-
-    val popEnterTransition = slideInHorizontally(
-        initialOffsetX = { fullWidth -> -fullWidth / 4 },
-        animationSpec = tween(DURATION)
-    )
-
-    val popExitTransition = slideOutHorizontally(
-        targetOffsetX = { fullWidth -> fullWidth },
-        animationSpec = tween(DURATION)
-    )
-
-    val transitionSpec = enterTransition togetherWith exitTransition
-
-    val popTransitionSpec = popEnterTransition togetherWith popExitTransition
-
-
-
-
-    val forwardTransition: ContentTransform =
-        ContentTransform(enterTransition, exitTransition, sizeTransform = SizeTransform(clip = false))
-
-    val backTransition: ContentTransform =
-        ContentTransform(popEnterTransition, popExitTransition, sizeTransform = SizeTransform(clip = false))
-
-}
+// ---------------------------------------------------------------------------
+// DEPRECATED — Animations has moved to
+//   io.github.alimsrepo.navease.runtime.presentation.Animations
+//
+// This file is retained only so the build system does not complain about a
+// missing source file referenced by incremental build caches. Do not add new
+// code here.
+// ---------------------------------------------------------------------------

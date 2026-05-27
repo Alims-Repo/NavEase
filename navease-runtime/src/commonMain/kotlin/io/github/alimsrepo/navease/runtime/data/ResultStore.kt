@@ -1,75 +1,14 @@
 package io.github.alimsrepo.navease.runtime.data
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import kotlin.reflect.KClass
-
-/**
- * Posts [result] back to the previous screen and immediately pops the current screen.
- *
- * The result is stored in the [NavController] instance that owns this back stack, so multiple
- * independent navigation hosts never cross-contaminate each other's results.
- *
- * @throws IllegalStateException if [result] is an anonymous or local class (qualifiedName is null).
- */
-fun NavController.backWithResult(result: Any) {
-    val key = result::class.qualifiedName
-        ?: error(
-            "NavEase: Cannot use an anonymous or local class as a result. " +
-            "Declare a named data class annotated with @NavEaseResult instead."
-        )
-    results[key] = result
-    back()
-}
-
-/**
- * Observes the result of type [T] returned by a child screen via [backWithResult].
- *
- * The result is **consumed exactly once**: the returned [State] transitions from `null` to the
- * received value, and stays at that value until the composable leaves the composition. Subsequent
- * calls after consumption return `null` until a new result is posted.
- *
- * Implementation notes:
- * - [results] is a [androidx.compose.runtime.snapshots.SnapshotStateMap], so reading it inside
- *   [derivedStateOf] creates a reactive read dependency — recomposition triggers automatically
- *   the moment [backWithResult] puts a matching entry.
- * - [LaunchedEffect] runs after the first recomposition that observes a non-null [pending] value,
- *   removes the entry from [results] (one-shot), and commits it to a stable local [State].
- *
- * @param clazz The [KClass] of the expected result type.
- */
-@Composable
-fun <T : Any> NavController.resultOf(clazz: KClass<T>): State<T?> {
-    val key = clazz.qualifiedName
-        ?: error(
-            "NavEase: Cannot observe results for an anonymous or local class. " +
-            "Use a named data class annotated with @NavEaseResult instead."
-        )
-
-    // Stable local state that holds the consumed value for the caller to read.
-    // This persists across recompositions until the composable leaves the composition.
-    val state = remember(key) { mutableStateOf<T?>(null) }
-
-    // Reactively watch the instance-scoped results map. When a matching entry appears
-    // (posted by backWithResult on a child screen), transfer it to local state and
-    // immediately remove it from the map so it is consumed exactly once.
-    val pending = remember(key) {
-        derivedStateOf {
-            @Suppress("UNCHECKED_CAST")
-            results[key] as? T
-        }
-    }.value
-
-    LaunchedEffect(pending) {
-        if (pending != null) {
-            results.remove(key)
-            state.value = pending
-        }
-    }
-
-    return state
-}
+// ---------------------------------------------------------------------------
+// MOVED — backWithResult() and resultOf() have moved to
+//   io.github.alimsrepo.navease.runtime.navigation.NavControllerExtensions
+//
+// These extension functions cannot be re-exported here as deprecated wrappers
+// because the typealias NavController = navigation.NavController resolves to
+// the same JVM receiver and would create a duplicate method signature error.
+//
+// Update your imports:
+//   import io.github.alimsrepo.navease.runtime.navigation.backWithResult
+//   import io.github.alimsrepo.navease.runtime.navigation.resultOf
+// ---------------------------------------------------------------------------

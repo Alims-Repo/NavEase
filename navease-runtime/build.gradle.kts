@@ -18,6 +18,7 @@ kotlin {
             version = release(37)
         }
         minSdk = 24
+//        consumerProguardFiles("consumer-rules.pro")
     }
 
     listOf(
