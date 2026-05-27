@@ -9,16 +9,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 /**
- * Shared placeholder composable.
+ * Common app composable used by non-Android platforms (iOS, Web, Desktop).
  *
- * The Android sample app no longer uses this — it calls the generated [NavEaseHost] directly.
- * This file exists so the shared module compiles across all platforms (iOS, Web, Desktop).
+ * On Android, [MainActivity] calls the KSP-generated `NavEaseHost` directly, so this
+ * composable is only used by other platform entry points.
+ *
+ * For those platforms you can wire up `NavEaseHostInternal` with a platform-specific
+ * factory, or replace this with your own cross-platform navigation setup.
  */
 @Composable
 fun App() {
     MaterialTheme {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("NavEase — run the Android app to see the full demo.")
+            Text("NavEase — see the Android app for the full navigation demo.")
         }
     }
 }

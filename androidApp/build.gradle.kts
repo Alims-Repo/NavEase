@@ -4,8 +4,6 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.kotlinSerialization)
-    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -13,15 +11,14 @@ kotlin {
         jvmTarget = JvmTarget.JVM_11
     }
 }
-dependencies {
-    implementation(projects.shared)
-    implementation(project(":navease-runtime"))
-    ksp(project(":navease-ksp"))
 
+dependencies {
+    // shared pulls in navease-runtime (KMP) and the KSP-generated factory
+    implementation(projects.shared)
     implementation(libs.androidx.activity.compose)
+
+    // Compose dependencies needed by MainActivity (material3 for MaterialTheme)
     implementation(libs.compose.material3)
-    implementation(libs.compose.foundation)
-    implementation(libs.compose.ui)
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
