@@ -13,14 +13,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.alimsrepo.navease.generated.AppScreens
-import io.github.alimsrepo.navease.runtime.NavEaseArgs
-import io.github.alimsrepo.navease.runtime.NavEaseResult
-import io.github.alimsrepo.navease.runtime.NavEaseScreen
+import io.github.alimsrepo.navease.runtime.annotations.NavEaseArgs
+import io.github.alimsrepo.navease.runtime.annotations.NavEaseResult
+import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
 import io.github.alimsrepo.navease.generated.backWithMainResult
 import io.github.alimsrepo.navease.runtime.data.NavController
+import io.github.alimsrepo.navease.runtime.data.backWithResult
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
-
-data class SampleData(val name: String, val count: Int)
 
 @NavEaseScreen(route = "Main")
 class MainScreen  : NavScreen<AppScreens.Main>() {
@@ -29,7 +28,7 @@ class MainScreen  : NavScreen<AppScreens.Main>() {
     data class Args(val userId: String, val age: Int)
 
     @NavEaseResult
-    data class Result(val value: Int, val sampleData: SampleData)
+    data class Result(val value: Int)
 
     @Composable
     override fun Content(
@@ -52,7 +51,15 @@ class MainScreen  : NavScreen<AppScreens.Main>() {
                 FlowRow {
                     Button(
                         onClick = {
-                            navController.backWithMainResult(value = 1, sampleData = SampleData("Sample", 42))
+                            navController.backWithMainResult(value = 1)
+                        }
+                    ) {
+                        Text("Return -> 0")
+                    }
+
+                    Button(
+                        onClick = {
+                            navController.backWithMainResult(value = 2)
                         }
                     ) {
                         Text("Return -> 1")
@@ -60,7 +67,7 @@ class MainScreen  : NavScreen<AppScreens.Main>() {
 
                     Button(
                         onClick = {
-                            navController.backWithMainResult(value = 2, sampleData = SampleData("Sample", 42))
+                            navController.backWithMainResult(value = 3)
                         }
                     ) {
                         Text("Return -> 2")
@@ -68,10 +75,10 @@ class MainScreen  : NavScreen<AppScreens.Main>() {
 
                     Button(
                         onClick = {
-                            navController.backWithMainResult(value = 3, sampleData = SampleData("Sample", 42))
+                            navController.back()
                         }
                     ) {
-                        Text("Return -> 3")
+                        Text("Return -Nothing")
                     }
                 }
             }

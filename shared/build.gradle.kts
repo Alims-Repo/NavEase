@@ -52,27 +52,24 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
         }
 
-        // Wire KSP commonMain metadata output so the generated ScreenFactory is visible to all targets
         commonMain {
             kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+
+            dependencies {
+                implementation(libs.compose.runtime)
+                implementation(libs.compose.foundation)
+                implementation(libs.compose.material3)
+                implementation(libs.compose.ui)
+                implementation(libs.compose.components.resources)
+                implementation(libs.compose.uiToolingPreview)
+
+                implementation(libs.androidx.lifecycle.viewmodelCompose)
+                implementation(libs.androidx.lifecycle.runtimeCompose)
+
+                implementation(project(":navease-runtime"))
+            }
         }
 
-        commonMain.dependencies {
-            implementation(libs.compose.runtime)
-            implementation(libs.compose.foundation)
-            implementation(libs.compose.material3)
-            implementation(libs.compose.ui)
-            implementation(libs.compose.components.resources)
-            implementation(libs.compose.uiToolingPreview)
-
-            implementation(libs.androidx.lifecycle.viewmodelCompose)
-            implementation(libs.androidx.lifecycle.runtimeCompose)
-
-            implementation(project(":navease-runtime"))
-        }
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
-        }
         jsMain.dependencies {
             implementation(libs.wrappers.browser)
         }
@@ -81,13 +78,11 @@ kotlin {
 
 
 dependencies {
-    // KSP runs once against commonMain — screens are common code, so one generation covers all targets
     add("kspCommonMainMetadata", project(":navease-ksp"))
 
     androidRuntimeClasspath(libs.compose.uiTooling)
 }
 
-// All platform compilations must wait for commonMain KSP to finish first
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
     if (name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")

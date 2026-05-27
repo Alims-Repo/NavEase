@@ -12,7 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import io.github.alimsrepo.navease.generated.AppScreens
 import io.github.alimsrepo.navease.generated.mainResult
-import io.github.alimsrepo.navease.runtime.NavEaseScreen
+import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
 import io.github.alimsrepo.navease.runtime.data.NavController
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import kotlinx.coroutines.delay

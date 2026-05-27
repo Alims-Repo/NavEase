@@ -6,6 +6,7 @@ import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSType
 
 class NavEaseProcessor(
     private val codeGenerator: CodeGenerator
@@ -13,20 +14,34 @@ class NavEaseProcessor(
 
     private var generated = false
 
-    data class ScreenEntry(
+    /**
+     * Resolved type information for a single constructor parameter.
+     *
+     * @property shortName  Unqualified name used in generated source (e.g. `"SampleData?"`).
+     * @property importFqn  Fully-qualified name to emit as an `import`, or `null` for
+     *                      built-in Kotlin types that need no import.
+     */
+    private data class TypeInfo(val shortName: String, val importFqn: String?)
+
+    /** A single constructor parameter with its resolved type. */
+    private data class ArgParam(val name: String, val typeInfo: TypeInfo)
+
+    private data class ScreenEntry(
         val route: String,
         val fqName: String,
         val isStart: Boolean,
-        /** null = data object, non-null = data class with these (name, type) params */
-        val args: List<Pair<String, String>>?,
-        /** null = no result, non-null = result fields (name, type) */
-        val result: List<Pair<String, String>>?
+        /** null = data object (no args), non-null = data class with these params */
+        val args: List<ArgParam>?,
+        /** null = no result, non-null = result fields */
+        val result: List<ArgParam>?
     )
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         if (generated) return emptyList()
 
-        val symbols = resolver.getSymbolsWithAnnotation("io.github.alimsrepo.navease.runtime.NavEaseScreen")
+        // Correct FQN: io.github.alimsrepo.navease.runtime.NavEaseScreen
+        val symbols = resolver
+            .getSymbolsWithAnnotation("io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen")
             .filterIsInstance<KSClassDeclaration>()
             .toList()
 
@@ -34,12 +49,18 @@ class NavEaseProcessor(
 
         generated = true
 
+        // Collect all source files that contribute @NavEaseScreen classes so KSP can
+        // correctly track which outputs depend on which inputs for incremental builds.
+        val allSourceFiles = symbols.mapNotNull { it.containingFile }.toSet()
+        val deps = Dependencies(aggregating = true, *allSourceFiles.toTypedArray())
+
         val entries = symbols.map { cls ->
             val annotation = cls.annotations.first { it.shortName.asString() == "NavEaseScreen" }
             val route = annotation.arguments.first { it.name?.asString() == "route" }.value as String
-            val isStart = annotation.arguments.firstOrNull { it.name?.asString() == "startDestination" }?.value as? Boolean ?: false
+            val isStart = annotation.arguments
+                .firstOrNull { it.name?.asString() == "startDestination" }
+                ?.value as? Boolean ?: false
 
-            // Look for a nested class annotated with @NavEaseArgs
             val argsClass = cls.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .firstOrNull { nested ->
@@ -47,10 +68,9 @@ class NavEaseProcessor(
                 }
 
             val args = argsClass?.primaryConstructor?.parameters?.map { param ->
-                param.name!!.asString() to resolveTypeName(param.type.resolve())
+                ArgParam(param.name!!.asString(), resolveTypeInfo(param.type.resolve()))
             }
 
-            // Look for a nested class annotated with @NavEaseResult
             val resultClass = cls.declarations
                 .filterIsInstance<KSClassDeclaration>()
                 .firstOrNull { nested ->
@@ -58,7 +78,7 @@ class NavEaseProcessor(
                 }
 
             val resultFields = resultClass?.primaryConstructor?.parameters?.map { param ->
-                param.name!!.asString() to resolveTypeName(param.type.resolve())
+                ArgParam(param.name!!.asString(), resolveTypeInfo(param.type.resolve()))
             }
 
             ScreenEntry(route, cls.qualifiedName!!.asString(), isStart, args, resultFields)
@@ -66,37 +86,51 @@ class NavEaseProcessor(
 
         val startEntry = entries.firstOrNull { it.isStart } ?: entries.first()
 
-        generateAppScreens(entries, startEntry.route)
-        generateScreenFactory(entries)
-        generateNavEaseResults(entries)
-        generateNavEaseHost()
+        generateAppScreens(entries, startEntry.route, deps)
+        generateScreenFactory(entries, deps)
+        generateNavEaseResults(entries, deps)
+        generateNavEaseHost(deps)
 
         return emptyList()
     }
 
-    private fun resolveTypeName(type: com.google.devtools.ksp.symbol.KSType): String {
-        val typeName = type.declaration.qualifiedName?.asString() ?: "String"
+    /**
+     * Resolves a KSP type into a [TypeInfo] holding:
+     * - the short (unqualified) name safe to use directly in generated source
+     * - the FQN to emit as an `import`, or null for built-in Kotlin types
+     */
+    private fun resolveTypeInfo(type: KSType): TypeInfo {
+        val fqn = type.declaration.qualifiedName?.asString() ?: "kotlin.String"
         val nullable = if (type.isMarkedNullable) "?" else ""
-        val shortName = when (typeName) {
-            "kotlin.String" -> "String"
-            "kotlin.Int" -> "Int"
-            "kotlin.Long" -> "Long"
-            "kotlin.Boolean" -> "Boolean"
-            "kotlin.Double" -> "Double"
-            "kotlin.Float" -> "Float"
-            else -> typeName
+        return when (fqn) {
+            "kotlin.String"  -> TypeInfo("String$nullable",  null)
+            "kotlin.Int"     -> TypeInfo("Int$nullable",     null)
+            "kotlin.Long"    -> TypeInfo("Long$nullable",    null)
+            "kotlin.Boolean" -> TypeInfo("Boolean$nullable", null)
+            "kotlin.Double"  -> TypeInfo("Double$nullable",  null)
+            "kotlin.Float"   -> TypeInfo("Float$nullable",   null)
+            else             -> TypeInfo(
+                shortName = "${fqn.substringAfterLast('.')}$nullable",
+                importFqn = fqn
+            )
         }
-        return "$shortName$nullable"
     }
 
-    private fun generateAppScreens(entries: List<ScreenEntry>, startRoute: String) {
+    /** Collects all non-null import FQNs from a list of [ArgParam]s, sorted for determinism. */
+    private fun importsFrom(params: List<ArgParam>): String =
+        params.mapNotNull { it.typeInfo.importFqn }
+            .toSortedSet()
+            .joinToString("\n") { "import $it" }
+
+    private fun generateAppScreens(entries: List<ScreenEntry>, startRoute: String, deps: Dependencies) {
+        // Gather any custom-type imports needed for @NavEaseArgs parameters
+        val customImports = importsFrom(entries.flatMap { it.args.orEmpty() })
+
         val subclasses = entries.joinToString("\n    ") { entry ->
             if (entry.args == null) {
-                // No args → data object
                 "@Serializable data object ${entry.route} : AppScreens()"
             } else {
-                // Has args → data class
-                val params = entry.args.joinToString(", ") { (name, type) -> "val $name: $type" }
+                val params = entry.args.joinToString(", ") { (name, t) -> "val $name: ${t.shortName}" }
                 "@Serializable data class ${entry.route}($params) : AppScreens()"
             }
         }
@@ -105,11 +139,7 @@ class NavEaseProcessor(
             "subclass(${entry.route}::class)"
         }
 
-        val file = codeGenerator.createNewFile(
-            Dependencies(false),
-            "io.github.alimsrepo.navease.generated",
-            "AppScreens"
-        )
+        val file = codeGenerator.createNewFile(deps, "io.github.alimsrepo.navease.generated", "AppScreens")
         file.bufferedWriter().use {
             it.write("""
                 package io.github.alimsrepo.navease.generated
@@ -121,6 +151,7 @@ class NavEaseProcessor(
                 import kotlinx.serialization.modules.SerializersModule
                 import kotlinx.serialization.modules.polymorphic
                 import kotlinx.serialization.modules.subclass
+                $customImports
 
                 @Stable
                 @Serializable
@@ -143,18 +174,14 @@ class NavEaseProcessor(
         }
     }
 
-    private fun generateScreenFactory(entries: List<ScreenEntry>) {
+    private fun generateScreenFactory(entries: List<ScreenEntry>, deps: Dependencies) {
         val imports = entries.joinToString("\n") { "import ${it.fqName}" }
         val whenBranches = entries.joinToString("\n            ") { entry ->
             val simpleName = entry.fqName.substringAfterLast('.')
             "is AppScreens.${entry.route} -> $simpleName()"
         }
 
-        val file = codeGenerator.createNewFile(
-            Dependencies(false),
-            "io.github.alimsrepo.navease.generated",
-            "ScreenFactory"
-        )
+        val file = codeGenerator.createNewFile(deps, "io.github.alimsrepo.navease.generated", "ScreenFactory")
         file.bufferedWriter().use {
             it.write("""
                 package io.github.alimsrepo.navease.generated
@@ -167,7 +194,11 @@ class NavEaseProcessor(
                     fun createScreen(appScreen: NavKey): NavScreen<*> {
                         return when (appScreen) {
                             $whenBranches
-                            else -> error("Unknown screen: ${'$'}appScreen")
+                            else -> error(
+                                "NavEase: No screen registered for key type '${'$'}{appScreen::class.simpleName}'. " +
+                                "Did you forget to annotate the corresponding class with @NavEaseScreen? " +
+                                "If you just added a new screen, try rebuilding the project."
+                            )
                         }
                     }
                 }
@@ -175,25 +206,26 @@ class NavEaseProcessor(
         }
     }
 
-    private fun generateNavEaseResults(entries: List<ScreenEntry>) {
+    private fun generateNavEaseResults(entries: List<ScreenEntry>, deps: Dependencies) {
         val withResults = entries.filter { it.result != null }
         if (withResults.isEmpty()) return
 
+        // Gather any custom-type imports needed for @NavEaseResult parameters
+        val customImports = importsFrom(withResults.flatMap { it.result.orEmpty() })
+
         val resultClasses = withResults.joinToString("\n\n") { entry ->
-            val params = entry.result!!.joinToString(", ") { (name, type) -> "val $name: $type" }
+            val params = entry.result!!.joinToString(", ") { (name, t) -> "val $name: ${t.shortName}" }
             "data class ${entry.route}Result($params)"
         }
 
-        // backWithXxxResult(...) functions
         val backFunctions = withResults.joinToString("\n\n") { entry ->
-            val params = entry.result!!.joinToString(", ") { (name, type) -> "$name: $type" }
+            val params = entry.result!!.joinToString(", ") { (name, t) -> "$name: ${t.shortName}" }
             val args = entry.result.joinToString(", ") { (name, _) -> name }
             """fun NavController.backWith${entry.route}Result($params) {
     backWithResult(${entry.route}Result($args))
 }"""
         }
 
-        // @Composable xxxResult(): State<XxxResult?> functions
         val resultFunctions = withResults.joinToString("\n\n") { entry ->
             val fnName = entry.route.replaceFirstChar { it.lowercaseChar() }
             """@Composable
@@ -201,11 +233,7 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
     resultOf(${entry.route}Result::class)"""
         }
 
-        val file = codeGenerator.createNewFile(
-            Dependencies(false),
-            "io.github.alimsrepo.navease.generated",
-            "NavEaseResults"
-        )
+        val file = codeGenerator.createNewFile(deps, "io.github.alimsrepo.navease.generated", "NavEaseResults")
         file.bufferedWriter().use {
             it.write("""
                 package io.github.alimsrepo.navease.generated
@@ -215,6 +243,7 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
                 import io.github.alimsrepo.navease.runtime.data.NavController
                 import io.github.alimsrepo.navease.runtime.data.backWithResult
                 import io.github.alimsrepo.navease.runtime.data.resultOf
+                $customImports
 
                 // ── Result data classes ──────────────────────────────────────────────────
 
@@ -231,12 +260,8 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
         }
     }
 
-    private fun generateNavEaseHost() {
-        val file = codeGenerator.createNewFile(
-            Dependencies(false),
-            "io.github.alimsrepo.navease.generated",
-            "NavEaseHost"
-        )
+    private fun generateNavEaseHost(deps: Dependencies) {
+        val file = codeGenerator.createNewFile(deps, "io.github.alimsrepo.navease.generated", "NavEaseHost")
         file.bufferedWriter().use {
             it.write("""
                 package io.github.alimsrepo.navease.generated
@@ -244,12 +269,20 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
                 import androidx.compose.runtime.Composable
                 import io.github.alimsrepo.navease.runtime.presentation.AppNavGraph
 
+                /**
+                 * Generated navigation host. Place this once in your root composable.
+                 *
+                 * @param onExitRequest Called when the user presses back on the root screen.
+                 *                      Use this to show an exit dialog or finish the Activity.
+                 *                      Defaults to a no-op (suitable for iOS / web targets).
+                 */
                 @Composable
-                fun NavEaseHost() {
+                fun NavEaseHost(onExitRequest: () -> Unit = {}) {
                     AppNavGraph(
                         initialScreen = AppScreens.startDestination,
                         savedStateConfig = AppScreens.savedStateConfig,
-                        screenFactory = ScreenFactory::createScreen
+                        screenFactory = ScreenFactory::createScreen,
+                        onExitRequest = onExitRequest
                     )
                 }
             """.trimIndent())
