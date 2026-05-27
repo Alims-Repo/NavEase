@@ -1,5 +1,6 @@
 package io.github.alimsrepo.navease.runtime.data
 
+import io.github.alimsrepo.navease.runtime.SplashScreen
 import io.github.alimsrepo.navease.runtime.domain.AppScreens
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
 
