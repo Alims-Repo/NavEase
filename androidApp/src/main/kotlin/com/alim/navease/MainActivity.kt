@@ -6,10 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 
-// NavEaseHost is KSP-generated inside the :shared module's Android compilation.
-// It lives in io.github.alimsrepo.navease.generated and is accessible via :shared.
-import io.github.alimsrepo.navease.generated.NavEaseHost
-
 /**
  * Sample application entry point.
  *
@@ -22,12 +18,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
-                NavEaseHost(
-                    startDestination = AppScreens.Splash,
-                    debugOverlay = BuildConfig.DEBUG,
-                )
-            }
+            App()
         }
     }
 }

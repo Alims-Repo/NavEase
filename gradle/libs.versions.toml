@@ -14,7 +14,8 @@ junit = "4.13.2"
 kotlin = "2.3.21"
 kotlin-wrappers = "2026.5.6"
 kotlinx-coroutines = "1.11.0"
-kotlinx-serialization = "1.8.1"
+kotlinx-serialization = "1.11.0"
+androidxNavigation3UI = "1.1.1"
 ksp = "2.3.9"
 material3 = "1.11.0-alpha07"
 kotlinStdlib = "2.3.21"
@@ -49,6 +50,7 @@ kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", versio
 ksp-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
 androidx-runner = { group = "androidx.test", name = "runner", version.ref = "runner" }
 androidx-core = { group = "androidx.test", name = "core", version.ref = "core" }
+androidx-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "androidxNavigation3UI" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

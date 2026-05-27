@@ -1,46 +1,51 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidMultiplatformLibrary)
+    alias(libs.plugins.androidLint)
+
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
-    // ── Android ──────────────────────────────────────────────────────────────
-    androidLibrary {
+    android {
         namespace = "io.github.alimsrepo.navease.runtime"
-        compileSdk = libs.versions.android.compileSdk.get().toInt()
-        minSdk = libs.versions.android.minSdk.get().toInt()
+        compileSdk {
+            version = release(37)
+        }
+        minSdk = 24
+    }
 
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_11
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "navease-runtimeKit"
+            isStatic = true
         }
     }
 
-    // ── Desktop ───────────────────────────────────────────────────────────────
     jvm()
 
-    // ── iOS ───────────────────────────────────────────────────────────────────
-    iosArm64()
-    iosSimulatorArm64()
+    js { browser() }
 
-    // ── Source sets ───────────────────────────────────────────────────────────
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+    }
+
     sourceSets {
-        commonMain.dependencies {
-            implementation(libs.compose.runtime)
-            implementation(libs.compose.foundation)
-            implementation(libs.compose.animation)
-            implementation(libs.compose.ui)
-            implementation(libs.compose.material3)
-            implementation(libs.kotlinx.serializationJson)
-            implementation(libs.kotlin.stdlib)
-        }
+        commonMain {
+            dependencies {
 
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
+                implementation(compose.runtime)
+                implementation(libs.kotlin.stdlib)
+                // Navigation
+                implementation(libs.androidx.navigation3.ui)
+            }
         }
     }
 }
