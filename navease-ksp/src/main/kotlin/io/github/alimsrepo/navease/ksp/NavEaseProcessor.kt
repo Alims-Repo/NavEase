@@ -13,6 +13,16 @@ class NavEaseProcessor(
 
     private var generated = false
 
+    data class ScreenEntry(
+        val route: String,
+        val fqName: String,
+        val isStart: Boolean,
+        /** null = data object, non-null = data class with these (name, type) params */
+        val args: List<Pair<String, String>>?,
+        /** null = no result, non-null = result fields (name, type) */
+        val result: List<Pair<String, String>>?
+    )
+
     override fun process(resolver: Resolver): List<KSAnnotated> {
         if (generated) return emptyList()
 
@@ -24,35 +34,75 @@ class NavEaseProcessor(
 
         generated = true
 
-        data class ScreenEntry(
-            val route: String,
-            val fqName: String,
-            val isStart: Boolean
-        )
-
         val entries = symbols.map { cls ->
             val annotation = cls.annotations.first { it.shortName.asString() == "NavEaseScreen" }
             val route = annotation.arguments.first { it.name?.asString() == "route" }.value as String
             val isStart = annotation.arguments.firstOrNull { it.name?.asString() == "startDestination" }?.value as? Boolean ?: false
-            ScreenEntry(route, cls.qualifiedName!!.asString(), isStart)
+
+            // Look for a nested class annotated with @NavEaseArgs
+            val argsClass = cls.declarations
+                .filterIsInstance<KSClassDeclaration>()
+                .firstOrNull { nested ->
+                    nested.annotations.any { it.shortName.asString() == "NavEaseArgs" }
+                }
+
+            val args = argsClass?.primaryConstructor?.parameters?.map { param ->
+                param.name!!.asString() to resolveTypeName(param.type.resolve())
+            }
+
+            // Look for a nested class annotated with @NavEaseResult
+            val resultClass = cls.declarations
+                .filterIsInstance<KSClassDeclaration>()
+                .firstOrNull { nested ->
+                    nested.annotations.any { it.shortName.asString() == "NavEaseResult" }
+                }
+
+            val resultFields = resultClass?.primaryConstructor?.parameters?.map { param ->
+                param.name!!.asString() to resolveTypeName(param.type.resolve())
+            }
+
+            ScreenEntry(route, cls.qualifiedName!!.asString(), isStart, args, resultFields)
         }
 
-        // Fall back to first screen if none marked as startDestination
         val startEntry = entries.firstOrNull { it.isStart } ?: entries.first()
 
-        generateAppScreens(entries.map { it.route to it.fqName }, startEntry.route)
-        generateScreenFactory(entries.map { it.route to it.fqName })
+        generateAppScreens(entries, startEntry.route)
+        generateScreenFactory(entries)
+        generateNavEaseResults(entries)
         generateNavEaseHost()
 
         return emptyList()
     }
 
-    private fun generateAppScreens(entries: List<Pair<String, String>>, startRoute: String) {
-        val subclasses = entries.joinToString("\n    ") { (route, _) ->
-            "@Serializable data object $route : AppScreens()"
+    private fun resolveTypeName(type: com.google.devtools.ksp.symbol.KSType): String {
+        val typeName = type.declaration.qualifiedName?.asString() ?: "String"
+        val nullable = if (type.isMarkedNullable) "?" else ""
+        val shortName = when (typeName) {
+            "kotlin.String" -> "String"
+            "kotlin.Int" -> "Int"
+            "kotlin.Long" -> "Long"
+            "kotlin.Boolean" -> "Boolean"
+            "kotlin.Double" -> "Double"
+            "kotlin.Float" -> "Float"
+            else -> typeName
         }
-        val subclassEntries = entries.joinToString("\n                        ") { (route, _) ->
-            "subclass($route::class)"
+        return "$shortName$nullable"
+    }
+
+    private fun generateAppScreens(entries: List<ScreenEntry>, startRoute: String) {
+        val subclasses = entries.joinToString("\n    ") { entry ->
+            if (entry.args == null) {
+                // No args → data object
+                "@Serializable data object ${entry.route} : AppScreens()"
+            } else {
+                // Has args → data class
+                val params = entry.args.joinToString(", ") { (name, type) -> "val $name: $type" }
+                "@Serializable data class ${entry.route}($params) : AppScreens()"
+            }
+        }
+
+        val subclassEntries = entries.joinToString("\n                        ") { entry ->
+            "subclass(${entry.route}::class)"
         }
 
         val file = codeGenerator.createNewFile(
@@ -83,7 +133,7 @@ class NavEaseProcessor(
                         val savedStateConfig = SavedStateConfiguration {
                             serializersModule = SerializersModule {
                                 polymorphic(NavKey::class) {
-                                        $subclassEntries
+                                    $subclassEntries
                                 }
                             }
                         }
@@ -93,10 +143,11 @@ class NavEaseProcessor(
         }
     }
 
-    private fun generateScreenFactory(entries: List<Pair<String, String>>) {
-        val imports = entries.joinToString("\n") { (_, fqName) -> "import $fqName" }
-        val whenBranches = entries.joinToString("\n            ") { (route, fqName) ->
-            "is AppScreens.$route -> ${fqName.substringAfterLast('.')}()"
+    private fun generateScreenFactory(entries: List<ScreenEntry>) {
+        val imports = entries.joinToString("\n") { "import ${it.fqName}" }
+        val whenBranches = entries.joinToString("\n            ") { entry ->
+            val simpleName = entry.fqName.substringAfterLast('.')
+            "is AppScreens.${entry.route} -> $simpleName()"
         }
 
         val file = codeGenerator.createNewFile(
@@ -120,6 +171,62 @@ class NavEaseProcessor(
                         }
                     }
                 }
+            """.trimIndent())
+        }
+    }
+
+    private fun generateNavEaseResults(entries: List<ScreenEntry>) {
+        val withResults = entries.filter { it.result != null }
+        if (withResults.isEmpty()) return
+
+        val resultClasses = withResults.joinToString("\n\n") { entry ->
+            val params = entry.result!!.joinToString(", ") { (name, type) -> "val $name: $type" }
+            "data class ${entry.route}Result($params)"
+        }
+
+        // backWithXxxResult(...) functions
+        val backFunctions = withResults.joinToString("\n\n") { entry ->
+            val params = entry.result!!.joinToString(", ") { (name, type) -> "$name: $type" }
+            val args = entry.result.joinToString(", ") { (name, _) -> name }
+            """fun NavController.backWith${entry.route}Result($params) {
+    backWithResult(${entry.route}Result($args))
+}"""
+        }
+
+        // @Composable xxxResult(): State<XxxResult?> functions
+        val resultFunctions = withResults.joinToString("\n\n") { entry ->
+            val fnName = entry.route.replaceFirstChar { it.lowercaseChar() }
+            """@Composable
+fun NavController.${fnName}Result(): State<${entry.route}Result?> =
+    resultOf(${entry.route}Result::class)"""
+        }
+
+        val file = codeGenerator.createNewFile(
+            Dependencies(false),
+            "io.github.alimsrepo.navease.generated",
+            "NavEaseResults"
+        )
+        file.bufferedWriter().use {
+            it.write("""
+                package io.github.alimsrepo.navease.generated
+
+                import androidx.compose.runtime.Composable
+                import androidx.compose.runtime.State
+                import io.github.alimsrepo.navease.runtime.data.NavController
+                import io.github.alimsrepo.navease.runtime.data.backWithResult
+                import io.github.alimsrepo.navease.runtime.data.resultOf
+
+                // ── Result data classes ──────────────────────────────────────────────────
+
+                $resultClasses
+
+                // ── backWithXxxResult() extensions ───────────────────────────────────────
+
+                $backFunctions
+
+                // ── xxxResult() Composable extensions ────────────────────────────────────
+
+                $resultFunctions
             """.trimIndent())
         }
     }
