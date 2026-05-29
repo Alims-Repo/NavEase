@@ -37,11 +37,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
-import io.github.alimsrepo.navease.generated.mainResult
-import io.github.alimsrepo.navease.generated.navigateToMain
+import io.github.alimsrepo.navease.generated.navigateToHome
 import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import io.github.alimsrepo.navease.runtime.navigation.NavController
@@ -52,14 +52,13 @@ class SplashScreen : NavScreen() {
 
     @Composable
     override fun Content(navKey: NavKey, navController: NavController) {
-        val result by navController.mainResult()
 
         var hasNavigated by rememberSaveable { mutableStateOf(false) }
         LaunchedEffect(hasNavigated) {
             if (!hasNavigated) {
-                delay(2_400L)
+                delay(2_600L)
                 hasNavigated = true
-                navController.navigateToMain(userId = "kmp_dev", age = 2021)
+                navController.navigateToHome(finish = true)
             }
         }
 
@@ -73,7 +72,7 @@ class SplashScreen : NavScreen() {
         )
         val alpha by animateFloatAsState(
             targetValue = if (visible) 1f else 0f,
-            animationSpec = tween(500),
+            animationSpec = tween(480),
             label = "splash_alpha"
         )
 
@@ -85,22 +84,23 @@ class SplashScreen : NavScreen() {
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
                 modifier = Modifier.graphicsLayer {
                     scaleX = scale; scaleY = scale; this.alpha = alpha
                 }
             ) {
+                // Logo
                 Box(
                     modifier = Modifier
-                        .size(100.dp)
-                        .clip(RoundedCornerShape(28.dp))
+                        .size(110.dp)
+                        .clip(RoundedCornerShape(30.dp))
                         .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "KH",
+                        text = "AS",
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
@@ -108,77 +108,53 @@ class SplashScreen : NavScreen() {
                 Spacer(Modifier.height(28.dp))
 
                 Text(
-                    text = "KMP Hub",
-                    style = MaterialTheme.typography.displayMedium,
+                    text = "alims-repo",
+                    style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
 
                 Spacer(Modifier.height(6.dp))
 
                 Text(
-                    text = "Discover · Explore · Build with Kotlin",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
+                    text = "Open Source Libraries",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f)
                 )
 
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(12.dp))
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    listOf("Android", "iOS", "Desktop", "Web").forEach { platform ->
+                    listOf("KMP", "CMP", "Android").forEach { tag ->
                         Surface(
                             shape = RoundedCornerShape(20.dp),
                             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f)
                         ) {
                             Text(
-                                text = platform,
-                                style = MaterialTheme.typography.labelSmall,
+                                text = tag,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                             )
                         }
                     }
                 }
 
-                Spacer(Modifier.height(52.dp))
-                BouncingDots(color = MaterialTheme.colorScheme.onPrimary)
-            }
+                Spacer(Modifier.height(10.dp))
 
-            // Result banner when returning from home
-            result?.let {
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(horizontal = 24.dp, vertical = 52.dp),
-                    shape = MaterialTheme.shapes.large,
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shadowElevation = 6.dp
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondary)
-                        )
-                        Text(
-                            text = when (it.value) {
-                                1 -> "You rated 1 ⭐ — thanks for the feedback!"
-                                2 -> "You rated 2 ⭐⭐ — we're improving fast!"
-                                else -> "You rated 3 ⭐⭐⭐ — you made our day! 🎉"
-                            },
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                }
+                Text(
+                    text = "${allLibraries.size} libraries on Maven Central",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.55f)
+                )
+
+                Spacer(Modifier.height(48.dp))
+                BouncingDots(color = MaterialTheme.colorScheme.onPrimary)
             }
 
             Column(
@@ -189,14 +165,15 @@ class SplashScreen : NavScreen() {
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = "Powered by NavEase",
+                    text = "github.com/Alims-Repo",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.55f)
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.50f)
                 )
                 Text(
-                    text = "navease-runtime · navease-ksp",
+                    text = "Powered by NavEase",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.35f)
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.30f)
                 )
             }
         }
