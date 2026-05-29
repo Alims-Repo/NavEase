@@ -11,6 +11,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -46,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
@@ -68,7 +71,8 @@ class ProfileScreen : NavScreen() {
     @NavEaseResult
     data class Result(val followed: Boolean)
 
-    @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class,
+           ExperimentalLayoutApi::class)
     @Composable
     override fun Content(navKey: NavKey, navController: NavController) {
         val args = navKey.profileArgs()
@@ -79,7 +83,6 @@ class ProfileScreen : NavScreen() {
         var contentVisible by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) { contentVisible = true }
 
-        // Stats counter entrance animation
         val statsAlpha by animateFloatAsState(
             targetValue = if (contentVisible) 1f else 0f,
             animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
@@ -91,7 +94,7 @@ class ProfileScreen : NavScreen() {
             label = "stats_scale"
         )
 
-        // Shared bounds on avatar — matches the avatar in MainScreen
+        // Shared bounds — avatar flies from Home screen
         val avatarSharedModifier = if (sharedTransitionScope != null && animatedContentScope != null) {
             with(sharedTransitionScope) {
                 Modifier.sharedBounds(
@@ -109,13 +112,11 @@ class ProfileScreen : NavScreen() {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Profile", fontWeight = FontWeight.SemiBold) },
+                    title = { Text("Developer Profile", fontWeight = FontWeight.SemiBold) },
                     navigationIcon = {
                         TextButton(onClick = { navController.back() }) { Text("← Back") }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
                 )
             },
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -128,7 +129,8 @@ class ProfileScreen : NavScreen() {
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // ── Profile header ─────────────────────────────────────────────
+
+                // ── Profile hero ───────────────────────────────────────────────
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -139,10 +141,10 @@ class ProfileScreen : NavScreen() {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Avatar — shared bounds from MainScreen's user avatar
+                        // Avatar — shared bounds with Home screen
                         Box(
                             modifier = avatarSharedModifier
-                                .size(88.dp)
+                                .size(92.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primary),
                             contentAlignment = Alignment.Center
@@ -154,34 +156,63 @@ class ProfileScreen : NavScreen() {
                                 color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
+
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = args.username,
+                                text = "@${args.username}",
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
-                            Text(
-                                text = "@${args.username.lowercase().replace(" ", "_")}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.65f)
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "KMP Developer",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                                )
+                            }
                         }
+
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
                         ) {
                             Text(
                                 text = args.bio,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                             )
+                        }
+
+                        // Location + GitHub chip row
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            listOf("📍 Remote", "🐙 GitHub", "🌐 KMP").forEach { chip ->
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Text(
+                                        chip,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
 
-                // ── Animated stats row ─────────────────────────────────────────
+                // ── Stats row (animated entrance) ──────────────────────────────
                 AnimatedVisibility(
                     visible = contentVisible,
                     enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 })
@@ -190,12 +221,12 @@ class ProfileScreen : NavScreen() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .graphicsLayer { alpha = statsAlpha; scaleX = statsScale; scaleY = statsScale },
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         listOf(
-                            Triple("142", "Following", MaterialTheme.colorScheme.primaryContainer),
-                            Triple("3.8K", "Followers", MaterialTheme.colorScheme.secondaryContainer),
-                            Triple("527", "Posts", MaterialTheme.colorScheme.tertiaryContainer),
+                            Triple("42", "Starred", MaterialTheme.colorScheme.primaryContainer),
+                            Triple("18", "Bookmarks", MaterialTheme.colorScheme.secondaryContainer),
+                            Triple("7", "Categories", MaterialTheme.colorScheme.tertiaryContainer),
                         ).forEach { (value, label, color) ->
                             Surface(
                                 modifier = Modifier.weight(1f),
@@ -203,7 +234,7 @@ class ProfileScreen : NavScreen() {
                                 color = color
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(16.dp),
+                                    modifier = Modifier.padding(14.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
@@ -223,6 +254,56 @@ class ProfileScreen : NavScreen() {
                     }
                 }
 
+                // ── Tech stack ─────────────────────────────────────────────────
+                AnimatedVisibility(
+                    visible = contentVisible,
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 })
+                ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(
+                                "TECH STACK",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(
+                                    "Kotlin" to MaterialTheme.colorScheme.primaryContainer,
+                                    "Compose MP" to MaterialTheme.colorScheme.secondaryContainer,
+                                    "Ktor" to MaterialTheme.colorScheme.tertiaryContainer,
+                                    "Koin" to MaterialTheme.colorScheme.errorContainer,
+                                    "SQLDelight" to MaterialTheme.colorScheme.primaryContainer,
+                                    "Coroutines" to MaterialTheme.colorScheme.secondaryContainer,
+                                    "KSP" to MaterialTheme.colorScheme.tertiaryContainer,
+                                    "NavEase" to MaterialTheme.colorScheme.primaryContainer,
+                                ).forEach { (tech, color) ->
+                                    Surface(
+                                        shape = RoundedCornerShape(20.dp),
+                                        color = color
+                                    ) {
+                                        Text(
+                                            tech,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // ── Achievements ───────────────────────────────────────────────
                 AnimatedVisibility(
                     visible = contentVisible,
@@ -236,40 +317,48 @@ class ProfileScreen : NavScreen() {
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Text(
-                                text = "ACHIEVEMENTS",
+                                "ACHIEVEMENTS",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline
                             )
                             Spacer(Modifier.height(12.dp))
                             listOf(
-                                "🏆" to "KMP Contributor",
-                                "🚀" to "Early Adopter — NavEase",
-                                "⭐" to "Compose Aficionado",
-                                "🔥" to "100-day Streak",
-                            ).forEachIndexed { i, (emoji, title) ->
+                                Triple("🏆", "KMP Pioneer", "Building multiplatform apps since day one"),
+                                Triple("🚀", "NavEase Early Adopter", "Using KSP-powered navigation"),
+                                Triple("⭐", "Compose Multiplatform Pro", "100% shared UI code"),
+                                Triple("🔥", "Open Source Contributor", "10+ merged pull requests"),
+                            ).forEachIndexed { i, (emoji, title, subtitle) ->
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     modifier = Modifier.padding(vertical = 6.dp)
                                 ) {
                                     Surface(
-                                        shape = RoundedCornerShape(8.dp),
+                                        shape = RoundedCornerShape(10.dp),
                                         color = MaterialTheme.colorScheme.secondaryContainer,
-                                        modifier = Modifier.size(36.dp)
+                                        modifier = Modifier.size(40.dp)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
-                                            Text(emoji, style = MaterialTheme.typography.bodyLarge)
+                                            Text(emoji, style = MaterialTheme.typography.titleSmall)
                                         }
                                     }
-                                    Text(
-                                        text = title,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
+                                    Column {
+                                        Text(
+                                            title,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            subtitle,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                                 if (i < 3) {
                                     HorizontalDivider(
-                                        modifier = Modifier.padding(start = 48.dp),
+                                        modifier = Modifier.padding(start = 52.dp),
                                         color = MaterialTheme.colorScheme.outlineVariant
                                     )
                                 }
@@ -278,7 +367,7 @@ class ProfileScreen : NavScreen() {
                     }
                 }
 
-                // ── Shared transition explainer ────────────────────────────────
+                // ── Shared element explainer ───────────────────────────────────
                 AnimatedVisibility(
                     visible = contentVisible,
                     enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 })
@@ -286,27 +375,40 @@ class ProfileScreen : NavScreen() {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.50f)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Text(
-                                text = "SHARED ELEMENT — AVATAR",
+                                "SHARED ELEMENT — AVATAR",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline
                             )
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                text = "The profile avatar above shares its bounds with the avatar circle in MainScreen. " +
-                                        "Because both use the same shared-content key (\"profile_avatar_<username>\"), " +
-                                        "Compose animates the element seamlessly across the navigation transition.",
+                                text = "The avatar above flew from the Home screen's welcome card. " +
+                                       "Both elements use the same shared-content key — NavEase passes the " +
+                                       "SharedTransitionScope through LocalNavEaseSharedTransitionScope so you never " +
+                                       "need to wire it manually.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = "// Home screen\nModifier.sharedBounds(\n" +
+                                       "    key = \"profile_avatar_${args.username}\",\n" +
+                                       "    animatedVisibilityScope = animatedContentScope\n)\n\n" +
+                                       "// This screen\nModifier.sharedBounds(\n" +
+                                       "    key = \"profile_avatar_${args.username}\",\n" +
+                                       "    animatedVisibilityScope = animatedContentScope\n)",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                             )
                         }
                     }
                 }
 
-                // ── Follow / unfollow result ───────────────────────────────────
+                // ── Follow result ──────────────────────────────────────────────
                 AnimatedVisibility(
                     visible = contentVisible,
                     enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 })
@@ -319,13 +421,13 @@ class ProfileScreen : NavScreen() {
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Text(
-                                text = "BACK WITH RESULT",
+                                "BACK WITH RESULT",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "Your follow decision is returned as a typed Result to MainScreen.",
+                                "Follow this developer? Your choice returns as a typed Result to Home.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

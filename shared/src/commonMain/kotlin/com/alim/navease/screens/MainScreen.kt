@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -32,7 +34,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -42,20 +43,82 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseArgs
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseResult
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
 import io.github.alimsrepo.navease.generated.backWithMainResult
 import io.github.alimsrepo.navease.generated.detailResult
 import io.github.alimsrepo.navease.generated.galleryDetailResult
 import io.github.alimsrepo.navease.generated.mainArgs
+import io.github.alimsrepo.navease.generated.navigateToAnimations
 import io.github.alimsrepo.navease.generated.navigateToDetail
 import io.github.alimsrepo.navease.generated.navigateToGallery
 import io.github.alimsrepo.navease.generated.navigateToProfile
 import io.github.alimsrepo.navease.generated.profileResult
-import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.annotations.NavEaseArgs
+import io.github.alimsrepo.navease.runtime.annotations.NavEaseResult
+import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
+import io.github.alimsrepo.navease.runtime.navigation.NavController
 import io.github.alimsrepo.navease.runtime.presentation.LocalNavEaseSharedTransitionScope
+import io.github.alimsrepo.navease.runtime.presentation.NavTransition
+
+// ── Featured library data ─────────────────────────────────────────────────────
+
+private data class FeaturedLibrary(
+    val name: String,
+    val author: String,
+    val tagline: String,
+    val fullDescription: String,
+    val emoji: String,
+    val stars: String,
+    val latestVersion: String,
+    val platforms: List<String>,
+    val codeSnippet: String,
+    val transition: NavTransition,
+    val colorIndex: Int,
+)
+
+private val featuredLibraries = listOf(
+    FeaturedLibrary(
+        name = "Ktor",
+        author = "JetBrains",
+        tagline = "Async HTTP client & server for KMP",
+        fullDescription = "Ktor is an asynchronous framework for creating microservices, web applications and more — written in and for Kotlin. It runs on JVM, Android, iOS, JavaScript and native targets with a single, unified API.\n\nKtor's plugin system lets you add features like authentication, serialization, content negotiation, and WebSocket support with just a few lines. The coroutine-first design means your code stays readable and performant even under heavy concurrent load.",
+        emoji = "🌐",
+        stars = "12.4K",
+        latestVersion = "3.0.3",
+        platforms = listOf("Android", "iOS", "JVM", "JS", "Native"),
+        codeSnippet = "val client = HttpClient {\n    install(ContentNegotiation) {\n        json()\n    }\n}\nval users = client.get(\"https://api.example.com/users\")\n    .body<List<User>>()",
+        transition = NavTransition.Push,
+        colorIndex = 0,
+    ),
+    FeaturedLibrary(
+        name = "Compose Multiplatform",
+        author = "JetBrains",
+        tagline = "One UI codebase, every platform",
+        fullDescription = "Compose Multiplatform brings Jetpack Compose's declarative UI model to iOS, Desktop (macOS, Windows, Linux), Web (Wasm), and of course Android — sharing 100% of your UI code across all targets.\n\nMaterial 3 theming, animations, gesture handling, and the full Compose component library work identically on every platform. No wrappers, no compromises — just Kotlin.",
+        emoji = "🎨",
+        stars = "15.7K",
+        latestVersion = "1.7.3",
+        platforms = listOf("Android", "iOS", "Desktop", "Web"),
+        codeSnippet = "@Composable\nfun App() {\n    MaterialTheme {\n        // Runs on Android, iOS,\n        // Desktop and Web!\n        MyScreen()\n    }\n}",
+        transition = NavTransition.Zoom,
+        colorIndex = 1,
+    ),
+    FeaturedLibrary(
+        name = "SQLDelight",
+        author = "Cash App",
+        tagline = "Type-safe SQL you'll actually enjoy",
+        fullDescription = "SQLDelight generates type-safe Kotlin APIs from your SQL statements. Write SQL, get Kotlin. Schema migrations, verify SQL at compile time, and run the same database code on Android, iOS, JVM and more.\n\nThe IDE plugin provides auto-complete, syntax highlighting, and refactoring support directly in your .sq files. No ORMs, no magic — just SQL done right.",
+        emoji = "🗄️",
+        stars = "6.1K",
+        latestVersion = "2.0.2",
+        platforms = listOf("Android", "iOS", "JVM", "Native"),
+        codeSnippet = "-- schema.sq\nCREATE TABLE User (\n  id INTEGER PRIMARY KEY,\n  name TEXT NOT NULL\n);\n\nselectAll:\nSELECT * FROM User;",
+        transition = NavTransition.Rise,
+        colorIndex = 2,
+    ),
+)
+
+// ── Screen ────────────────────────────────────────────────────────────────────
 
 @NavEaseScreen(route = "Main")
 class MainScreen : NavScreen() {
@@ -66,22 +129,17 @@ class MainScreen : NavScreen() {
     @NavEaseResult
     data class Result(val value: Int)
 
-    @OptIn(ExperimentalSharedTransitionApi::class)
+    @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(
-        navKey: NavKey,
-        navController: NavController
-    ) {
+    override fun Content(navKey: NavKey, navController: NavController) {
         val args = navKey.mainArgs()
         val detailResult by navController.detailResult()
         val galleryDetailResult by navController.galleryDetailResult()
         val profileResult by navController.profileResult()
 
-        // Shared transition locals — null when enableSharedTransitions = false (zero overhead)
         val sharedTransitionScope = LocalNavEaseSharedTransitionScope.current
         val animatedContentScope = LocalNavAnimatedContentScope.current
 
-        // Shared bounds modifier for the user avatar → ProfileScreen
         val avatarSharedModifier = if (sharedTransitionScope != null && animatedContentScope != null) {
             with(sharedTransitionScope) {
                 Modifier.sharedBounds(
@@ -98,33 +156,28 @@ class MainScreen : NavScreen() {
             topBar = {
                 TopAppBar(
                     title = {
-                        Text(
-                            text = "NavEase Demo",
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Column {
+                            Text("KMP Hub", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                            Text("Kotlin Multiplatform Libraries", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
                 )
             },
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ) { innerPadding ->
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // ── User info card ─────────────────────────────────────────────
+
+                // ── Developer welcome card ─────────────────────────────────────
                 item {
                     ElevatedCard(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.elevatedCardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        ),
+                        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
                     ) {
                         Row(
@@ -132,7 +185,7 @@ class MainScreen : NavScreen() {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            // Avatar circle — shared element with ProfileScreen
+                            // Avatar — shared element with ProfileScreen
                             Box(
                                 modifier = avatarSharedModifier
                                     .size(56.dp)
@@ -147,114 +200,204 @@ class MainScreen : NavScreen() {
                                     color = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Hello, ${args.userId}!",
-                                    style = MaterialTheme.typography.headlineSmall,
+                                    text = "Welcome, @${args.userId}",
+                                    style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                                 Text(
-                                    text = "Age: ${args.age}  ·  ID: ${args.userId}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                    text = "Member since ${args.age}  ·  42 libraries bookmarked",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.70f)
                                 )
                             }
                         }
-                        Spacer(Modifier.height(12.dp))
                         OutlinedButton(
                             onClick = {
                                 navController.navigateToProfile(
                                     username = args.userId,
-                                    bio = "KMP developer · Compose enthusiast · Open-source contributor"
+                                    bio = "Kotlin Multiplatform enthusiast · Open-source contributor · Building cross-platform apps since ${args.age}"
                                 )
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp),
                             shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("👤  View Profile  →")
-                        }
+                        ) { Text("👤  View Developer Profile  →") }
                     }
                 }
 
-                // ── Section label ──────────────────────────────────────────────
+                // ── Trending libraries ─────────────────────────────────────────
                 item {
                     Text(
-                        text = "FEATURES",
+                        text = "TRENDING THIS WEEK",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
                 }
 
-                // ── Args demo card ─────────────────────────────────────────────
                 item {
-                    FeatureCard(
-                        badge = "01",
-                        badgeColor = MaterialTheme.colorScheme.tertiary,
-                        badgeOnColor = MaterialTheme.colorScheme.onTertiary,
-                        title = "Typed Arguments",
-                        subtitle = "Navigate to a screen passing typed args — accessed via navKey.xxxArgs()",
-                        action = "Explore Detail →",
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedContentScope = animatedContentScope,
-                        onAction = {
-                            navController.navigateToDetail(
-                                featureName = "Typed Arguments",
-                                description = "This screen received args from MainScreen.\n\n" +
-                                    "The KSP processor generated AppScreens.Detail(featureName, description) " +
-                                    "as a @Serializable data class, and a navigateToDetail() extension " +
-                                    "on NavController so you never reference generated types directly."
+                    Text(
+                        text = "Each card uses a different NavTransition — tap to see it!",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+
+                featuredLibraries.forEachIndexed { index, lib ->
+                    item(key = lib.name) {
+                        val cardSharedModifier = if (sharedTransitionScope != null && animatedContentScope != null) {
+                            with(sharedTransitionScope) {
+                                Modifier.sharedBounds(
+                                    sharedContentState = rememberSharedContentState(key = "lib_card_${lib.name}"),
+                                    animatedVisibilityScope = animatedContentScope,
+                                    enter = SharedEnterFade,
+                                    exit = SharedExitFade,
+                                    boundsTransform = CardMorphBoundsTransform,
+                                )
+                            }
+                        } else Modifier
+
+                        FeaturedLibraryCard(
+                            lib = lib,
+                            transitionLabel = when (lib.transition) {
+                                NavTransition.Push -> "Push →"
+                                NavTransition.Zoom -> "Zoom ⊕"
+                                NavTransition.Rise -> "Rise ↑"
+                                else -> lib.transition::class.simpleName ?: ""
+                            },
+                            modifier = cardSharedModifier,
+                            onClick = {
+                                navController.navigateToDetail(
+                                    featureName = lib.name,
+                                    description = "${lib.fullDescription}\n\n---\n" +
+                                        "Author: ${lib.author}  ·  v${lib.latestVersion}\n" +
+                                        "Stars: ⭐ ${lib.stars}\n" +
+                                        "Platforms: ${lib.platforms.joinToString(", ")}\n\n" +
+                                        "Code example:\n${lib.codeSnippet}",
+                                    navTransition = lib.transition,
+                                )
+                            }
+                        )
+                    }
+                }
+
+                // ── Explore section ────────────────────────────────────────────
+                item {
+                    Text(
+                        text = "EXPLORE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Browse categories card
+                        Card(
+                            modifier = Modifier.weight(1f).clickable {
+                                navController.navigateToGallery(title = "Browse Categories")
+                            },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
                             )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(18.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text("🗂️", style = MaterialTheme.typography.headlineMedium)
+                                Text(
+                                    "Browse by Category",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    "8 categories · 40+ libraries\nShared element transitions",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.70f)
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        "Different transition per category",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
                         }
-                    )
-                }
 
-                // ── Gallery card ───────────────────────────────────────────────
-                item {
-                    FeatureCard(
-                        badge = "03",
-                        badgeColor = MaterialTheme.colorScheme.secondary,
-                        badgeOnColor = MaterialTheme.colorScheme.onSecondary,
-                        title = "Gallery + Shared Bounds",
-                        subtitle = "A list of tech cards — tap one and watch it morph into the detail screen via sharedBounds()",
-                        action = "Open Gallery →",
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedContentScope = animatedContentScope,
-                        onAction = {
-                            navController.navigateToGallery(title = "Tech Showcase")
-                        }
-                    )
-                }
-
-                // ── Profile card ───────────────────────────────────────────────
-                item {
-                    FeatureCard(
-                        badge = "04",
-                        badgeColor = MaterialTheme.colorScheme.primary,
-                        badgeOnColor = MaterialTheme.colorScheme.onPrimary,
-                        title = "Profile + Shared Avatar",
-                        subtitle = "The user avatar above flies to ProfileScreen via sharedBounds() — zero extra APIs",
-                        action = "View Profile →",
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedContentScope = animatedContentScope,
-                        onAction = {
-                            navController.navigateToProfile(
-                                username = args.userId,
-                                bio = "KMP developer · Compose enthusiast · Open-source contributor"
+                        // Transition gallery card
+                        Card(
+                            modifier = Modifier.weight(1f).clickable {
+                                navController.navigateToAnimations()
+                            },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
                             )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(18.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text("🎬", style = MaterialTheme.typography.headlineMedium)
+                                Text(
+                                    "Transition Gallery",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                Text(
+                                    "6 built-in styles\nInteractive preview",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.70f)
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        "Try each animation live",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
                         }
+                    }
+                }
+
+                // ── Rate experience (back-with-result demo) ────────────────────
+                item {
+                    Text(
+                        text = "RATE YOUR EXPERIENCE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(horizontal = 4.dp)
                     )
                 }
 
-                // ── Back-with-result card ──────────────────────────────────────
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
@@ -269,47 +412,37 @@ class MainScreen : NavScreen() {
                                         .background(MaterialTheme.colorScheme.secondary),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        "02",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSecondary
-                                    )
+                                    Text("⭐", style = MaterialTheme.typography.bodyMedium)
                                 }
                                 Column {
                                     Text(
-                                        "Back with Result",
-                                        style = MaterialTheme.typography.titleMedium,
+                                        "Back-with-Result Demo",
+                                        style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
-                                        "Returns a typed value back to SplashScreen",
+                                        "Returns a typed value to SplashScreen",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
-
-                            Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(14.dp))
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                            Spacer(Modifier.height(16.dp))
-
+                            Spacer(Modifier.height(14.dp))
                             Text(
-                                text = "Choose a return value:",
-                                style = MaterialTheme.typography.labelMedium,
+                                "How many stars would you give KMP Hub?",
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(Modifier.height(10.dp))
-
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                listOf(1, 2, 3).forEach { v ->
+                                listOf("⭐ 1", "⭐⭐ 2", "⭐⭐⭐ 3").forEachIndexed { i, label ->
                                     FilledTonalButton(
-                                        onClick = { navController.backWithMainResult(value = v) },
+                                        onClick = { navController.backWithMainResult(value = i + 1) },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Text("$v")
-                                    }
+                                    ) { Text(label, style = MaterialTheme.typography.labelSmall) }
                                 }
                             }
                             Spacer(Modifier.height(8.dp))
@@ -317,131 +450,49 @@ class MainScreen : NavScreen() {
                                 onClick = { navController.back() },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text("Back (no result)")
-                            }
+                            ) { Text("← Back (no result)") }
                         }
                     }
                 }
 
-                // ── Detail result banner ───────────────────────────────────────
+                // ── Result banners ────────────────────────────────���───────────
                 detailResult?.let { res ->
                     item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (res.liked) MaterialTheme.colorScheme.secondaryContainer
-                                    else MaterialTheme.colorScheme.errorContainer
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(20.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Text(
-                                    text = if (res.liked) "👍" else "👎",
-                                    style = MaterialTheme.typography.headlineSmall
-                                )
-                                Column {
-                                    Text(
-                                        text = "Result from Detail",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (res.liked) MaterialTheme.colorScheme.onSecondaryContainer
-                                                else MaterialTheme.colorScheme.onErrorContainer
-                                    )
-                                    Text(
-                                        text = "liked = ${res.liked}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (res.liked) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
-                                                else MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.75f)
-                                    )
-                                }
-                            }
-                        }
+                        ResultBanner(
+                            icon = if (res.liked) "👍" else "👎",
+                            title = if (res.liked) "Library Liked!" else "Fair enough",
+                            subtitle = "Result returned from Library Detail",
+                            positive = res.liked
+                        )
                     }
                 }
 
-                // ── Gallery detail result banner ───────────────────────────────
                 galleryDetailResult?.let { res ->
                     item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (res.bookmarked) MaterialTheme.colorScheme.secondaryContainer
-                                    else MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(20.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Text(
-                                    text = if (res.bookmarked) "🔖" else "✖️",
-                                    style = MaterialTheme.typography.headlineSmall
-                                )
-                                Column {
-                                    Text(
-                                        text = "Result from Gallery Detail",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (res.bookmarked) MaterialTheme.colorScheme.onSecondaryContainer
-                                                else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = "bookmarked = ${res.bookmarked}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (res.bookmarked) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
-                                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-                                    )
-                                }
-                            }
-                        }
+                        ResultBanner(
+                            icon = if (res.bookmarked) "🔖" else "✖️",
+                            title = if (res.bookmarked) "Library Bookmarked!" else "Not bookmarked",
+                            subtitle = "Result returned from Category Detail",
+                            positive = res.bookmarked
+                        )
                     }
                 }
 
-                // ── Profile result banner ──────────────────────────────────────
                 profileResult?.let { res ->
                     item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (res.followed) MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(20.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Text(
-                                    text = if (res.followed) "➕" else "✖️",
-                                    style = MaterialTheme.typography.headlineSmall
-                                )
-                                Column {
-                                    Text(
-                                        text = "Result from Profile",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (res.followed) MaterialTheme.colorScheme.onPrimaryContainer
-                                                else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = "followed = ${res.followed}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (res.followed) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
-                                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-                                    )
-                                }
-                            }
-                        }
+                        ResultBanner(
+                            icon = if (res.followed) "➕" else "✖️",
+                            title = if (res.followed) "Following @${args.userId}!" else "Not following",
+                            subtitle = "Result returned from Developer Profile",
+                            positive = res.followed
+                        )
                     }
                 }
 
-                // ── Stack info card ────────────────────────────────────────────
+                // ── Back stack inspector ───────────────────────────────────────
                 item {
                     Text(
-                        text = "BACK STACK",
+                        text = "NAVIGATION STACK",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.padding(horizontal = 4.dp)
@@ -452,9 +503,7 @@ class MainScreen : NavScreen() {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             navController.getHistory().forEachIndexed { index, key ->
@@ -485,7 +534,7 @@ class MainScreen : NavScreen() {
                                             color = MaterialTheme.colorScheme.primaryContainer
                                         ) {
                                             Text(
-                                                text = "top",
+                                                text = "current",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -507,81 +556,136 @@ class MainScreen : NavScreen() {
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-private fun FeatureCard(
-    badge: String,
-    badgeColor: androidx.compose.ui.graphics.Color,
-    badgeOnColor: androidx.compose.ui.graphics.Color,
-    title: String,
-    subtitle: String,
-    action: String,
-    onAction: () -> Unit,
-    sharedTransitionScope: SharedTransitionScope? = null,
-    animatedContentScope: AnimatedContentScope? = null,
-) {
-    // Apply sharedBounds so the entire card morphs into DetailScreen's header surface
-    val sharedModifier = if (sharedTransitionScope != null && animatedContentScope != null) {
-        with(sharedTransitionScope) {
-            Modifier.sharedBounds(
-                sharedContentState = rememberSharedContentState(key = "feature_card_$title"),
-                animatedVisibilityScope = animatedContentScope,
-                enter = SharedEnterFade,
-                exit = SharedExitFade,
-                boundsTransform = CardMorphBoundsTransform,
-            )
-        }
-    } else Modifier
+// ── Composable helpers ───────────────────────────────────────────────────────
 
+@Composable
+private fun FeaturedLibraryCard(
+    lib: FeaturedLibrary,
+    transitionLabel: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     Card(
-        modifier = sharedModifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = itemContainerColor(lib.colorIndex)),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(badgeColor),
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(itemAccentColor(lib.colorIndex)),
                     contentAlignment = Alignment.Center
                 ) {
+                    Text(lib.emoji, style = MaterialTheme.typography.titleLarge)
+                }
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        badge,
-                        style = MaterialTheme.typography.labelMedium,
+                        lib.name,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = badgeOnColor
+                        color = itemOnContainerColor(lib.colorIndex)
+                    )
+                    Text(
+                        lib.tagline,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = itemOnContainerColor(lib.colorIndex).copy(alpha = 0.70f)
                     )
                 }
-                Column {
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        "⭐ ${lib.stars}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = itemOnContainerColor(lib.colorIndex)
                     )
                     Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        "v${lib.latestVersion}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = itemOnContainerColor(lib.colorIndex).copy(alpha = 0.60f)
                     )
                 }
             }
-            Spacer(Modifier.height(16.dp))
-            Button(
-                onClick = onAction,
+            Spacer(Modifier.height(12.dp))
+            // Platform chips
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                lib.platforms.take(4).forEach { platform ->
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = itemAccentColor(lib.colorIndex).copy(alpha = 0.18f)
+                    ) {
+                        Text(
+                            platform,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = itemAccentColor(lib.colorIndex),
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            // Transition badge
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = badgeColor,
-                    contentColor = badgeOnColor
-                )
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(action, fontWeight = FontWeight.Medium)
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = itemAccentColor(lib.colorIndex).copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        "Transition: $transitionLabel",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = itemAccentColor(lib.colorIndex),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+                Text(
+                    "by ${lib.author}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = itemOnContainerColor(lib.colorIndex).copy(alpha = 0.55f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResultBanner(icon: String, title: String, subtitle: String, positive: Boolean) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = if (positive) MaterialTheme.colorScheme.secondaryContainer
+                else MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(icon, style = MaterialTheme.typography.headlineSmall)
+            Column {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (positive) MaterialTheme.colorScheme.onSecondaryContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (positive) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.70f)
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+                )
             }
         }
     }
