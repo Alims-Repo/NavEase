@@ -1,6 +1,7 @@
 package com.alim.navease.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -84,7 +85,10 @@ class DetailScreen : NavScreen() {
         val sharedTransitionScope = LocalNavEaseSharedTransitionScope.current
         val animatedContentScope = LocalNavAnimatedContentScope.current
 
-        var contentVisible by remember { mutableStateOf(false) }
+        // For transition showcase pages, skip inner entrance animation so the nav
+        // transition itself is the only motion the user sees. For library pages,
+        // a subtle slide-up complements the shared-element morph.
+        var contentVisible by remember { mutableStateOf(true) }
         LaunchedEffect(Unit) { contentVisible = true }
 
         // Detect if this is a transition showcase or a library page
@@ -131,7 +135,10 @@ class DetailScreen : NavScreen() {
             ) {
                 AnimatedVisibility(
                     visible = contentVisible,
-                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 3 })
+                    // Transition-showcase screens start already visible (no inner motion)
+                    // so only library-detail pages get the subtle slide-up entrance.
+                    enter = if (isTransitionShowcase) EnterTransition.None
+                            else fadeIn() + slideInVertically(initialOffsetY = { it / 3 })
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
