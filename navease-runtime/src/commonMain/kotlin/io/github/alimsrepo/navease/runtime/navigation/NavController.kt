@@ -4,6 +4,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import io.github.alimsrepo.navease.runtime.presentation.NavTransition
 
 /**
  * Orchestrates navigation across the back stack.
@@ -12,16 +13,18 @@ import androidx.navigation3.runtime.NavKey
  * call and is never shared between independent nav graphs — this prevents back-stack or result
  * cross-contamination in nested / multi-window setups.
  *
- * @param backStack      The [NavBackStack] that drives the [androidx.navigation3.ui.NavDisplay].
- * @param showExitDialog Called when [back] is invoked at the root (back-stack size == 1).
- *                       Typical uses: show a "Do you want to exit?" dialog, or call
- *                       `Activity.finish()` on Android. Defaults to a no-op so platforms
- *                       without an explicit exit concept (iOS, web) need no configuration.
+ * @param backStack         The [NavBackStack] that drives the [androidx.navigation3.ui.NavDisplay].
+ * @param showExitDialog    Called when [back] is invoked at the root (back-stack size == 1).
+ * @param defaultTransition The app-level fallback transition used when [navigate] is called
+ *                          without an explicit [NavTransition] override. Supplied by
+ *                          [io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph]
+ *                          from the `navTransition` parameter of `NavEaseHost`.
  */
 @Stable
 class NavController(
     private val backStack: NavBackStack<NavKey>,
-    private val showExitDialog: () -> Unit = {}
+    private val showExitDialog: () -> Unit = {},
+    internal val defaultTransition: NavTransition = NavTransition.Push,
 ) {
 
     /**
@@ -36,8 +39,27 @@ class NavController(
     internal val results = mutableStateMapOf<String, Any?>()
 
     /**
+     * Per-push transition store.
+     *
+     * Every call to [navigate] records the resolved [NavTransition] against the pushed [NavKey].
+     * [io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph] reads this map inside its
+     * `transitionSpec` / `popTransitionSpec` lambdas to animate each screen change with the
+     * transition that was chosen *at call time*, falling back to [defaultTransition] when no
+     * per-navigate override was given.
+     *
+     * The map uses regular (non-snapshot) mutability because it is only ever written inside
+     * [navigate], which is already called from a Compose event handler — no extra snapshotting
+     * is needed.
+     *
+     * Keys are the string representation of each [NavKey] (i.e. `navKey.toString()`), which
+     * matches the `contentKey` that Navigation3 assigns to each [androidx.navigation3.runtime.NavEntry]
+     * and therefore matches `Scene.key` inside the `transitionSpec` / `popTransitionSpec` lambdas.
+     */
+    internal val transitionStore = mutableMapOf<Any, NavTransition>()
+
+    /**
      * Pops the current screen. If the back stack contains only the root screen,
-     * [showExitDialog] is invoked instead (allowing the host to show a confirmation or exit).
+     * [showExitDialog] is invoked instead.
      */
     fun back() {
         if (backStack.size > 1)
@@ -48,17 +70,28 @@ class NavController(
     /**
      * Pushes [navKey] onto the back stack.
      *
-     * @param finish    When `true`, the screen that was on top *before* the navigation is removed
-     *                  from the stack (i.e. the current screen is "replaced" rather than "layered").
-     *                  Requires at least 2 entries after the push — guarded against empty stacks.
-     * @param singleTop When `true`, navigation is skipped if [navKey] is already the top-most
-     *                  entry (matched by runtime class). Useful for tabs and splash→home transitions
-     *                  where accidental double-pushes would create duplicate stack entries.
+     * @param finish        When `true`, the screen that was on top before the navigation is removed
+     *                      (replace semantics).
+     * @param singleTop     When `true`, navigation is skipped if [navKey] is already the top-most
+     *                      entry (matched by runtime class).
+     * @param navTransition Per-navigate animation override. When `null` (default), the app-level
+     *                      [defaultTransition] is used. Pass an explicit [NavTransition] to use a
+     *                      different animation for this one navigation only.
      */
-    fun navigate(navKey: NavKey, finish: Boolean = false, singleTop: Boolean = false) {
+    fun navigate(
+        navKey: NavKey,
+        finish: Boolean = false,
+        singleTop: Boolean = false,
+        navTransition: NavTransition? = null,
+    ) {
         if (singleTop && backStack.isNotEmpty() && backStack.last()::class == navKey::class) {
             return
         }
+        // Resolve and record the transition before the push so transitionSpec can read it
+        // the moment NavDisplay animates the change.
+        // Key is navKey.toString() which equals NavEntry.contentKey = Scene.key inside the
+        // transitionSpec lambda — the only publicly accessible identifier for the entry.
+        transitionStore[navKey.toString()] = navTransition ?: defaultTransition
         backStack.add(navKey)
         if (finish && backStack.size >= 2) {
             backStack.removeAt(backStack.size - 2)

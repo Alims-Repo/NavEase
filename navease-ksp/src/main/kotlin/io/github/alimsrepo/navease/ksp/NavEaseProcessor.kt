@@ -266,9 +266,10 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
         val navExtensions = entries.joinToString("\n\n") { entry ->
             val fnName = "navigateTo${entry.route}"
             val paramList = if (entry.args.isNullOrEmpty()) {
-                "finish: Boolean = false"
+                "finish: Boolean = false,\n    navTransition: NavTransition? = null"
             } else {
-                entry.args.joinToString(", ") { (name, t) -> "$name: ${t.shortName}" } + ", finish: Boolean = false"
+                entry.args.joinToString(", ") { (name, t) -> "$name: ${t.shortName}" } +
+                    ", finish: Boolean = false,\n    navTransition: NavTransition? = null"
             }
             val keyConstruct = if (entry.args.isNullOrEmpty()) {
                 "AppScreens.${entry.route}"
@@ -277,7 +278,7 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
                 "AppScreens.${entry.route}($argNames)"
             }
             """fun NavController.$fnName($paramList) {
-    navigate($keyConstruct, finish = finish)
+    navigate($keyConstruct, finish = finish, navTransition = navTransition)
 }"""
         }
 
@@ -315,6 +316,7 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
 
                 import androidx.navigation3.runtime.NavKey
                 import io.github.alimsrepo.navease.runtime.navigation.NavController
+                import io.github.alimsrepo.navease.runtime.presentation.NavTransition
                 $screenImports
                 $customImports
 
@@ -331,6 +333,7 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
 
                 import androidx.compose.runtime.Composable
                 import io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph
+                import io.github.alimsrepo.navease.runtime.presentation.NavTransition
                 /**
                  * Generated navigation host. Place this once in your root composable.
                  *
@@ -343,11 +346,17 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
                  *                              screen via [LocalNavEaseSharedTransitionScope.current] and
                  *                              the animation scope via [LocalNavAnimatedContentScope.current].
                  *                              Defaults to `false`.
+                 * @param navTransition         The screen-to-screen animation style.
+                 *                              Defaults to [NavTransition.Push] (iOS-style horizontal slide).
+                 *                              See [NavTransition] for all available options:
+                 *                              [NavTransition.Push], [NavTransition.Fade], [NavTransition.Rise],
+                 *                              [NavTransition.Zoom], [NavTransition.Depth], [NavTransition.Instant].
                  */
                 @Composable
                 fun NavEaseHost(
                     onExitRequest: () -> Unit = {},
                     enableSharedTransitions: Boolean = false,
+                    navTransition: NavTransition = NavTransition.Push,
                 ) {
                     NavEaseNavGraph(
                         initialScreen = AppScreens.startDestination,
@@ -355,6 +364,7 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
                         screenFactory = ScreenFactory::createScreen,
                         onExitRequest = onExitRequest,
                         enableSharedTransitions = enableSharedTransitions,
+                        navTransition = navTransition,
                     )
                 }
             """.trimIndent())

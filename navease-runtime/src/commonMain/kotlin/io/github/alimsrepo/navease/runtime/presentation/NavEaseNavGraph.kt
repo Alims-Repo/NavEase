@@ -40,6 +40,8 @@ import io.github.alimsrepo.navease.runtime.navigation.NavController
  *                              wires the [SharedTransitionScope] into both [NavDisplay] (native
  *                              support) and [LocalNavEaseSharedTransitionScope] (for user screens).
  *                              Defaults to `false`.
+ * @param navTransition         The screen-transition animation style. Defaults to [NavTransition.Push]
+ *                              (iOS-style horizontal slide). See [NavTransition] for all options.
  */
 @Composable
 fun NavEaseNavGraph(
@@ -48,6 +50,7 @@ fun NavEaseNavGraph(
     screenFactory: (NavKey) -> NavScreen,
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
+    navTransition: NavTransition = NavTransition.Push,
 ) {
     val applicationStack = rememberNavBackStack(
         configuration = savedStateConfig,
@@ -55,7 +58,11 @@ fun NavEaseNavGraph(
     )
 
     val navController = remember {
-        NavController(backStack = applicationStack, showExitDialog = onExitRequest)
+        NavController(
+            backStack = applicationStack,
+            showExitDialog = onExitRequest,
+            defaultTransition = navTransition,
+        )
     }
 
     // Extracts the NavDisplay call so it can be reused in both branches.
@@ -70,8 +77,19 @@ fun NavEaseNavGraph(
                     .background(color = MaterialTheme.colorScheme.background),
                 backStack = applicationStack,
                 sharedTransitionScope = sharedScope,
-                transitionSpec = { Animations.transitionSpec },
-                popTransitionSpec = { Animations.popTransitionSpec },
+                // Look up the per-navigate transition for the destination; fall back to the
+                // app-level default if the key has no recorded override (e.g. the root screen).
+                // targetState is Scene<NavKey>; Scene.key == NavEntry.contentKey == navKey.toString()
+                transitionSpec = {
+                    val transition = navController.transitionStore[targetState.key] ?: navTransition
+                    Animations.forward(transition)
+                },
+                // For pops, read the transition that was used to push the screen being removed
+                // (initialState) so the pop plays the same animation in reverse.
+                popTransitionSpec = {
+                    val transition = navController.transitionStore[initialState.key] ?: navTransition
+                    Animations.back(transition)
+                },
             ) { route ->
                 NavEntry(route) {
                     screenFactory(route).Content(

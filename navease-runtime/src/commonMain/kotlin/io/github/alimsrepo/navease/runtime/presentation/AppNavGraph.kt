@@ -14,7 +14,7 @@ import io.github.alimsrepo.navease.runtime.domain.NavScreen
     message = "AppNavGraph has been renamed to NavEaseNavGraph. " +
               "If this call is in KSP-generated code, re-run kspCommonMainKotlinMetadata.",
     replaceWith = ReplaceWith(
-        "NavEaseNavGraph(initialScreen, savedStateConfig, screenFactory, onExitRequest, enableSharedTransitions)",
+        "NavEaseNavGraph(initialScreen, savedStateConfig, screenFactory, onExitRequest, enableSharedTransitions, navTransition)",
         "io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph"
     ),
     level = DeprecationLevel.WARNING
@@ -26,11 +26,13 @@ fun AppNavGraph(
     screenFactory: (NavKey) -> NavScreen,
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
+    navTransition: NavTransition = NavTransition.Push,
 ) = NavEaseNavGraph(
     initialScreen = initialScreen,
     savedStateConfig = savedStateConfig,
     screenFactory = screenFactory,
     onExitRequest = onExitRequest,
     enableSharedTransitions = enableSharedTransitions,
+    navTransition = navTransition,
 )
 
