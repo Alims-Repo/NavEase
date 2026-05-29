@@ -7,6 +7,11 @@ import io.github.alimsrepo.navease.generated.NavEaseHost
 @Composable
 fun App() {
     MaterialTheme {
-        NavEaseHost(enableSharedTransitions = true)
+        NavEaseHost(
+            onExitRequest = {
+
+            },
+            enableSharedTransitions = true
+        )
     }
 }

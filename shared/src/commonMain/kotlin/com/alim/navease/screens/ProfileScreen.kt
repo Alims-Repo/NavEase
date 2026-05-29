@@ -99,6 +99,9 @@ class ProfileScreen : NavScreen() {
                         key = "profile_avatar_${args.username}"
                     ),
                     animatedVisibilityScope = animatedContentScope,
+                    enter = SharedEnterFade,
+                    exit = SharedExitFade,
+                    boundsTransform = AvatarBoundsTransform,
                 )
             }
         } else Modifier

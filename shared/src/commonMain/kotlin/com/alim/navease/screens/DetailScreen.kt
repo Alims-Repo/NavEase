@@ -122,6 +122,9 @@ class DetailScreen : NavScreen() {
                                         key = "feature_card_${args.featureName}"
                                     ),
                                     animatedVisibilityScope = animatedContentScope,
+                                    enter = SharedEnterFade,
+                                    exit = SharedExitFade,
+                                    boundsTransform = CardMorphBoundsTransform,
                                 )
                             }
                         } else Modifier

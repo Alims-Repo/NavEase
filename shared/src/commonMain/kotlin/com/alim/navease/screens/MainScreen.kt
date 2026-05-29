@@ -87,6 +87,9 @@ class MainScreen : NavScreen() {
                 Modifier.sharedBounds(
                     sharedContentState = rememberSharedContentState(key = "profile_avatar_${args.userId}"),
                     animatedVisibilityScope = animatedContentScope,
+                    enter = SharedEnterFade,
+                    exit = SharedExitFade,
+                    boundsTransform = AvatarBoundsTransform,
                 )
             }
         } else Modifier
@@ -523,6 +526,9 @@ private fun FeatureCard(
             Modifier.sharedBounds(
                 sharedContentState = rememberSharedContentState(key = "feature_card_$title"),
                 animatedVisibilityScope = animatedContentScope,
+                enter = SharedEnterFade,
+                exit = SharedExitFade,
+                boundsTransform = CardMorphBoundsTransform,
             )
         }
     } else Modifier

@@ -88,6 +88,9 @@ class GalleryDetailScreen : NavScreen() {
                 Modifier.sharedBounds(
                     sharedContentState = rememberSharedContentState(key = "gallery_card_${args.itemId}"),
                     animatedVisibilityScope = animatedContentScope,
+                    enter = GallerySharedEnterFade,
+                    exit = SharedExitFade,
+                    boundsTransform = GalleryHeroBoundsTransform,
                 )
             }
         } else Modifier
