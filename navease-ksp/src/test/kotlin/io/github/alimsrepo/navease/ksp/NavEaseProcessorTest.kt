@@ -153,6 +153,40 @@ class NavEaseProcessorTest {
         )
     }
 
+    /** Generated files must start with `package …` at column 0 — no stray leading whitespace. */
+    @Test
+    fun `generated files — no stray leading whitespace on package declaration`() {
+        val source = SourceFile.kotlin(
+            "NavScreen.kt",
+            """
+            import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
+            import io.github.alimsrepo.navease.runtime.annotations.NavEaseArgs
+            import io.github.alimsrepo.navease.runtime.domain.NavScreen
+
+            @NavEaseScreen(route = "Nav", startDestination = true)
+            class NavScreen : NavScreen() {
+                @NavEaseArgs
+                data class Args(val a: String, val b: String)
+            }
+            """.trimIndent()
+        )
+
+        val compilation = compile(source)
+        assertEquals(KotlinCompilation.ExitCode.OK, compilation.compile().exitCode)
+
+        listOf("AppScreens.kt", "ScreenFactory.kt", "NavEaseExtensions.kt", "NavEaseHost.kt").forEach { name ->
+            val text = compilation.generatedFile(name).readText()
+            assertTrue(
+                "$name must start with 'package' at column 0 (no stray indentation)",
+                text.trimStart().startsWith("package ")
+            )
+            assertTrue(
+                "$name first line must not have leading spaces",
+                text.lines().first { it.isNotBlank() }.startsWith("package ")
+            )
+        }
+    }
+
     /** A screen with @NavEaseResult generates NavEaseResults.kt with typed extensions. */
     @Test
     fun `screen with NavEaseResult — generates NavEaseResults with typed extensions`() {

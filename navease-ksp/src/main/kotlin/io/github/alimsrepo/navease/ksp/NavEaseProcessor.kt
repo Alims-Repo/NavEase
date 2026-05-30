@@ -258,94 +258,95 @@ class NavEaseProcessor(
             .joinToString("\n") { "import $it" }
 
     private fun generateAppScreens(entries: List<ScreenEntry>, startRoute: String, deps: Dependencies) {
-        // Gather any custom-type imports needed for @NavEaseArgs parameters
         val customImports = importsFrom(entries.flatMap { it.args.orEmpty() })
 
-        val subclasses = entries.joinToString("\n    ") { entry ->
+        // Subclass declarations: each line already carries its 4-space indent so they can
+        // be embedded verbatim inside the sealed class body.
+        val subclasses = entries.joinToString("\n") { entry ->
             if (entry.args == null) {
-                "@Serializable data object ${entry.route} : AppScreens()"
+                "    @Serializable data object ${entry.route} : AppScreens()"
             } else {
                 val params = entry.args.joinToString(", ") { (name, t) -> "val $name: ${t.shortName}" }
-                "@Serializable data class ${entry.route}($params) : AppScreens()"
+                "    @Serializable data class ${entry.route}($params) : AppScreens()"
             }
         }
 
-        val subclassEntries = entries.joinToString("\n                        ") { entry ->
-            "subclass(${entry.route}::class)"
+        // subclass() calls inside the polymorphic block (20-space indent)
+        val subclassEntries = entries.joinToString("\n") { entry ->
+            "                    subclass(${entry.route}::class)"
+        }
+
+        val content = buildString {
+            appendLine("package $generatedPackage")
+            appendLine()
+            appendLine("import androidx.compose.runtime.Stable")
+            appendLine("import androidx.navigation3.runtime.NavKey")
+            appendLine("import androidx.savedstate.serialization.SavedStateConfiguration")
+            appendLine("import kotlinx.serialization.Serializable")
+            appendLine("import kotlinx.serialization.modules.SerializersModule")
+            appendLine("import kotlinx.serialization.modules.polymorphic")
+            appendLine("import kotlinx.serialization.modules.subclass")
+            if (customImports.isNotEmpty()) appendLine(customImports)
+            appendLine()
+            appendLine("@Stable")
+            appendLine("@Serializable")
+            appendLine("sealed class AppScreens : NavKey {")
+            appendLine(subclasses)
+            appendLine()
+            appendLine("    companion object {")
+            appendLine("        val startDestination: AppScreens get() = $startRoute")
+            appendLine()
+            appendLine("        val savedStateConfig = SavedStateConfiguration {")
+            appendLine("            serializersModule = SerializersModule {")
+            appendLine("                polymorphic(NavKey::class) {")
+            appendLine(subclassEntries)
+            appendLine("                }")
+            appendLine("            }")
+            appendLine("        }")
+            appendLine("    }")
+            append("}")
         }
 
         val file = codeGenerator.createNewFile(deps, generatedPackage, "AppScreens")
-        file.bufferedWriter().use {
-            it.write("""
-                package $generatedPackage
-
-                import androidx.compose.runtime.Stable
-                import androidx.navigation3.runtime.NavKey
-                import androidx.savedstate.serialization.SavedStateConfiguration
-                import kotlinx.serialization.Serializable
-                import kotlinx.serialization.modules.SerializersModule
-                import kotlinx.serialization.modules.polymorphic
-                import kotlinx.serialization.modules.subclass
-                $customImports
-
-                @Stable
-                @Serializable
-                sealed class AppScreens : NavKey {
-                    $subclasses
-
-                    companion object {
-                        val startDestination: AppScreens get() = $startRoute
-
-                        val savedStateConfig = SavedStateConfiguration {
-                            serializersModule = SerializersModule {
-                                polymorphic(NavKey::class) {
-                                    $subclassEntries
-                                }
-                            }
-                        }
-                    }
-                }
-            """.trimIndent())
-        }
+        file.bufferedWriter().use { it.write(content) }
     }
 
     private fun generateScreenFactory(entries: List<ScreenEntry>, deps: Dependencies) {
         val imports = entries.joinToString("\n") { "import ${it.fqName}" }
-        val whenBranches = entries.joinToString("\n            ") { entry ->
+        val whenBranches = entries.joinToString("\n") { entry ->
             val simpleName = entry.fqName.substringAfterLast('.')
-            "is AppScreens.${entry.route} -> $simpleName()"
+            "            is AppScreens.${entry.route} -> $simpleName()"
+        }
+
+        val content = buildString {
+            appendLine("package $generatedPackage")
+            appendLine()
+            appendLine("import androidx.navigation3.runtime.NavKey")
+            appendLine("import io.github.alimsrepo.navease.runtime.domain.NavScreen")
+            if (imports.isNotEmpty()) appendLine(imports)
+            appendLine()
+            appendLine("object ScreenFactory {")
+            appendLine("    fun createScreen(appScreen: NavKey): NavScreen {")
+            appendLine("        return when (appScreen) {")
+            appendLine(whenBranches)
+            appendLine("            else -> error(")
+            appendLine("                \"NavEase: No screen registered for key type '\${appScreen::class.simpleName}'. \" +")
+            appendLine("                \"Did you forget to annotate the corresponding class with @NavEaseScreen? \" +")
+            appendLine("                \"If you just added a new screen, try rebuilding the project.\"")
+            appendLine("            )")
+            appendLine("        }")
+            appendLine("    }")
+            append("}")
         }
 
         val file = codeGenerator.createNewFile(deps, generatedPackage, "ScreenFactory")
-        file.bufferedWriter().use {
-            it.write("""
-                package $generatedPackage
-
-                import androidx.navigation3.runtime.NavKey
-                import io.github.alimsrepo.navease.runtime.domain.NavScreen
-                $imports
-
-                object ScreenFactory {
-                    fun createScreen(appScreen: NavKey): NavScreen {
-                        return when (appScreen) {
-                            $whenBranches
-                            else -> error(
-                                "NavEase: No screen registered for key type '${'$'}{appScreen::class.simpleName}'. " +
-                                "Did you forget to annotate the corresponding class with @NavEaseScreen? " +
-                                "If you just added a new screen, try rebuilding the project."
-                            )
-                        }
-                    }
-                }
-            """.trimIndent())
-        }
+        file.bufferedWriter().use { it.write(content) }
     }
 
     private fun generateNavEaseResults(entries: List<ScreenEntry>, deps: Dependencies) {
         val withResults = entries.filter { it.result != null }
         if (withResults.isEmpty()) return
 
-        // Gather any custom-type imports needed for @NavEaseResult parameters
         val customImports = importsFrom(withResults.flatMap { it.result.orEmpty() })
 
         val resultClasses = withResults.joinToString("\n\n") { entry ->
@@ -356,47 +357,43 @@ class NavEaseProcessor(
         val backFunctions = withResults.joinToString("\n\n") { entry ->
             val params = entry.result!!.joinToString(", ") { (name, t) -> "$name: ${t.shortName}" }
             val args = entry.result.joinToString(", ") { (name, _) -> name }
-            """fun NavController.backWith${entry.route}Result($params) {
-    backWithResult(${entry.route}Result($args))
-}"""
+            "fun NavController.backWith${entry.route}Result($params) {\n    backWithResult(${entry.route}Result($args))\n}"
         }
 
         val resultFunctions = withResults.joinToString("\n\n") { entry ->
             val fnName = entry.route.replaceFirstChar { it.lowercaseChar() }
-            """@Composable
-fun NavController.${fnName}Result(): State<${entry.route}Result?> =
-    resultOf(${entry.route}Result::class)"""
+            "@Composable\nfun NavController.${fnName}Result(): State<${entry.route}Result?> =\n    resultOf(${entry.route}Result::class)"
+        }
+
+        val content = buildString {
+            appendLine("package $generatedPackage")
+            appendLine()
+            appendLine("import androidx.compose.runtime.Composable")
+            appendLine("import androidx.compose.runtime.State")
+            appendLine("import io.github.alimsrepo.navease.runtime.navigation.NavController")
+            appendLine("import io.github.alimsrepo.navease.runtime.navigation.backWithResult")
+            appendLine("import io.github.alimsrepo.navease.runtime.navigation.resultOf")
+            if (customImports.isNotEmpty()) appendLine(customImports)
+            appendLine()
+            appendLine("// ── Result data classes ──────────────────────────────────────────────────")
+            appendLine()
+            appendLine(resultClasses)
+            appendLine()
+            appendLine("// ── backWithXxxResult() extensions ───────────────────────────────────────")
+            appendLine()
+            appendLine(backFunctions)
+            appendLine()
+            appendLine("// ── xxxResult() Composable extensions ────────────────────────────────────")
+            appendLine()
+            append(resultFunctions)
         }
 
         val file = codeGenerator.createNewFile(deps, generatedPackage, "NavEaseResults")
-        file.bufferedWriter().use {
-            it.write("""
-                package $generatedPackage
-
-                import androidx.compose.runtime.Composable
-                import androidx.compose.runtime.State
-                import io.github.alimsrepo.navease.runtime.navigation.NavController
-                import io.github.alimsrepo.navease.runtime.navigation.backWithResult
-                import io.github.alimsrepo.navease.runtime.navigation.resultOf
-                $customImports
-
-                // ── Result data classes ──────────────────────────────────────────────────
-
-                $resultClasses
-
-                // ── backWithXxxResult() extensions ───────────────────────────────────────
-
-                $backFunctions
-
-                // ── xxxResult() Composable extensions ────────────────────────────────────
-
-                $resultFunctions
-            """.trimIndent())
-        }
+        file.bufferedWriter().use { it.write(content) }
     }
 
     private fun generateNavEaseExtensions(entries: List<ScreenEntry>, deps: Dependencies) {
-        // navigateToXxx() — one extension per screen on NavController
+        // navigateToXxx() — one top-level extension per screen on NavController
         val navExtensions = entries.joinToString("\n\n") { entry ->
             val fnName = "navigateTo${entry.route}"
             val paramList = if (entry.args.isNullOrEmpty()) {
@@ -411,9 +408,7 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
                 val argNames = entry.args.joinToString(", ") { (name, _) -> "$name = $name" }
                 "AppScreens.${entry.route}($argNames)"
             }
-            """fun NavController.$fnName($paramList) {
-    navigate($keyConstruct, finish = finish, navTransition = navTransition)
-}"""
+            "fun NavController.$fnName($paramList) {\n    navigate($keyConstruct, finish = finish, navTransition = navTransition)\n}"
         }
 
         // xxxArgs() — one extension per screen that has @NavEaseArgs
@@ -421,92 +416,88 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
             val simpleName = entry.fqName.substringAfterLast('.')
             val fnName = "${entry.route.replaceFirstChar { it.lowercaseChar() }}Args"
             val argAssignments = entry.args!!.joinToString(", ") { (name, _) -> "$name = key.$name" }
-            """fun NavKey.${fnName}(): $simpleName.Args {
-    val key = this as? AppScreens.${entry.route}
-        ?: error(
-            "NavEase: ${fnName}() called on '${"\$"}{this::class.simpleName}' " +
-            "but expected AppScreens.${entry.route}. " +
-            "Make sure you only call ${fnName}() from inside the ${entry.route} screen."
-        )
-    return $simpleName.Args($argAssignments)
-}"""
+            "fun NavKey.${fnName}(): $simpleName.Args {\n" +
+                "    val key = this as? AppScreens.${entry.route}\n" +
+                "        ?: error(\n" +
+                "            \"NavEase: ${fnName}() called on '\${this::class.simpleName}' \" +\n" +
+                "            \"but expected AppScreens.${entry.route}. \" +\n" +
+                "            \"Make sure you only call ${fnName}() from inside the ${entry.route} screen.\"\n" +
+                "        )\n" +
+                "    return $simpleName.Args($argAssignments)\n}"
         }
 
-        // Collect custom type imports from args across all screens
         val customImports = importsFrom(entries.flatMap { it.args.orEmpty() })
-        // Collect screen class imports
         val screenImports = entries
             .filter { !it.args.isNullOrEmpty() }
             .joinToString("\n") { "import ${it.fqName}" }
 
-        val body = buildString {
-            append("// ── navigateToXxx() extensions on NavController ─────────────────────────\n\n")
-            append(navExtensions)
+        val content = buildString {
+            appendLine("package $generatedPackage")
+            appendLine()
+            appendLine("import androidx.navigation3.runtime.NavKey")
+            appendLine("import io.github.alimsrepo.navease.runtime.navigation.NavController")
+            appendLine("import io.github.alimsrepo.navease.runtime.presentation.NavTransition")
+            if (screenImports.isNotEmpty()) appendLine(screenImports)
+            if (customImports.isNotEmpty()) appendLine(customImports)
+            appendLine()
+            appendLine("// ── navigateToXxx() extensions on NavController ─────────────────────────")
+            appendLine()
+            appendLine(navExtensions)
             if (argsExtensions.isNotEmpty()) {
-                append("\n\n// ── xxxArgs() extensions on NavKey ──────────────────────────────────────\n\n")
+                appendLine()
+                appendLine("// ── xxxArgs() extensions on NavKey ──────────────────────────────────────")
+                appendLine()
                 append(argsExtensions)
             }
         }
 
         val file = codeGenerator.createNewFile(deps, generatedPackage, "NavEaseExtensions")
-        file.bufferedWriter().use {
-            it.write("""
-                package $generatedPackage
-
-                import androidx.navigation3.runtime.NavKey
-                import io.github.alimsrepo.navease.runtime.navigation.NavController
-                import io.github.alimsrepo.navease.runtime.presentation.NavTransition
-                $screenImports
-                $customImports
-
-                $body
-            """.trimIndent())
-        }
+        file.bufferedWriter().use { it.write(content) }
     }
 
     private fun generateNavEaseHost(deps: Dependencies) {
-        val file = codeGenerator.createNewFile(deps, generatedPackage, "NavEaseHost")
-        file.bufferedWriter().use {
-            it.write("""
-                package $generatedPackage
-
-                import androidx.compose.runtime.Composable
-                import io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph
-                import io.github.alimsrepo.navease.runtime.presentation.NavTransition
-                /**
-                 * Generated navigation host. Place this once in your root composable.
-                 *
-                 * @param onExitRequest         Called when back is pressed on the root screen.
-                 *                              Use this to show an exit dialog or finish the Activity.
-                 *                              Defaults to a no-op (suitable for iOS / web targets).
-                 * @param enableSharedTransitions When `true`, wraps the display in a
-                 *                              [SharedTransitionLayout] enabling Compose shared element
-                 *                              transitions between screens. Access the scope inside any
-                 *                              screen via [LocalNavEaseSharedTransitionScope.current] and
-                 *                              the animation scope via [LocalNavAnimatedContentScope.current].
-                 *                              Defaults to `false`.
-                 * @param navTransition         The screen-to-screen animation style.
-                 *                              Defaults to [NavTransition.Push] (iOS-style horizontal slide).
-                 *                              See [NavTransition] for all available options:
-                 *                              [NavTransition.Push], [NavTransition.Fade], [NavTransition.Rise],
-                 *                              [NavTransition.Zoom], [NavTransition.Depth], [NavTransition.Instant].
-                 */
-                @Composable
-                fun NavEaseHost(
-                    onExitRequest: () -> Unit = {},
-                    enableSharedTransitions: Boolean = false,
-                    navTransition: NavTransition = NavTransition.Push,
-                ) {
-                    NavEaseNavGraph(
-                        initialScreen = AppScreens.startDestination,
-                        savedStateConfig = AppScreens.savedStateConfig,
-                        screenFactory = ScreenFactory::createScreen,
-                        onExitRequest = onExitRequest,
-                        enableSharedTransitions = enableSharedTransitions,
-                        navTransition = navTransition,
-                    )
-                }
-            """.trimIndent())
+        val content = buildString {
+            appendLine("package $generatedPackage")
+            appendLine()
+            appendLine("import androidx.compose.runtime.Composable")
+            appendLine("import io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph")
+            appendLine("import io.github.alimsrepo.navease.runtime.presentation.NavTransition")
+            appendLine()
+            appendLine("/**")
+            appendLine(" * Generated navigation host. Place this once in your root composable.")
+            appendLine(" *")
+            appendLine(" * @param onExitRequest         Called when back is pressed on the root screen.")
+            appendLine(" *                              Use this to show an exit dialog or finish the Activity.")
+            appendLine(" *                              Defaults to a no-op (suitable for iOS / web targets).")
+            appendLine(" * @param enableSharedTransitions When `true`, wraps the display in a")
+            appendLine(" *                              [SharedTransitionLayout] enabling Compose shared element")
+            appendLine(" *                              transitions between screens. Access the scope inside any")
+            appendLine(" *                              screen via [LocalNavEaseSharedTransitionScope.current] and")
+            appendLine(" *                              the animation scope via [LocalNavAnimatedContentScope.current].")
+            appendLine(" *                              Defaults to `false`.")
+            appendLine(" * @param navTransition         The screen-to-screen animation style.")
+            appendLine(" *                              Defaults to [NavTransition.Push] (iOS-style horizontal slide).")
+            appendLine(" *                              See [NavTransition] for all available options:")
+            appendLine(" *                              [NavTransition.Push], [NavTransition.Fade], [NavTransition.Rise],")
+            appendLine(" *                              [NavTransition.Zoom], [NavTransition.Depth], [NavTransition.Instant].")
+            appendLine(" */")
+            appendLine("@Composable")
+            appendLine("fun NavEaseHost(")
+            appendLine("    onExitRequest: () -> Unit = {},")
+            appendLine("    enableSharedTransitions: Boolean = false,")
+            appendLine("    navTransition: NavTransition = NavTransition.Push,")
+            appendLine(") {")
+            appendLine("    NavEaseNavGraph(")
+            appendLine("        initialScreen = AppScreens.startDestination,")
+            appendLine("        savedStateConfig = AppScreens.savedStateConfig,")
+            appendLine("        screenFactory = ScreenFactory::createScreen,")
+            appendLine("        onExitRequest = onExitRequest,")
+            appendLine("        enableSharedTransitions = enableSharedTransitions,")
+            appendLine("        navTransition = navTransition,")
+            appendLine("    )")
+            append("}")
         }
+
+        val file = codeGenerator.createNewFile(deps, generatedPackage, "NavEaseHost")
+        file.bufferedWriter().use { it.write(content) }
     }
-}
