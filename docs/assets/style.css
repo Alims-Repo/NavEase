@@ -786,7 +786,7 @@ section { padding: 96px 0; }
 .modules { background: var(--bg-card); }
 .modules-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 24px;
 }
 .module-card {

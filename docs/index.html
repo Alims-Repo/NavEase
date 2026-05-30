@@ -253,14 +253,46 @@
 
     <div class="tabs">
       <button class="tab active" onclick="showTab('setup')">1. Setup</button>
+      <button class="tab" onclick="showTab('setup-manual')">1b. Manual Setup</button>
       <button class="tab" onclick="showTab('screens')">2. Screens</button>
       <button class="tab" onclick="showTab('host')">3. NavEaseHost</button>
       <button class="tab" onclick="showTab('shared')">4. Shared Transitions</button>
     </div>
 
-    <!-- Setup tab -->
+    <!-- Setup tab (plugin) -->
     <div class="tab-content active" id="tab-setup">
-      <p class="tab-desc">Add the plugin and dependencies to your shared KMP module:</p>
+      <p class="tab-desc">The <strong>Gradle plugin</strong> wires everything automatically — KSP processor, runtime dependency, source directory, and task ordering. <em>No boilerplate needed.</em></p>
+      <div class="code-window">
+        <div class="code-header">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <span class="code-title">shared/build.gradle.kts</span>
+        </div>
+        <pre class="code-block">plugins {
+    <span class="fn">kotlin</span>(<span class="str">"multiplatform"</span>)
+    id(<span class="str">"com.google.devtools.ksp"</span>)           <span class="cmt">// ← KSP (required)</span>
+    id(<span class="str">"io.github.alims-repo.navease"</span>) version <span class="str">"&lt;version&gt;"</span>  <span class="cmt">// ← NavEase plugin ✅</span>
+    <span class="cmt">// …compose plugins…</span>
+}
+
+<span class="cmt">// That's it — navease-runtime, navease-ksp, srcDir, and task wiring are all handled.</span></pre>
+      </div>
+      <div class="code-window" style="margin-top:16px">
+        <div class="code-header">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <span class="code-title">Optional: navease { } extension</span>
+        </div>
+        <pre class="code-block"><span class="cmt">// All optional — sensible defaults apply without any configuration.</span>
+<span class="fn">navease</span> {
+    version = <span class="str">"&lt;version&gt;"</span>            <span class="cmt">// pin a specific version (defaults to plugin version)</span>
+    addRuntimeDependency = <span class="kw">true</span>       <span class="cmt">// set false to manage navease-runtime yourself</span>
+    generatedPackage = <span class="str">"com.example.nav"</span> <span class="cmt">// custom package for generated files</span>
+}</pre>
+      </div>
+    </div>
+
+    <!-- Setup tab (manual) -->
+    <div class="tab-content" id="tab-setup-manual">
+      <p class="tab-desc">Prefer manual control? Add the dependencies and wiring yourself:</p>
       <div class="code-window">
         <div class="code-header">
           <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
@@ -642,6 +674,23 @@ Modifier.<span class="fn">sharedBounds</span>(
           <li>Generates <code>xxxArgs()</code> typed arg extensions</li>
           <li>Generates <code>backWithXxxResult()</code> + <code>xxxResult()</code></li>
           <li>Generates <code>NavEaseHost</code> composable</li>
+        </ul>
+      </div>
+      <div class="module-card">
+        <div class="module-header">
+          <span class="module-icon">🔌</span>
+          <div>
+            <h3>navease-gradle-plugin</h3>
+            <p class="module-sub">Gradle plugin · plugin ID <code>io.github.alims-repo.navease</code></p>
+          </div>
+        </div>
+        <ul class="module-files">
+          <li>Adds <code>navease-ksp</code> to <code>kspCommonMainMetadata</code> automatically</li>
+          <li>Registers <code>build/generated/ksp/metadata/commonMain/kotlin</code> as a source dir</li>
+          <li>Wires all KMP compilations to depend on <code>kspCommonMainKotlinMetadata</code></li>
+          <li>Optionally adds <code>navease-runtime</code> to <code>commonMain</code></li>
+          <li>Forwards <code>generatedPackage</code> KSP arg when customised</li>
+          <li>Configurable via <code>navease { }</code> extension block</li>
         </ul>
       </div>
     </div>
