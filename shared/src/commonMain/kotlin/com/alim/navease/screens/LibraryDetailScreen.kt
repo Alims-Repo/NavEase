@@ -83,7 +83,7 @@ class LibraryDetailScreen : NavScreen() {
         val onContainer = onContainerColorAt(lib.colorIndex)
 
         // Shared bounds — morphs from HomeScreen card
-        val heroSharedModifier = if (sharedScope != null && animatedScope != null) {
+        val heroSharedModifier = if (sharedScope != null) {
             with(sharedScope) {
                 Modifier.sharedBounds(
                     sharedContentState = rememberSharedContentState(key = "lib_card_${lib.id}"),
