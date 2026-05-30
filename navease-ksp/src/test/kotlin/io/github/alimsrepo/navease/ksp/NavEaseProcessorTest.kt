@@ -246,6 +246,58 @@ class NavEaseProcessorTest {
         }
     }
 
+    /** Duplicate route names must cause the processor to fail (exit code != OK). */
+    @Test
+    fun `duplicate route names — processor reports error and does not generate`() {
+        val source = SourceFile.kotlin(
+            "DuplicateScreens.kt",
+            """
+            import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
+            import io.github.alimsrepo.navease.runtime.domain.NavScreen
+
+            @NavEaseScreen(route = "Home", startDestination = true)
+            class HomeScreen : NavScreen()
+
+            @NavEaseScreen(route = "Home")
+            class HomeDuplicateScreen : NavScreen()
+            """.trimIndent()
+        )
+
+        val compilation = compile(source)
+        val result = compilation.compile()
+
+        // KSP logger.error() causes the compilation to fail
+        assertEquals(KotlinCompilation.ExitCode.COMPILATION_ERROR, result.exitCode)
+    }
+
+    /** More than one startDestination = true emits a warning but still generates successfully. */
+    @Test
+    fun `multiple startDestination — processor warns but picks the first one`() {
+        val source = SourceFile.kotlin(
+            "MultiStartScreens.kt",
+            """
+            import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
+            import io.github.alimsrepo.navease.runtime.domain.NavScreen
+
+            @NavEaseScreen(route = "Alpha", startDestination = true)
+            class AlphaScreen : NavScreen()
+
+            @NavEaseScreen(route = "Beta", startDestination = true)
+            class BetaScreen : NavScreen()
+            """.trimIndent()
+        )
+
+        val compilation = compile(source)
+        val result = compilation.compile()
+
+        // Should still compile — warning only, not error
+        assertEquals(KotlinCompilation.ExitCode.OK, result.exitCode)
+
+        // First declared start destination wins
+        val appScreens = compilation.generatedFile("AppScreens.kt").readText()
+        assertTrue("startDestination should point to Alpha (first)", "get() = Alpha" in appScreens)
+    }
+
     /** Multiple screens: exactly one marked `startDestination = true` sets the correct default. */
     @Test
     fun `multiple screens — startDestination is wired to the correct route`() {

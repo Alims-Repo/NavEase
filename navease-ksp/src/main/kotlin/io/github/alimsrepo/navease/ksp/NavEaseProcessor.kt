@@ -2,6 +2,7 @@ package io.github.alimsrepo.navease.ksp
 
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
+import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
@@ -22,12 +23,14 @@ import com.google.devtools.ksp.symbol.KSType
  * All files are emitted into [generatedPackage].
  *
  * @param codeGenerator    KSP code generator, provided by the KSP runtime.
+ * @param logger           KSP logger used to report errors and warnings during processing.
  * @param generatedPackage Package for all generated files.
  *                         Configured via the `navease.generatedPackage` KSP option;
  *                         defaults to `io.github.alimsrepo.navease.generated`.
  */
 class NavEaseProcessor(
     private val codeGenerator: CodeGenerator,
+    private val logger: KSPLogger,
     private val generatedPackage: String = "io.github.alimsrepo.navease.generated",
 ) : SymbolProcessor {
 
@@ -101,6 +104,26 @@ class NavEaseProcessor(
             }
 
             ScreenEntry(route, cls.qualifiedName!!.asString(), isStart, args, resultFields)
+        }
+
+        // ── Validate: duplicate route names ────────────────────────────────────
+        val routeCounts = entries.groupingBy { it.route }.eachCount()
+        routeCounts.filter { it.value > 1 }.forEach { (route, count) ->
+            logger.error(
+                "NavEase: route \"$route\" is declared $count times. " +
+                "Each @NavEaseScreen must have a unique route value."
+            )
+        }
+        if (routeCounts.any { it.value > 1 }) return emptyList()
+
+        // ── Validate: multiple startDestination ────────────────────────────────
+        val startEntries = entries.filter { it.isStart }
+        if (startEntries.size > 1) {
+            logger.warn(
+                "NavEase: ${startEntries.size} screens are marked with startDestination = true " +
+                "(${startEntries.joinToString { "\"${it.route}\"" }}). " +
+                "Only the first one (\"${startEntries.first().route}\") will be used."
+            )
         }
 
         val startEntry = entries.firstOrNull { it.isStart } ?: entries.first()
