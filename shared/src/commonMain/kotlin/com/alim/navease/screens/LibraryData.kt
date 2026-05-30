@@ -43,7 +43,7 @@ val allLibraries: List<Library> = listOf(
         tagline = "Annotation-driven KMP navigation",
         description = "NavEase is a KSP-powered, annotation-driven navigation library for Kotlin Multiplatform + Compose Multiplatform. Annotate your screen classes — KSP generates the route hierarchy, screen factory, typed arguments, typed results, and the nav host at compile time. No manual registration. No reflection. No string routes.",
         version = "pre-release",
-        groupId = "io.github.alimsrepo",
+        groupId = "io.github.alims-repo",
         artifactIds = listOf("navease-runtime", "navease-ksp"),
         githubUrl = "https://github.com/Alims-Repo/NavEase",
         websiteUrl = "https://alims-repo.github.io/NavEase/",
@@ -64,10 +64,10 @@ val allLibraries: List<Library> = listOf(
         ),
         installCode = """// shared/build.gradle.kts
 commonMain.dependencies {
-    implementation("io.github.alimsrepo:navease-runtime:<version>")
+    implementation("io.github.alims-repo:navease-runtime:<version>")
 }
 dependencies {
-    add("kspCommonMainMetadata", "io.github.alimsrepo:navease-ksp:<version>")
+    add("kspCommonMainMetadata", "io.github.alims-repo:navease-ksp:<version>")
 }
 
 // Then trigger code generation:

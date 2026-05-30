@@ -112,7 +112,7 @@ kotlin {
             kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
 
             dependencies {
-                implementation("io.github.alimsrepo:navease-runtime:<version>")
+                implementation("io.github.alims-repo:navease-runtime:<version>")
             }
         }
     }
@@ -120,7 +120,7 @@ kotlin {
 
 dependencies {
     // KSP runs once against commonMain metadata — covers all platform targets
-    add("kspCommonMainMetadata", "io.github.alimsrepo:navease-ksp:<version>")
+    add("kspCommonMainMetadata", "io.github.alims-repo:navease-ksp:<version>")
 }
 
 // All compilations must wait for KSP to finish first
