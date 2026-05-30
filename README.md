@@ -131,7 +131,22 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().con
 }
 ```
 
-### 3. Trigger code generation
+### 3. (Optional) Configure KSP options
+
+```kotlin
+// shared/build.gradle.kts
+ksp {
+    // Override the package for all generated files.
+    // Default: "io.github.alimsrepo.navease.generated"
+    arg("navease.generatedPackage", "com.myapp.navigation.generated")
+}
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `navease.generatedPackage` | `io.github.alimsrepo.navease.generated` | Package for `AppScreens`, `ScreenFactory`, `NavEaseExtensions`, `NavEaseResults`, and `NavEaseHost`. Override to keep generated code inside your own namespace or to support multiple independent nav graphs |
+
+### 4. Trigger code generation
 
 ```bash
 ./gradlew :shared:kspCommonMainKotlinMetadata
@@ -140,7 +155,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().con
 NavEase generates five files into:
 ```
 shared/build/generated/ksp/metadata/commonMain/kotlin/
-  io/github/alimsrepo/navease/generated/
+  io/github/alimsrepo/navease/generated/    ← (or your custom package path)
     AppScreens.kt
     ScreenFactory.kt
     NavEaseExtensions.kt  ← navigateToXxx() + xxxArgs() typed extensions
@@ -499,7 +514,9 @@ class ProfileScreen : NavScreen() {
 
 ## KSP-Generated Code
 
-After running `./gradlew :shared:kspCommonMainKotlinMetadata`, NavEase writes these files:
+After running `./gradlew :shared:kspCommonMainKotlinMetadata`, NavEase writes these files based on the screen classes it discovers.
+
+For the sample app (which declares Splash, Home, LibraryDetail, NavEaseDemo, TransitionPreview, and four library demo screens), the generated files look like this:
 
 ### `AppScreens.kt`
 
@@ -510,14 +527,15 @@ After running `./gradlew :shared:kspCommonMainKotlinMetadata`, NavEase writes th
 @Serializable
 sealed class AppScreens : NavKey {
     @Serializable data object Splash : AppScreens()
-    @Serializable data class Main(val userId: String, val age: Int) : AppScreens()
-    @Serializable data class Detail(val featureName: String, val description: String) : AppScreens()
-    @Serializable data class Profile(val username: String, val bio: String) : AppScreens()
-    @Serializable data class Gallery(val title: String) : AppScreens()
-    @Serializable data class GalleryDetail(
-        val itemId: Int, val itemTitle: String, val itemTag: String,
-        val description: String, val emoji: String, val colorIndex: Int
-    ) : AppScreens()
+    @Serializable data object Home : AppScreens()
+    @Serializable data class LibraryDetail(val libId: String, val libName: String) : AppScreens()
+    @Serializable data object NavEaseDemo : AppScreens()
+    @Serializable data class TransitionPreview(val transitionName: String, val tagline: String) : AppScreens()
+    @Serializable data object SecureVaultDemo : AppScreens()
+    @Serializable data object FlowTabDemo : AppScreens()
+    @Serializable data object PrayerTimesDemo : AppScreens()
+    @Serializable data object CrashGuardDemo : AppScreens()
+    @Serializable data object PdfDemo : AppScreens()
 
     companion object {
         val startDestination: AppScreens get() = Splash
@@ -532,40 +550,35 @@ sealed class AppScreens : NavKey {
 ```kotlin
 // ── navigateToXxx() extensions on NavController ─────────────────────────────
 
-fun NavController.navigateToSplash(finish: Boolean = false) { … }
-fun NavController.navigateToMain(userId: String, age: Int, finish: Boolean = false) { … }
-fun NavController.navigateToDetail(featureName: String, description: String, finish: Boolean = false) { … }
-fun NavController.navigateToProfile(username: String, bio: String, finish: Boolean = false) { … }
-fun NavController.navigateToGallery(title: String, finish: Boolean = false) { … }
-fun NavController.navigateToGalleryDetail(itemId: Int, itemTitle: String, …, finish: Boolean = false) { … }
+fun NavController.navigateToSplash(finish: Boolean = false, navTransition: NavTransition? = null) { … }
+fun NavController.navigateToHome(finish: Boolean = false, navTransition: NavTransition? = null) { … }
+fun NavController.navigateToLibraryDetail(
+    libId: String, libName: String,
+    finish: Boolean = false, navTransition: NavTransition? = null
+) { … }
+fun NavController.navigateToNavEaseDemo(finish: Boolean = false, navTransition: NavTransition? = null) { … }
+fun NavController.navigateToTransitionPreview(
+    transitionName: String, tagline: String,
+    finish: Boolean = false, navTransition: NavTransition? = null
+) { … }
+// …and one extension per remaining demo screen
 
 // ── xxxArgs() extensions on NavKey ───────────────────────────────────────────
 
-fun NavKey.mainArgs(): MainScreen.Args { … }
-fun NavKey.detailArgs(): DetailScreen.Args { … }
-fun NavKey.profileArgs(): ProfileScreen.Args { … }
-fun NavKey.galleryArgs(): GalleryScreen.Args { … }
-fun NavKey.galleryDetailArgs(): GalleryDetailScreen.Args { … }
+fun NavKey.libraryDetailArgs(): LibraryDetailScreen.Args { … }
+fun NavKey.transitionPreviewArgs(): TransitionPreviewScreen.Args { … }
 ```
 
 ### `NavEaseResults.kt`
 
 ```kotlin
-data class MainResult(val value: Int)
-fun NavController.backWithMainResult(value: Int) { … }
-@Composable fun NavController.mainResult(): State<MainResult?> = …
+// Generated because LibraryDetailScreen declares @NavEaseResult data class Result(val starred: Boolean)
 
-data class DetailResult(val liked: Boolean)
-fun NavController.backWithDetailResult(liked: Boolean) { … }
-@Composable fun NavController.detailResult(): State<DetailResult?> = …
+data class LibraryDetailResult(val starred: Boolean)
 
-data class ProfileResult(val followed: Boolean)
-fun NavController.backWithProfileResult(followed: Boolean) { … }
-@Composable fun NavController.profileResult(): State<ProfileResult?> = …
+fun NavController.backWithLibraryDetailResult(starred: Boolean) { … }
 
-data class GalleryDetailResult(val bookmarked: Boolean)
-fun NavController.backWithGalleryDetailResult(bookmarked: Boolean) { … }
-@Composable fun NavController.galleryDetailResult(): State<GalleryDetailResult?> = …
+@Composable fun NavController.libraryDetailResult(): State<LibraryDetailResult?> = …
 ```
 
 ### `NavEaseHost.kt`
@@ -575,6 +588,7 @@ fun NavController.backWithGalleryDetailResult(bookmarked: Boolean) { … }
 fun NavEaseHost(
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
+    navTransition: NavTransition = NavTransition.Push,
 ) {
     NavEaseNavGraph(
         initialScreen = AppScreens.startDestination,
@@ -582,6 +596,7 @@ fun NavEaseHost(
         screenFactory = ScreenFactory::createScreen,
         onExitRequest = onExitRequest,
         enableSharedTransitions = enableSharedTransitions,
+        navTransition = navTransition,
     )
 }
 ```
@@ -605,9 +620,10 @@ NavEase/
 │       │   └── NavControllerExtensions.kt ← backWithResult() / resultOf() (internal)
 │       └── presentation/
 │           ├── NavEaseNavGraph.kt      ← @Composable NavEaseNavGraph(…) — core host
+│           ├── NavTransition.kt        ← sealed class NavTransition (Push/Fade/Rise/Zoom/Depth/Instant)
+│           ├── Animations.kt           ← ContentTransform pairs for each NavTransition
 │           ├── LocalNavEaseController.kt   ← CompositionLocal<NavController?>
-│           ├── LocalNavEaseSharedTransition.kt ← CompositionLocal<SharedTransitionScope?>
-│           └── Animations.kt           ← slide transition spec (450 ms)
+│           └── LocalNavEaseSharedTransition.kt ← CompositionLocal<SharedTransitionScope?>
 │
 ├── navease-ksp/                        ← JVM KSP annotation processor
 │   └── src/main/kotlin/io/github/alimsrepo/navease/ksp/
@@ -617,12 +633,19 @@ NavEase/
 ├── shared/                             ← Sample app — KMP shared module
 │   └── src/commonMain/kotlin/com/alim/navease/screens/
 │       ├── App.kt                      ← MaterialTheme { NavEaseHost(enableSharedTransitions = true) }
-│       ├── SplashScreen.kt             ← start destination, animated branding, receives result
-│       ├── MainScreen.kt               ← dashboard; args + result + back-stack visualizer
-│       ├── DetailScreen.kt             ← @NavEaseArgs + @NavEaseResult; shared bounds on header
-│       ├── ProfileScreen.kt            ← shared avatar from MainScreen; follow result
-│       ├── GalleryScreen.kt            ← list-to-detail shared bounds demo
-│       └── GalleryDetailScreen.kt      ← item detail; shared bounds from gallery card
+│       ├── LibraryData.kt              ← Library data class + allLibraries catalogue
+│       ├── ThemeUtils.kt               ← containerColorAt / accentColorAt helpers
+│       ├── SharedComposables.kt        ← NavBackButton shared composable
+│       ├── SplashScreen.kt             ← start destination; animated branding; navigates to Home
+│       ├── HomeScreen.kt               ← library catalogue list; shared bounds; result banner
+│       ├── LibraryDetailScreen.kt      ← @NavEaseArgs + @NavEaseResult; shared bounds from home card
+│       ├── NavEaseDemoScreen.kt        ← 6-transition picker; per-navigate NavTransition override
+│       ├── TransitionPreviewScreen.kt  ← @NavEaseArgs; live transition preview
+│       ├── SecureVaultDemoScreen.kt    ← SecureVault KMP library demo
+│       ├── FlowTabDemoScreen.kt        ← FlowTab CMP library demo
+│       ├── PrayerTimesDemoScreen.kt    ← Prayer Times KMM library demo
+│       ├── CrashGuardDemoScreen.kt     ← CrashGuard library demo
+│       └── PdfDemoScreen.kt            ← Pdf Generator library demo
 │
 ├── androidApp/                         ← Android sample entry point
 ├── desktopApp/                         ← Desktop (JVM) sample entry point
@@ -634,26 +657,35 @@ NavEase/
 
 ## Sample App
 
-The `shared` module contains a 6-screen demo showcasing the full NavEase feature set including shared element transitions:
+The `shared` module contains a 10-screen demo app — the **alims-repo library catalogue** — showcasing the full NavEase feature set including shared element transitions, typed arguments, typed results, and per-navigate transition overrides.
 
 | Screen | Route | `startDestination` | Demonstrates |
 |---|---|---|---|
-| `SplashScreen` | `"Splash"` | ✅ yes | Auto-navigation · animated branding · receives Main result |
-| `MainScreen` | `"Main"` | ❌ no | `@NavEaseArgs` · `@NavEaseResult` · back-stack visualizer · result banners |
-| `DetailScreen` | `"Detail"` | ❌ no | `@NavEaseArgs` + `@NavEaseResult` · `sharedBounds` from feature card |
-| `ProfileScreen` | `"Profile"` | ❌ no | Shared avatar from MainScreen · follow/unfollow result |
-| `GalleryScreen` | `"Gallery"` | ❌ no | List → detail shared bounds on each card · bookmarked result banner |
-| `GalleryDetailScreen` | `"GalleryDetail"` | ❌ no | Full shared bounds from gallery card · bookmark result |
+| `SplashScreen` | `"Splash"` | ✅ yes | Animated branding · auto-navigate with `finish = true` |
+| `HomeScreen` | `"Home"` | ❌ no | Library list · shared bounds · `@NavEaseResult` observe banner |
+| `LibraryDetailScreen` | `"LibraryDetail"` | ❌ no | `@NavEaseArgs` · `@NavEaseResult` · `sharedBounds` from home card · per-lib `navTransition` |
+| `NavEaseDemoScreen` | `"NavEaseDemo"` | ❌ no | 6-transition picker · per-navigate `NavTransition` override |
+| `TransitionPreviewScreen` | `"TransitionPreview"` | ❌ no | `@NavEaseArgs` · live transition preview |
+| `SecureVaultDemoScreen` | `"SecureVaultDemo"` | ❌ no | Library feature demo |
+| `FlowTabDemoScreen` | `"FlowTabDemo"` | ❌ no | Library feature demo |
+| `PrayerTimesDemoScreen` | `"PrayerTimesDemo"` | ❌ no | Library feature demo |
+| `CrashGuardDemoScreen` | `"CrashGuardDemo"` | ❌ no | Library feature demo |
+| `PdfDemoScreen` | `"PdfDemo"` | ❌ no | Library feature demo |
 
 ### Navigation flow
 
 ```
-SplashScreen ──(auto)──▶ MainScreen ──▶ DetailScreen
-                               │
-                               ├──▶ ProfileScreen       (shared avatar)
-                               │
-                               └──▶ GalleryScreen ──▶ GalleryDetailScreen
-                                                        (shared card bounds)
+SplashScreen ──(auto, finish=true)──▶ HomeScreen ──(shared bounds)──▶ LibraryDetailScreen
+                                                                              │
+                                           ┌──────────────────────────────────┤
+                                           ▼                                  │
+                                     NavEaseDemoScreen                        │
+                                           │                                  │
+                                           ▼                                  │
+                                 TransitionPreviewScreen              demo screens…
+                                                            (SecureVaultDemo, FlowTabDemo,
+                                                             PrayerTimesDemo, CrashGuardDemo,
+                                                             PdfDemo)
 ```
 
 **Run on Android:**
