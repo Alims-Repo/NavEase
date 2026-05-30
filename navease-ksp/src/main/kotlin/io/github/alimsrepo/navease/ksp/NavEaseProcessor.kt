@@ -45,8 +45,14 @@ class NavEaseProcessor(
      */
     private data class TypeInfo(val shortName: String, val importFqn: String?)
 
-    /** A single constructor parameter with its resolved type. */
-    private data class ArgParam(val name: String, val typeInfo: TypeInfo)
+    /**
+     * A single constructor parameter with its resolved type.
+     *
+     * [ksType] is kept alongside [typeInfo] so that [importsFrom] can call [collectImports]
+     * to gather FQNs from nested generic type arguments (e.g. the `SampleData` inside
+     * `List<SampleData>` would not appear in [TypeInfo.importFqn] of the outer `List`).
+     */
+    private data class ArgParam(val name: String, val typeInfo: TypeInfo, val ksType: KSType)
 
     private data class ScreenEntry(
         val route: String,
@@ -90,7 +96,8 @@ class NavEaseProcessor(
                 }
 
             val args = argsClass?.primaryConstructor?.parameters?.map { param ->
-                ArgParam(param.name!!.asString(), resolveTypeInfo(param.type.resolve()))
+                val resolved = param.type.resolve()
+                ArgParam(param.name!!.asString(), resolveTypeInfo(resolved), resolved)
             }
 
             val resultClass = cls.declarations
@@ -100,7 +107,8 @@ class NavEaseProcessor(
                 }
 
             val resultFields = resultClass?.primaryConstructor?.parameters?.map { param ->
-                ArgParam(param.name!!.asString(), resolveTypeInfo(param.type.resolve()))
+                val resolved = param.type.resolve()
+                ArgParam(param.name!!.asString(), resolveTypeInfo(resolved), resolved)
             }
 
             ScreenEntry(route, cls.qualifiedName!!.asString(), isStart, args, resultFields)
@@ -138,30 +146,114 @@ class NavEaseProcessor(
     }
 
     /**
+     * Kotlin built-in types whose containers need no import in generated source.
+     *
+     * Generic containers like `kotlin.collections.List` are mapped to their short alias
+     * (`List`) without an explicit import because they are always in scope on all KMP targets.
+     */
+    private val builtInContainerFqns = setOf(
+        "kotlin.collections.List",
+        "kotlin.collections.MutableList",
+        "kotlin.collections.Set",
+        "kotlin.collections.MutableSet",
+        "kotlin.collections.Map",
+        "kotlin.collections.MutableMap",
+        "kotlin.Array",
+        "kotlin.Pair",
+        "kotlin.Triple",
+    )
+
+    /**
      * Resolves a KSP type into a [TypeInfo] holding:
-     * - the short (unqualified) name safe to use directly in generated source
-     * - the FQN to emit as an `import`, or null for built-in Kotlin types
+     * - the short (unqualified) name safe to use directly in generated source,
+     *   including type arguments for generics (e.g. `List<String>`, `Map<String, SampleData?>`)
+     * - the FQN to emit as an `import`, or null for built-in / well-known types.
+     *   For generics, imports are collected from all type arguments recursively.
+     *
+     * Imports for type arguments are collected via [collectImports] and surfaced through the
+     * [ArgParam] → [importsFrom] pipeline.
      */
     private fun resolveTypeInfo(type: KSType): TypeInfo {
         val fqn = type.declaration.qualifiedName?.asString() ?: "kotlin.String"
         val nullable = if (type.isMarkedNullable) "?" else ""
-        return when (fqn) {
-            "kotlin.String"  -> TypeInfo("String$nullable",  null)
-            "kotlin.Int"     -> TypeInfo("Int$nullable",     null)
-            "kotlin.Long"    -> TypeInfo("Long$nullable",    null)
-            "kotlin.Boolean" -> TypeInfo("Boolean$nullable", null)
-            "kotlin.Double"  -> TypeInfo("Double$nullable",  null)
-            "kotlin.Float"   -> TypeInfo("Float$nullable",   null)
-            else             -> TypeInfo(
-                shortName = "${fqn.substringAfterLast('.')}$nullable",
-                importFqn = fqn
-            )
+
+        // Primitive Kotlin types — never need an import
+        val primitiveShort = when (fqn) {
+            "kotlin.String"  -> "String"
+            "kotlin.Int"     -> "Int"
+            "kotlin.Long"    -> "Long"
+            "kotlin.Boolean" -> "Boolean"
+            "kotlin.Double"  -> "Double"
+            "kotlin.Float"   -> "Float"
+            "kotlin.Byte"    -> "Byte"
+            "kotlin.Short"   -> "Short"
+            "kotlin.Char"    -> "Char"
+            "kotlin.Unit"    -> "Unit"
+            "kotlin.Any"     -> "Any"
+            else             -> null
         }
+        if (primitiveShort != null) return TypeInfo("$primitiveShort$nullable", null)
+
+        val typeArgs = type.arguments
+        val shortBase = fqn.substringAfterLast('.')
+
+        if (typeArgs.isEmpty()) {
+            // Non-generic custom type — needs an import
+            return TypeInfo("$shortBase$nullable", fqn)
+        }
+
+        // Generic type: build "Container<Arg1, Arg2, ...>" recursively.
+        // Each type argument may itself be a generic, nullable, or a star projection (*).
+        val argStrings = typeArgs.map { arg ->
+            val variance = arg.variance
+            val argType = arg.type?.resolve()
+            when {
+                argType == null -> "*" // star projection
+                variance.label.isNotEmpty() -> "${variance.label} ${resolveTypeInfo(argType).shortName}"
+                else -> resolveTypeInfo(argType).shortName
+            }
+        }
+        val shortName = "$shortBase<${argStrings.joinToString(", ")}>$nullable"
+
+        // Container needs an import only if it is not a well-known Kotlin built-in alias
+        val containerImport = if (fqn in builtInContainerFqns) null else fqn
+
+        return TypeInfo(shortName, containerImport)
     }
 
-    /** Collects all non-null import FQNs from a list of [ArgParam]s, sorted for determinism. */
+    /**
+     * Recursively collects every import FQN needed to represent [type] and all its type
+     * arguments. This is required because [TypeInfo.importFqn] only stores the outermost
+     * container's FQN; inner argument FQNs are gathered here.
+     */
+    private fun collectImports(type: KSType): Set<String> {
+        val fqn = type.declaration.qualifiedName?.asString() ?: return emptySet()
+        val result = mutableSetOf<String>()
+
+        // Add the container import if it is not a built-in primitive or well-known collection
+        val primitives = setOf(
+            "kotlin.String", "kotlin.Int", "kotlin.Long", "kotlin.Boolean",
+            "kotlin.Double", "kotlin.Float", "kotlin.Byte", "kotlin.Short",
+            "kotlin.Char", "kotlin.Unit", "kotlin.Any",
+        )
+        if (fqn !in primitives && fqn !in builtInContainerFqns) {
+            result += fqn
+        }
+
+        // Recurse into type arguments
+        type.arguments.forEach { arg ->
+            arg.type?.resolve()?.let { argType -> result += collectImports(argType) }
+        }
+
+        return result
+    }
+
+    /**
+     * Collects all non-null import FQNs from a list of [ArgParam]s **and** their nested
+     * generic type arguments, sorted for determinism.
+     */
     private fun importsFrom(params: List<ArgParam>): String =
-        params.mapNotNull { it.typeInfo.importFqn }
+        params.flatMap { collectImports(it.ksType) }
             .toSortedSet()
             .joinToString("\n") { "import $it" }
 

@@ -246,6 +246,51 @@ class NavEaseProcessorTest {
         }
     }
 
+    /** Generic types in @NavEaseArgs generate correct type params and collect inner imports. */
+    @Test
+    fun `generic types in NavEaseArgs — correct short name and imports`() {
+        val customType = SourceFile.kotlin(
+            "Item.kt",
+            """
+            package com.example
+
+            data class Item(val id: Int)
+            """.trimIndent()
+        )
+        val source = SourceFile.kotlin(
+            "ListScreen.kt",
+            """
+            import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
+            import io.github.alimsrepo.navease.runtime.annotations.NavEaseArgs
+            import io.github.alimsrepo.navease.runtime.domain.NavScreen
+            import com.example.Item
+
+            @NavEaseScreen(route = "ItemList", startDestination = true)
+            class ItemListScreen : NavScreen() {
+                @NavEaseArgs
+                data class Args(
+                    val items: List<Item>,
+                    val mapping: Map<String, Item>,
+                    val maybeItem: Item?
+                )
+            }
+            """.trimIndent()
+        )
+
+        val compilation = compile(customType, source)
+        val result = compilation.compile()
+
+        assertEquals(KotlinCompilation.ExitCode.OK, result.exitCode)
+
+        val appScreens = compilation.generatedFile("AppScreens.kt").readText()
+        // List<Item> should appear
+        assertTrue("AppScreens should use List<Item>", "List<Item>" in appScreens)
+        // Map<String, Item> should appear
+        assertTrue("AppScreens should use Map<String, Item>", "Map<String, Item>" in appScreens)
+        // Custom type import should be present
+        assertTrue("AppScreens.kt should import com.example.Item", "import com.example.Item" in appScreens)
+    }
+
     /** Duplicate route names must cause the processor to fail (exit code != OK). */
     @Test
     fun `duplicate route names — processor reports error and does not generate`() {
