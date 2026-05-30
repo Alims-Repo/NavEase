@@ -147,6 +147,10 @@ class NavEaseProcessorTest {
         assertTrue("navigateToDetail should accept itemId", "itemId: Int" in extensions)
         assertTrue("navigateToDetail should accept label", "label: String" in extensions)
         assertTrue("xxxArgs() extension should be generated", "detailArgs()" in extensions)
+        assertTrue(
+            "xxxArgs() should use safe cast (as?), not hard cast",
+            "as? AppScreens.Detail" in extensions
+        )
     }
 
     /** A screen with @NavEaseResult generates NavEaseResults.kt with typed extensions. */

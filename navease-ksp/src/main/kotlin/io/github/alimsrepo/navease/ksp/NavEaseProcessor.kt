@@ -422,7 +422,12 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
             val fnName = "${entry.route.replaceFirstChar { it.lowercaseChar() }}Args"
             val argAssignments = entry.args!!.joinToString(", ") { (name, _) -> "$name = key.$name" }
             """fun NavKey.${fnName}(): $simpleName.Args {
-    val key = this as AppScreens.${entry.route}
+    val key = this as? AppScreens.${entry.route}
+        ?: error(
+            "NavEase: ${fnName}() called on '${"\$"}{this::class.simpleName}' " +
+            "but expected AppScreens.${entry.route}. " +
+            "Make sure you only call ${fnName}() from inside the ${entry.route} screen."
+        )
     return $simpleName.Args($argAssignments)
 }"""
         }
