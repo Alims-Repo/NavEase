@@ -1,7 +1,6 @@
 import com.vanniktech.maven.publish.GradlePlugin
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.SonatypeHost
-import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinJvm)
@@ -17,17 +16,12 @@ kotlin {
 }
 
 // ── Generate NavEaseVersion.kt from gradle.properties ──────────────────────
-// providers.gradleProperty inherits from the outer (including) build's gradle.properties
-val navEaseVersion: String = providers.gradleProperty("VERSION_NAME").getOrElse(
-    file("../gradle.properties").let { f ->
-        Properties().also { p -> f.inputStream().use { p.load(it) } }.getProperty("VERSION_NAME")
-    } ?: error("VERSION_NAME not found in gradle.properties")
-)
-val navEaseGroup: String = providers.gradleProperty("GROUP").getOrElse(
-    file("../gradle.properties").let { f ->
-        Properties().also { p -> f.inputStream().use { p.load(it) } }.getProperty("GROUP")
-    } ?: error("GROUP not found in gradle.properties")
-)
+// VERSION_NAME and GROUP live in navease-gradle-plugin/gradle.properties so this
+// works both locally (composite build) and in CI (standalone publishing).
+val navEaseVersion: String = providers.gradleProperty("VERSION_NAME")
+    .orNull ?: error("VERSION_NAME not found in gradle.properties")
+val navEaseGroup: String = providers.gradleProperty("GROUP")
+    .orNull ?: error("GROUP not found in gradle.properties")
 
 val generateNavEaseVersion by tasks.registering {
     val outputDir = layout.buildDirectory.dir("generated/navease-version/kotlin")
