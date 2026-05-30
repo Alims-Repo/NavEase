@@ -24,7 +24,7 @@ import io.github.alimsrepo.navease.runtime.presentation.NavTransition
 class NavController(
     private val backStack: NavBackStack<NavKey>,
     private val showExitDialog: () -> Unit = {},
-    internal val defaultTransition: NavTransition = NavTransition.Push,
+    internal var defaultTransition: NavTransition = NavTransition.Push,
 ) {
 
     /**
