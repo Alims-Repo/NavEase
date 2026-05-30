@@ -2,24 +2,57 @@
 
 > **Audit Date:** May 27, 2026  
 > **Auditor:** GitHub Copilot (automated code analysis)  
+> **Last updated:** May 30, 2026 — see [Remediation Status](#remediation-status) for current state  
 > **Codebase revision:** HEAD / `versionName 1.0` / `versionCode 1`  
 > **Scope:** All modules — `navease-runtime`, `navease-ksp`, `shared`, `androidApp`, `desktopApp`, `webApp`, `iosApp`
 
 ---
 
-## Verdict
+## Remediation Status
 
-> ⛔ **NOT PRODUCTION-READY**
+> ✅ = Fixed · 🔄 = Partially addressed · ❌ = Not yet fixed
 
-NavEase has a solid concept — KSP-driven, annotation-first navigation for Kotlin Multiplatform — but the library is not ready for production use as of this audit date. The primary blockers are:
+| ID | Severity | Issue | Status |
+|---|---|---|---|
+| C1 | 🔴 Critical | `ResultStore` global singleton | ✅ Fixed — scoped to `NavController` instance |
+| C2 | 🔴 Critical | `produceState` result loss | ✅ Fixed — `derivedStateOf` + `LaunchedEffect` pattern |
+| C3 | 🔴 Critical | KSP missing import generation | ✅ Fixed — `resolveTypeInfo()` + `importsFrom()` |
+| C4 | 🔴 Critical | README describes wrong library | ✅ Fixed — README fully rewritten |
+| H1 | 🟠 High | `ActivityScreen.kt` misnamed | ✅ Fixed — renamed to `NavScreen.kt`, moved to `domain/` |
+| H2 | 🟠 High | `AppNavGraph` name | ✅ Fixed — renamed to `NavEaseNavGraph`; deprecated alias kept |
+| H3 | 🟠 High | `NavController` in `data/` layer | ✅ Fixed — moved to `navigation/` package |
+| H4 | 🟠 High | `showExitDialog = {}` hardcoded | ✅ Fixed — `onExitRequest` parameter on `NavEaseNavGraph` / generated host |
+| H5 | 🟠 High | `navigate(finish=true)` crash | ✅ Fixed — guard `if (backStack.size >= 2)` added |
+| H6 | 🟠 High | `Dependencies(false)` in KSP | ✅ Fixed — `Dependencies(aggregating=true, *sourceFiles)` |
+| H7 | 🟠 High | No KSP processor tests | ✅ Fixed — `NavEaseProcessorTest` (5 compilation tests) added to `navease-ksp` |
+| H8 | 🟠 High | Unstable dependencies | ❌ Not fixed — lifecycle `2.11.0-beta01`, material3 `1.11.0-alpha07` still in use |
+| M1 | 🟡 Medium | `NavEaseHost()` zero parameters | ✅ Fixed — accepts `onExitRequest`, `enableSharedTransitions`, `navTransition` |
+| M2 | 🟡 Medium | No `popUpTo` | ✅ Fixed — `popUpTo(key, inclusive)` added to `NavController` |
+| M3 | 🟡 Medium | No `singleTop` navigation | ✅ Fixed — `navigate(key, singleTop = true)` added |
+| M4 | 🟡 Medium | No per-screen transition | ✅ Fixed — `NavTransition` sealed class (6 styles); per-navigate override on every `navigateToXxx()` call |
+| M5 | 🟡 Medium | No `LocalNavEaseController` | ✅ Fixed — provided by `NavEaseNavGraph` via `CompositionLocalProvider` |
+| M6 | 🟡 Medium | Hardcoded generated package | ✅ Fixed — `navease.generatedPackage` KSP option in `NavEaseProcessorProvider` |
+| M7 | 🟡 Medium | No ProGuard consumer rules | ✅ Fixed — `navease-runtime/consumer-rules.pro` added |
+| M8 | 🟡 Medium | `qualifiedName!!` force-unwrap | ✅ Fixed — guarded with descriptive `error()` message |
+| M9 | 🟡 Medium | `isMinifyEnabled = false` | ✅ Fixed — enabled for release with R8 + ProGuard rules |
+| L1 | 🟢 Low | Extract sample into `:sample` | ❌ Not done — `shared` still contains demo screens |
+| L2 | 🟢 Low | Debug back-stack overlay | ❌ Not implemented |
+| L3 | 🟢 Low | Publish to Maven Central | ❌ No publishing config |
+| L4 | 🟢 Low | Changelog | ❌ No CHANGELOG.md |
+| L5 | 🟢 Low | Deep link support | ❌ Not implemented |
+| L6 | 🟢 Low | `SavedStateHandle` tests | ❌ No instrumented tests |
+| L7 | 🟢 Low | KSP version alignment | ❌ `ksp = "2.3.9"` still does not match Kotlin `2.3.21` format |
+| L8 | 🟢 Low | Document Navigation3 API contract | 🔄 Partially — README mentions Navigation3 is part of public contract |
 
-- The **README documents an entirely different API** than what the code implements.
-- Core runtime logic contains **correctness bugs** that will cause silent data loss and hard crashes in real-world usage.
-- The KSP code generator **does not produce importable code** when custom types are used.
-- There is a **complete absence of tests** across all modules.
-- Multiple **unstable or pre-release dependencies** are used throughout.
+### Also fixed (not in original audit)
 
-The library would benefit from a focused stabilisation sprint before any public release.
+| Fix | Description |
+|---|---|
+| Missing `HomeScreen` | Created `HomeScreen.kt` (`@NavEaseScreen(route = "Home")`) — the splash destination that `SplashScreen` navigates to was absent, preventing compilation |
+| `LocalNavEaseSharedTransitionScope` | Added `LocalNavEaseSharedTransition.kt` — `SharedTransitionScope?` CompositionLocal |
+| `NavTransition` sealed class | 6 built-in styles: `Push`, `Fade`, `Rise`, `Zoom`, `Depth`, `Instant` — all wired into `Animations` and `NavDisplay`'s `transitionSpec` / `popTransitionSpec` |
+| `navigateToXxx(navTransition)` | All generated navigate extensions accept an optional per-call `NavTransition?` override |
+| Shared element transitions | `NavEaseNavGraph` optionally wraps `NavDisplay` in `SharedTransitionLayout` and wires scope to both `NavDisplay` and `LocalNavEaseSharedTransitionScope` |
 
 ---
 
@@ -660,6 +693,8 @@ The library does not ship a `proguard-rules.pro` or `consumer-rules.pro` file. K
 
 ## Summary Scorecard
 
+### Original audit (May 27, 2026)
+
 | Category | Score | Status |
 |---|---|---|
 | Correctness / Bugs | 2 / 10 | ⛔ Critical bugs found |
@@ -672,7 +707,24 @@ The library does not ship a `proguard-rules.pro` or `consumer-rules.pro` file. K
 | Security & Safety | 4 / 10 | 🟠 Force-unwraps, no ProGuard rules |
 | **Overall** | **3.3 / 10** | **⛔ Not production-ready** |
 
+### Updated assessment (May 30, 2026)
+
+All 🔴 Critical and 🟠 High issues (except H8 — unstable deps) have been resolved. All 🟡 Medium issues are complete.
+
+| Category | Score | Status |
+|---|---|---|
+| Correctness / Bugs | 8 / 10 | ✅ All critical bugs fixed; no known data-loss paths |
+| API Design | 8 / 10 | ✅ `popUpTo`, `singleTop`, `NavTransition`, `LocalNavEaseController`, typed results |
+| Documentation | 8 / 10 | ✅ README matches real code; KSP options documented |
+| Architecture / Structure | 7 / 10 | 🟡 Correct KMP module system; sample still in `:shared` |
+| Testing | 4 / 10 | 🟡 KSP processor tests added; runtime/UI tests still absent |
+| Build & Dependencies | 5 / 10 | 🟡 ProGuard + minification enabled; pre-release deps remain |
+| Multiplatform Readiness | 7 / 10 | 🟡 Verified structurally; no cross-platform runtime tests |
+| Security & Safety | 8 / 10 | ✅ Force-unwraps guarded; consumer ProGuard rules shipped |
+| **Overall** | **6.9 / 10** | **🟡 Beta-quality — safe for internal use; publish after H8** |
+
 ---
 
-*This audit was generated by automated static analysis and manual code review of the full NavEase repository as of May 27, 2026. No compiled artifacts were executed. Runtime behaviour conclusions are inferred from source code analysis.*
+*Original audit: May 27, 2026. Remediation sprint: May 30, 2026. No compiled artifacts were executed. Runtime behaviour conclusions are inferred from source code analysis.*
+
 

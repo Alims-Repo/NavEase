@@ -8,8 +8,27 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
 
+/**
+ * NavEase KSP symbol processor.
+ *
+ * Discovers all classes annotated with
+ * `io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen` and generates five files:
+ * - `AppScreens.kt` — sealed NavKey hierarchy
+ * - `ScreenFactory.kt` — key-to-NavScreen mapping
+ * - `NavEaseExtensions.kt` — typed `navigateToXxx()` / `xxxArgs()` extensions
+ * - `NavEaseResults.kt` — typed result data classes + extensions (only if any `@NavEaseResult` exists)
+ * - `NavEaseHost.kt` — generated `@Composable NavEaseHost(…)` entry point
+ *
+ * All files are emitted into [generatedPackage].
+ *
+ * @param codeGenerator    KSP code generator, provided by the KSP runtime.
+ * @param generatedPackage Package for all generated files.
+ *                         Configured via the `navease.generatedPackage` KSP option;
+ *                         defaults to `io.github.alimsrepo.navease.generated`.
+ */
 class NavEaseProcessor(
-    private val codeGenerator: CodeGenerator
+    private val codeGenerator: CodeGenerator,
+    private val generatedPackage: String = "io.github.alimsrepo.navease.generated",
 ) : SymbolProcessor {
 
     private var generated = false
@@ -140,10 +159,10 @@ class NavEaseProcessor(
             "subclass(${entry.route}::class)"
         }
 
-        val file = codeGenerator.createNewFile(deps, "io.github.alimsrepo.navease.generated", "AppScreens")
+        val file = codeGenerator.createNewFile(deps, generatedPackage, "AppScreens")
         file.bufferedWriter().use {
             it.write("""
-                package io.github.alimsrepo.navease.generated
+                package $generatedPackage
 
                 import androidx.compose.runtime.Stable
                 import androidx.navigation3.runtime.NavKey
@@ -182,10 +201,10 @@ class NavEaseProcessor(
             "is AppScreens.${entry.route} -> $simpleName()"
         }
 
-        val file = codeGenerator.createNewFile(deps, "io.github.alimsrepo.navease.generated", "ScreenFactory")
+        val file = codeGenerator.createNewFile(deps, generatedPackage, "ScreenFactory")
         file.bufferedWriter().use {
             it.write("""
-                package io.github.alimsrepo.navease.generated
+                package $generatedPackage
 
                 import androidx.navigation3.runtime.NavKey
                 import io.github.alimsrepo.navease.runtime.domain.NavScreen
@@ -234,10 +253,10 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
     resultOf(${entry.route}Result::class)"""
         }
 
-        val file = codeGenerator.createNewFile(deps, "io.github.alimsrepo.navease.generated", "NavEaseResults")
+        val file = codeGenerator.createNewFile(deps, generatedPackage, "NavEaseResults")
         file.bufferedWriter().use {
             it.write("""
-                package io.github.alimsrepo.navease.generated
+                package $generatedPackage
 
                 import androidx.compose.runtime.Composable
                 import androidx.compose.runtime.State
@@ -266,9 +285,10 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
         val navExtensions = entries.joinToString("\n\n") { entry ->
             val fnName = "navigateTo${entry.route}"
             val paramList = if (entry.args.isNullOrEmpty()) {
-                "finish: Boolean = false"
+                "finish: Boolean = false,\n    navTransition: NavTransition? = null"
             } else {
-                entry.args.joinToString(", ") { (name, t) -> "$name: ${t.shortName}" } + ", finish: Boolean = false"
+                entry.args.joinToString(", ") { (name, t) -> "$name: ${t.shortName}" } +
+                    ", finish: Boolean = false,\n    navTransition: NavTransition? = null"
             }
             val keyConstruct = if (entry.args.isNullOrEmpty()) {
                 "AppScreens.${entry.route}"
@@ -277,7 +297,7 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
                 "AppScreens.${entry.route}($argNames)"
             }
             """fun NavController.$fnName($paramList) {
-    navigate($keyConstruct, finish = finish)
+    navigate($keyConstruct, finish = finish, navTransition = navTransition)
 }"""
         }
 
@@ -308,13 +328,14 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
             }
         }
 
-        val file = codeGenerator.createNewFile(deps, "io.github.alimsrepo.navease.generated", "NavEaseExtensions")
+        val file = codeGenerator.createNewFile(deps, generatedPackage, "NavEaseExtensions")
         file.bufferedWriter().use {
             it.write("""
-                package io.github.alimsrepo.navease.generated
+                package $generatedPackage
 
                 import androidx.navigation3.runtime.NavKey
                 import io.github.alimsrepo.navease.runtime.navigation.NavController
+                import io.github.alimsrepo.navease.runtime.presentation.NavTransition
                 $screenImports
                 $customImports
 
@@ -324,13 +345,14 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
     }
 
     private fun generateNavEaseHost(deps: Dependencies) {
-        val file = codeGenerator.createNewFile(deps, "io.github.alimsrepo.navease.generated", "NavEaseHost")
+        val file = codeGenerator.createNewFile(deps, generatedPackage, "NavEaseHost")
         file.bufferedWriter().use {
             it.write("""
-                package io.github.alimsrepo.navease.generated
+                package $generatedPackage
 
                 import androidx.compose.runtime.Composable
                 import io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph
+                import io.github.alimsrepo.navease.runtime.presentation.NavTransition
                 /**
                  * Generated navigation host. Place this once in your root composable.
                  *
@@ -343,11 +365,17 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
                  *                              screen via [LocalNavEaseSharedTransitionScope.current] and
                  *                              the animation scope via [LocalNavAnimatedContentScope.current].
                  *                              Defaults to `false`.
+                 * @param navTransition         The screen-to-screen animation style.
+                 *                              Defaults to [NavTransition.Push] (iOS-style horizontal slide).
+                 *                              See [NavTransition] for all available options:
+                 *                              [NavTransition.Push], [NavTransition.Fade], [NavTransition.Rise],
+                 *                              [NavTransition.Zoom], [NavTransition.Depth], [NavTransition.Instant].
                  */
                 @Composable
                 fun NavEaseHost(
                     onExitRequest: () -> Unit = {},
                     enableSharedTransitions: Boolean = false,
+                    navTransition: NavTransition = NavTransition.Push,
                 ) {
                     NavEaseNavGraph(
                         initialScreen = AppScreens.startDestination,
@@ -355,6 +383,7 @@ fun NavController.${fnName}Result(): State<${entry.route}Result?> =
                         screenFactory = ScreenFactory::createScreen,
                         onExitRequest = onExitRequest,
                         enableSharedTransitions = enableSharedTransitions,
+                        navTransition = navTransition,
                     )
                 }
             """.trimIndent())

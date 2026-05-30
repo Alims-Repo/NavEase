@@ -14,10 +14,15 @@ import kotlin.reflect.KClass
  * The result is stored in the [NavController] instance that owns this back stack, so multiple
  * independent navigation hosts never cross-contaminate each other's results.
  *
- * @throws IllegalStateException if [result] is an anonymous or local class (qualifiedName is null).
+ * The map key is [KClass.simpleName] — supported on all KMP targets including JS and WASM
+ * (unlike [KClass.qualifiedName] which is unavailable in Kotlin/JS). KSP generates result
+ * class names that are unique per screen route (e.g. `LibraryDetailResult`, `SplashResult`),
+ * so simple names are collision-free in practice.
+ *
+ * @throws IllegalStateException if [result] is an anonymous or local class (simpleName is null).
  */
 fun NavController.backWithResult(result: Any) {
-    val key = result::class.qualifiedName
+    val key = result::class.simpleName
         ?: error(
             "NavEase: Cannot use an anonymous or local class as a result. " +
             "Declare a named data class annotated with @NavEaseResult instead."
@@ -33,17 +38,19 @@ fun NavController.backWithResult(result: Any) {
  * received value and stays at that value until the composable leaves the composition.
  *
  * Implementation notes:
- * - [results] is a [androidx.compose.runtime.snapshots.SnapshotStateMap], so reading it inside
- *   [derivedStateOf] creates a reactive read dependency — recomposition triggers automatically
- *   the moment [backWithResult] puts a matching entry.
- * - [LaunchedEffect] runs after the first recomposition that observes a non-null [pending] value,
+ * - Uses [KClass.simpleName] as the map key — available on all KMP targets (Android, iOS,
+ *   Desktop, JS, WASM). [KClass.qualifiedName] is not supported in Kotlin/JS.
+ * - The [results] map is a [androidx.compose.runtime.snapshots.SnapshotStateMap], so reading
+ *   it inside [derivedStateOf] creates a reactive dependency — recomposition triggers
+ *   automatically the moment [backWithResult] puts a matching entry.
+ * - [LaunchedEffect] runs after the first recomposition that observes a non-null pending value,
  *   removes the entry from [results] (one-shot), and commits it to a stable local [State].
  *
  * @param clazz The [KClass] of the expected result type.
  */
 @Composable
 fun <T : Any> NavController.resultOf(clazz: KClass<T>): State<T?> {
-    val key = clazz.qualifiedName
+    val key = clazz.simpleName
         ?: error(
             "NavEase: Cannot observe results for an anonymous or local class. " +
             "Use a named data class annotated with @NavEaseResult instead."
@@ -72,4 +79,3 @@ fun <T : Any> NavController.resultOf(clazz: KClass<T>): State<T?> {
 
     return state
 }
-
