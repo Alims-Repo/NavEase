@@ -32,7 +32,7 @@ import io.github.alimsrepo.navease.runtime.navigation.NavController
  *                          [LocalNavEaseController] is already provided at that point.
  */
 @Composable
-private fun NavEaseNavGraphCore(
+internal fun NavEaseNavGraphCore(
     initialScreen: NavKey,
     savedStateConfig: SavedStateConfiguration,
     contentProvider: @Composable (NavKey) -> Unit,

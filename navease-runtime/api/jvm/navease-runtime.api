@@ -33,6 +33,16 @@ public final class io/github/alimsrepo/navease/runtime/navigation/NavControllerE
 	public static final fun resultOf (Lio/github/alimsrepo/navease/runtime/navigation/NavController;Lkotlin/reflect/KClass;Landroidx/compose/runtime/Composer;I)Landroidx/compose/runtime/State;
 }
 
+public abstract class io/github/alimsrepo/navease/runtime/presentation/ActivityScreen {
+	public static final field $stable I
+	public fun <init> ()V
+	public abstract fun Content (Landroidx/navigation3/runtime/NavKey;Lio/github/alimsrepo/navease/runtime/navigation/NavController;Landroidx/compose/runtime/Composer;I)V
+	public final fun get_keyClass ()Lkotlin/reflect/KClass;
+	public final fun get_serializer ()Lkotlinx/serialization/KSerializer;
+	public final fun set_keyClass (Lkotlin/reflect/KClass;)V
+	public final fun set_serializer (Lkotlinx/serialization/KSerializer;)V
+}
+
 public final class io/github/alimsrepo/navease/runtime/presentation/AppNavGraphKt {
 	public static final fun AppNavGraph (Landroidx/navigation3/runtime/NavKey;Landroidx/savedstate/serialization/SavedStateConfiguration;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/presentation/NavTransition;Landroidx/compose/runtime/Composer;II)V
 }
@@ -71,12 +81,20 @@ public final class io/github/alimsrepo/navease/runtime/presentation/NavEaseGraph
 }
 
 public final class io/github/alimsrepo/navease/runtime/presentation/NavEaseHostKt {
+	public static final fun NavEaseHost (Landroidx/navigation3/runtime/NavKey;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/presentation/NavTransition;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
 	public static final fun NavEaseHost (Lio/github/alimsrepo/navease/runtime/presentation/NavEaseGraph;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/presentation/NavTransition;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class io/github/alimsrepo/navease/runtime/presentation/NavEaseNavGraphKt {
 	public static final fun NavEaseNavGraph (Landroidx/navigation3/runtime/NavKey;Landroidx/savedstate/serialization/SavedStateConfiguration;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/presentation/NavTransition;Landroidx/compose/runtime/Composer;II)V
 	public static final fun NavEaseNavGraph (Lio/github/alimsrepo/navease/runtime/presentation/NavEaseGraph;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/presentation/NavTransition;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class io/github/alimsrepo/navease/runtime/presentation/NavEaseScreenScope {
+	public static final field $stable I
+	public fun <init> ()V
+	public final fun getScreens ()Ljava/util/List;
+	public final fun getSerPairs ()Ljava/util/List;
 }
 
 public abstract class io/github/alimsrepo/navease/runtime/presentation/NavTransition {
