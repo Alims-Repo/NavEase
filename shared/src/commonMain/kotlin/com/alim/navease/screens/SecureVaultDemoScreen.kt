@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
 import io.github.alimsrepo.navease.runtime.navigation.NavController
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 
@@ -54,6 +55,7 @@ private sealed interface VaultOp {
     data class Error(val message: String) : VaultOp
 }
 
+@AutoRegister
 class SecureVaultDemoScreen : ActivityScreen<AppScreens.SecureVaultDemo>() {
 
     @OptIn(ExperimentalMaterial3Api::class)

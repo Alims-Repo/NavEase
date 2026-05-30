@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
 import io.github.alimsrepo.navease.runtime.navigation.NavController
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 
@@ -35,6 +36,7 @@ import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
  * Intentionally minimal — the only animation you see here is the nav transition itself.
  * No inner AnimatedVisibility, no LaunchedEffect, no stagger.
  */
+@AutoRegister
 class TransitionPreviewScreen : ActivityScreen<AppScreens.TransitionPreview>() {
 
     @OptIn(ExperimentalMaterial3Api::class)

@@ -40,10 +40,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
 import io.github.alimsrepo.navease.runtime.navigation.NavController
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 import kotlinx.coroutines.delay
 
+@AutoRegister
 class SplashScreen : ActivityScreen<AppScreens.Splash>() {
 
     @Composable

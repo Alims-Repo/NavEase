@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
 import io.github.alimsrepo.navease.runtime.navigation.NavController
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 
@@ -63,6 +64,7 @@ private val cityData = listOf(
 
 private val prayerNames = listOf("Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha")
 
+@AutoRegister
 class PrayerTimesDemoScreen : ActivityScreen<AppScreens.PrayerTimesDemo>() {
 
     @OptIn(ExperimentalMaterial3Api::class)

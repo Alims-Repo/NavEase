@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
 import io.github.alimsrepo.navease.runtime.navigation.NavController
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 import io.github.alimsrepo.navease.runtime.presentation.NavTransition
@@ -82,6 +83,7 @@ private val transitions = listOf(
         NavTransition.Instant, 5),
 )
 
+@AutoRegister
 class NavEaseDemoScreen : ActivityScreen<AppScreens.NavEaseDemo>() {
 
     @OptIn(ExperimentalMaterial3Api::class)

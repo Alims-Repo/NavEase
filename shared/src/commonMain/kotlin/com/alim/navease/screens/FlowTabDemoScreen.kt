@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
 import io.github.alimsrepo.navease.runtime.navigation.NavController
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 
@@ -61,6 +62,7 @@ private val demoTabs = listOf(
     NavTabItem("profile",  "👤", "Profile"),
 )
 
+@AutoRegister
 class FlowTabDemoScreen : ActivityScreen<AppScreens.FlowTabDemo>() {
 
     @OptIn(ExperimentalMaterial3Api::class)

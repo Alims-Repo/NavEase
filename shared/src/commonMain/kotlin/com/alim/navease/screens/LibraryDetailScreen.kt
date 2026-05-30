@@ -38,11 +38,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
+import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
 import io.github.alimsrepo.navease.runtime.navigation.NavController
 import io.github.alimsrepo.navease.runtime.navigation.backWithResult
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 import io.github.alimsrepo.navease.runtime.presentation.LocalNavEaseSharedTransitionScope
 
+@AutoRegister
 class LibraryDetailScreen : ActivityScreen<AppScreens.LibraryDetail>() {
 
     data class Result(val starred: Boolean)

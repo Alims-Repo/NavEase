@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
+import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
 import io.github.alimsrepo.navease.runtime.navigation.NavController
 import io.github.alimsrepo.navease.runtime.navigation.resultOf
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
@@ -51,6 +52,7 @@ import io.github.alimsrepo.navease.runtime.presentation.LocalNavEaseSharedTransi
  * - Per-navigate [io.github.alimsrepo.navease.runtime.presentation.NavTransition] — each library
  *   carries its own preferred transition which is passed through [navController.navigate]
  */
+@AutoRegister
 class HomeScreen : ActivityScreen<AppScreens.Home>() {
 
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)

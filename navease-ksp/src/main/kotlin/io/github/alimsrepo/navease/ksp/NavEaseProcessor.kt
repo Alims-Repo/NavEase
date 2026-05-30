@@ -73,13 +73,18 @@ class NavEaseProcessor(
             .filterIsInstance<KSClassDeclaration>()
             .toList()
 
-        if (symbols.isEmpty()) return emptyList()
+        val autoRegisterSymbols = resolver
+            .getSymbolsWithAnnotation("io.github.alimsrepo.navease.runtime.annotations.AutoRegister")
+            .filterIsInstance<KSClassDeclaration>()
+            .toList()
+
+        if (symbols.isEmpty() && autoRegisterSymbols.isEmpty()) return emptyList()
 
         generated = true
 
         // Collect all source files that contribute @NavEaseScreen classes so KSP can
         // correctly track which outputs depend on which inputs for incremental builds.
-        val allSourceFiles = symbols.mapNotNull { it.containingFile }.toSet()
+        val allSourceFiles = (symbols + autoRegisterSymbols).mapNotNull { it.containingFile }.toSet()
         val deps = Dependencies(aggregating = true, *allSourceFiles.toTypedArray())
 
         val entries = symbols.map { cls ->
@@ -116,6 +121,7 @@ class NavEaseProcessor(
         }
 
         // ── Validate: duplicate route names ────────────────────────────────────
+        if (entries.isNotEmpty()) {
         val routeCounts = entries.groupingBy { it.route }.eachCount()
         routeCounts.filter { it.value > 1 }.forEach { (route, count) ->
             logger.error(
@@ -134,14 +140,21 @@ class NavEaseProcessor(
                         "Only the first one (\"${startEntries.first().route}\") will be used."
             )
         }
+        } // end entries.isNotEmpty()
 
-        val startEntry = entries.firstOrNull { it.isStart } ?: entries.first()
+        val startEntry = entries.firstOrNull { it.isStart } ?: entries.firstOrNull()
 
-        generateAppScreens(entries, startEntry.route, deps)
-        generateScreenFactory(entries, deps)
-        generateNavEaseResults(entries, deps)
-        generateNavEaseExtensions(entries, deps)
-        generateNavEaseHost(deps)
+        if (entries.isNotEmpty() && startEntry != null) {
+            generateAppScreens(entries, startEntry.route, deps)
+            generateScreenFactory(entries, deps)
+            generateNavEaseResults(entries, deps)
+            generateNavEaseExtensions(entries, deps)
+            generateNavEaseHost(deps)
+        }
+
+        if (autoRegisterSymbols.isNotEmpty()) {
+            generateAutoRegisterExtension(autoRegisterSymbols, deps)
+        }
 
         return emptyList()
     }
@@ -461,6 +474,126 @@ class NavEaseProcessor(
         }
 
         val file = codeGenerator.createNewFile(deps, generatedPackage, "NavEaseExtensions")
+        file.bufferedWriter().use { it.write(content) }
+    }
+
+    private fun generateAutoRegisterExtension(
+        symbols: List<KSClassDeclaration>,
+        deps: Dependencies,
+    ) {
+        val activityScreenFqn = "io.github.alimsrepo.navease.runtime.presentation.ActivityScreen"
+
+        data class AutoEntry(
+            val screenFqn: String,
+            val screenSimpleName: String,
+            val keyFqn: String,
+            val rootFqn: String,
+            val rootSimpleName: String,
+        )
+
+        val entries = symbols.mapNotNull { cls ->
+            val screenFqn = cls.qualifiedName?.asString() ?: return@mapNotNull null
+            val screenSimpleName = cls.simpleName.asString()
+
+            // Resolve ActivityScreen<K> from supertypes
+            val superType = cls.superTypes
+                .map { it.resolve() }
+                .firstOrNull { it.declaration.qualifiedName?.asString() == activityScreenFqn }
+
+            if (superType == null) {
+                logger.error(
+                    "NavEase: @AutoRegister class '$screenSimpleName' must extend ActivityScreen<K>."
+                )
+                return@mapNotNull null
+            }
+
+            val keyType = superType.arguments.firstOrNull()?.type?.resolve()
+            val keyDecl = keyType?.declaration as? KSClassDeclaration
+            if (keyDecl == null) {
+                logger.error(
+                    "NavEase: @AutoRegister class '$screenSimpleName' — could not resolve NavKey type K."
+                )
+                return@mapNotNull null
+            }
+
+            val keyFqn = keyDecl.qualifiedName?.asString() ?: return@mapNotNull null
+
+            // Root = the enclosing sealed class that K is nested inside
+            val rootDecl = (keyDecl.parentDeclaration as? KSClassDeclaration)
+                ?: keyDecl.superTypes
+                    .map { it.resolve().declaration }
+                    .filterIsInstance<KSClassDeclaration>()
+                    .firstOrNull()
+
+            if (rootDecl == null) {
+                logger.error(
+                    "NavEase: @AutoRegister class '$screenSimpleName' — could not determine the " +
+                    "sealed Root NavKey type from K='${keyDecl.simpleName.asString()}'."
+                )
+                return@mapNotNull null
+            }
+
+            val rootFqn = rootDecl.qualifiedName?.asString() ?: return@mapNotNull null
+            AutoEntry(screenFqn, screenSimpleName, keyFqn, rootFqn, rootDecl.simpleName.asString())
+        }
+
+        if (entries.isEmpty()) return
+
+        // ── Validate: one NavKey → one screen ─────────────────────────────────
+        val keyGroups = entries.groupBy { it.keyFqn }
+        keyGroups.filter { it.value.size > 1 }.forEach { (keyFqn, dupes) ->
+            logger.error(
+                "NavEase: NavKey '${keyFqn.substringAfterLast('.')}' is registered by " +
+                "${dupes.size} @AutoRegister screens " +
+                "(${dupes.joinToString { "'${it.screenSimpleName}'" }}). " +
+                "Each NavKey can only be handled by one screen."
+            )
+        }
+        if (keyGroups.any { it.value.size > 1 }) return
+
+        // ── Validate: all screens share the same Root ──────────────────────────
+        val rootTypes = entries.map { it.rootFqn }.toSet()
+        if (rootTypes.size > 1) {
+            logger.error(
+                "NavEase: @AutoRegister screens belong to multiple root NavKey types: " +
+                "${rootTypes.joinToString { "'${it.substringAfterLast('.')}'" }}. " +
+                "All screens must share the same sealed root class."
+            )
+            return
+        }
+
+        val rootFqn = entries.first().rootFqn
+        val rootSimpleName = entries.first().rootSimpleName
+        val screenImports = entries.joinToString("\n") { "import ${it.screenFqn}" }
+        val addCalls = entries.joinToString("\n") { "    add(${it.screenSimpleName}())" }
+
+        val content = buildString {
+            appendLine("package $generatedPackage")
+            appendLine()
+            appendLine("import $rootFqn")
+            appendLine("import io.github.alimsrepo.navease.runtime.presentation.NavEaseScreenScope")
+            appendLine(screenImports)
+            appendLine()
+            appendLine("/**")
+            appendLine(" * Auto-generated by NavEase KSP — do not edit.")
+            appendLine(" *")
+            appendLine(" * Registers all classes annotated with `@AutoRegister` in one call.")
+            appendLine(" * Use inside [NavEaseHost] instead of listing each screen manually:")
+            appendLine(" *")
+            appendLine(" * ```kotlin")
+            appendLine(" * NavEaseHost<$rootSimpleName>(start = $rootSimpleName.Xxx) {")
+            appendLine(" *     autoRegisterScreens()")
+            appendLine(" * }")
+            appendLine(" * ```")
+            appendLine(" *")
+            appendLine(" * Re-runs automatically whenever an `@AutoRegister` class is added or removed.")
+            appendLine(" */")
+            appendLine("fun NavEaseScreenScope<$rootSimpleName>.autoRegisterScreens() {")
+            appendLine(addCalls)
+            append("}")
+        }
+
+        val file = codeGenerator.createNewFile(deps, generatedPackage, "AutoRegisterScreens")
         file.bufferedWriter().use { it.write(content) }
     }
 
