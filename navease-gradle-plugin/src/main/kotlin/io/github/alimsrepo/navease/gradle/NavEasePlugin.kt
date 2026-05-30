@@ -32,6 +32,11 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
  * tasks.withType<KotlinCompilationTask<*>>().configureEach {
  *     if (name != "kspCommonMainKotlinMetadata") dependsOn("kspCommonMainKotlinMetadata")
  * }
+ * tasks.configureEach {
+ *     if (name != "kspCommonMainKotlinMetadata" && name.startsWith("ksp")) {
+ *         dependsOn("kspCommonMainKotlinMetadata")
+ *     }
+ * }
  * ```
  *
  * **After (with this plugin — 1 line):**
@@ -63,9 +68,24 @@ class NavEasePlugin : Plugin<Project> {
         target.pluginManager.apply("com.google.devtools.ksp")
 
         // ── Step 2: Wire task dependencies ─────────────────────────────────────
-        // Registered eagerly so it captures tasks added by KSP after plugin apply.
+        // Two separate hooks are needed because KSP target tasks (e.g.
+        // kspKotlinIosSimulatorArm64, kspKotlinAndroid) are KspAATask instances —
+        // NOT KotlinCompilationTask — so they are missed by withType<KotlinCompilationTask>.
+        // Both hooks must depend on kspCommonMainKotlinMetadata to avoid the
+        // "implicit dependency" Gradle configuration error.
+
+        // 2a. All Kotlin compilation tasks (compileKotlinIosArm64, etc.)
         target.tasks.withType(KotlinCompilationTask::class.java).configureEach { task ->
             if (task.name != "kspCommonMainKotlinMetadata") {
+                task.dependsOn("kspCommonMainKotlinMetadata")
+            }
+        }
+
+        // 2b. All KSP platform tasks (kspKotlin*, kspMetadata, etc.)
+        target.tasks.configureEach { task ->
+            if (task.name != "kspCommonMainKotlinMetadata" &&
+                task.name.startsWith("ksp")
+            ) {
                 task.dependsOn("kspCommonMainKotlinMetadata")
             }
         }
