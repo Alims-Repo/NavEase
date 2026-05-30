@@ -88,6 +88,41 @@ Runtime (navease-runtime, commonMain):
 
 ## Setup
 
+> **TL;DR — use the Gradle plugin** to skip all the boilerplate below.
+
+### Recommended: Gradle plugin (zero boilerplate)
+
+```kotlin
+// shared/build.gradle.kts
+plugins {
+    kotlin("multiplatform")
+    id("com.android.kotlin.multiplatform.library")     // new KMP library plugin
+    id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")                      // required
+    id("io.github.alims-repo.navease") version "<version>"  // ← all wiring done automatically ✅
+}
+```
+
+The `navease` plugin automatically:
+- adds `navease-ksp` to `kspCommonMainMetadata`
+- registers `build/generated/ksp/metadata/commonMain/kotlin` as a `commonMain` srcDir
+- makes every KMP compilation depend on `kspCommonMainKotlinMetadata`
+- adds `navease-runtime` to `commonMain` dependencies
+
+Optional configuration via the `navease { }` extension:
+```kotlin
+navease {
+    version = "<version>"                   // pin a specific version (default: same as plugin)
+    addRuntimeDependency = true             // set false to manage navease-runtime yourself
+    generatedPackage = "com.myapp.nav"      // custom package for generated files
+}
+```
+
+---
+
+### Manual setup (if you prefer full control)
+
 ### 1. Apply plugins in your shared KMP module
 
 ```kotlin
@@ -112,7 +147,7 @@ kotlin {
             kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
 
             dependencies {
-                implementation("io.github.alimsrepo:navease-runtime:<version>")
+                implementation("io.github.alims-repo:navease-runtime:<version>")
             }
         }
     }
@@ -120,7 +155,7 @@ kotlin {
 
 dependencies {
     // KSP runs once against commonMain metadata — covers all platform targets
-    add("kspCommonMainMetadata", "io.github.alimsrepo:navease-ksp:<version>")
+    add("kspCommonMainMetadata", "io.github.alims-repo:navease-ksp:<version>")
 }
 
 // All compilations must wait for KSP to finish first
@@ -629,6 +664,12 @@ NavEase/
 │   └── src/main/kotlin/io/github/alimsrepo/navease/ksp/
 │       ├── NavEaseProcessor.kt         ← generates AppScreens, ScreenFactory, Extensions, Results, Host
 │       └── NavEaseProcessorProvider.kt
+│
+├── navease-gradle-plugin/              ← Gradle plugin (id: io.github.alims-repo.navease)
+│   └── src/main/kotlin/io/github/alimsrepo/navease/gradle/
+│       ├── NavEasePlugin.kt            ← Plugin<Project> — wires KSP, srcDir, task deps
+│       ├── NavEaseExtension.kt         ← navease { } DSL extension block
+│       └── NavEaseVersion.kt           ← bundled artifact version constants
 │
 ├── shared/                             ← Sample app — KMP shared module
 │   └── src/commonMain/kotlin/com/alim/navease/screens/

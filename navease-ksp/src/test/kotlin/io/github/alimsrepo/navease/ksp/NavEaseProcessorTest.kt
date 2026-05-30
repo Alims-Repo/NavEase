@@ -147,6 +147,44 @@ class NavEaseProcessorTest {
         assertTrue("navigateToDetail should accept itemId", "itemId: Int" in extensions)
         assertTrue("navigateToDetail should accept label", "label: String" in extensions)
         assertTrue("xxxArgs() extension should be generated", "detailArgs()" in extensions)
+        assertTrue(
+            "xxxArgs() should use safe cast (as?), not hard cast",
+            "as? AppScreens.Detail" in extensions
+        )
+    }
+
+    /** Generated files must start with `package …` at column 0 — no stray leading whitespace. */
+    @Test
+    fun `generated files — no stray leading whitespace on package declaration`() {
+        val source = SourceFile.kotlin(
+            "NavScreen.kt",
+            """
+            import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
+            import io.github.alimsrepo.navease.runtime.annotations.NavEaseArgs
+            import io.github.alimsrepo.navease.runtime.domain.NavScreen
+
+            @NavEaseScreen(route = "Nav", startDestination = true)
+            class NavScreen : NavScreen() {
+                @NavEaseArgs
+                data class Args(val a: String, val b: String)
+            }
+            """.trimIndent()
+        )
+
+        val compilation = compile(source)
+        assertEquals(KotlinCompilation.ExitCode.OK, compilation.compile().exitCode)
+
+        listOf("AppScreens.kt", "ScreenFactory.kt", "NavEaseExtensions.kt", "NavEaseHost.kt").forEach { name ->
+            val text = compilation.generatedFile(name).readText()
+            assertTrue(
+                "$name must start with 'package' at column 0 (no stray indentation)",
+                text.trimStart().startsWith("package ")
+            )
+            assertTrue(
+                "$name first line must not have leading spaces",
+                text.lines().first { it.isNotBlank() }.startsWith("package ")
+            )
+        }
     }
 
     /** A screen with @NavEaseResult generates NavEaseResults.kt with typed extensions. */
@@ -244,6 +282,103 @@ class NavEaseProcessorTest {
                 "package $customPkg" in file.readText()
             )
         }
+    }
+
+    /** Generic types in @NavEaseArgs generate correct type params and collect inner imports. */
+    @Test
+    fun `generic types in NavEaseArgs — correct short name and imports`() {
+        val customType = SourceFile.kotlin(
+            "Item.kt",
+            """
+            package com.example
+
+            data class Item(val id: Int)
+            """.trimIndent()
+        )
+        val source = SourceFile.kotlin(
+            "ListScreen.kt",
+            """
+            import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
+            import io.github.alimsrepo.navease.runtime.annotations.NavEaseArgs
+            import io.github.alimsrepo.navease.runtime.domain.NavScreen
+            import com.example.Item
+
+            @NavEaseScreen(route = "ItemList", startDestination = true)
+            class ItemListScreen : NavScreen() {
+                @NavEaseArgs
+                data class Args(
+                    val items: List<Item>,
+                    val mapping: Map<String, Item>,
+                    val maybeItem: Item?
+                )
+            }
+            """.trimIndent()
+        )
+
+        val compilation = compile(customType, source)
+        val result = compilation.compile()
+
+        assertEquals(KotlinCompilation.ExitCode.OK, result.exitCode)
+
+        val appScreens = compilation.generatedFile("AppScreens.kt").readText()
+        // List<Item> should appear
+        assertTrue("AppScreens should use List<Item>", "List<Item>" in appScreens)
+        // Map<String, Item> should appear
+        assertTrue("AppScreens should use Map<String, Item>", "Map<String, Item>" in appScreens)
+        // Custom type import should be present
+        assertTrue("AppScreens.kt should import com.example.Item", "import com.example.Item" in appScreens)
+    }
+
+    /** Duplicate route names must cause the processor to fail (exit code != OK). */
+    @Test
+    fun `duplicate route names — processor reports error and does not generate`() {
+        val source = SourceFile.kotlin(
+            "DuplicateScreens.kt",
+            """
+            import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
+            import io.github.alimsrepo.navease.runtime.domain.NavScreen
+
+            @NavEaseScreen(route = "Home", startDestination = true)
+            class HomeScreen : NavScreen()
+
+            @NavEaseScreen(route = "Home")
+            class HomeDuplicateScreen : NavScreen()
+            """.trimIndent()
+        )
+
+        val compilation = compile(source)
+        val result = compilation.compile()
+
+        // KSP logger.error() causes the compilation to fail
+        assertEquals(KotlinCompilation.ExitCode.COMPILATION_ERROR, result.exitCode)
+    }
+
+    /** More than one startDestination = true emits a warning but still generates successfully. */
+    @Test
+    fun `multiple startDestination — processor warns but picks the first one`() {
+        val source = SourceFile.kotlin(
+            "MultiStartScreens.kt",
+            """
+            import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
+            import io.github.alimsrepo.navease.runtime.domain.NavScreen
+
+            @NavEaseScreen(route = "Alpha", startDestination = true)
+            class AlphaScreen : NavScreen()
+
+            @NavEaseScreen(route = "Beta", startDestination = true)
+            class BetaScreen : NavScreen()
+            """.trimIndent()
+        )
+
+        val compilation = compile(source)
+        val result = compilation.compile()
+
+        // Should still compile — warning only, not error
+        assertEquals(KotlinCompilation.ExitCode.OK, result.exitCode)
+
+        // First declared start destination wins
+        val appScreens = compilation.generatedFile("AppScreens.kt").readText()
+        assertTrue("startDestination should point to Alpha (first)", "get() = Alpha" in appScreens)
     }
 
     /** Multiple screens: exactly one marked `startDestination = true` sets the correct default. */

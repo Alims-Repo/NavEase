@@ -30,6 +30,7 @@ class NavEaseProcessorProvider : SymbolProcessorProvider {
 
         return NavEaseProcessor(
             codeGenerator = environment.codeGenerator,
+            logger = environment.logger,
             generatedPackage = generatedPackage,
         )
     }

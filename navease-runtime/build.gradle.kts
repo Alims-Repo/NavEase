@@ -54,7 +54,6 @@ kotlin {
 
                 implementation(compose.runtime)
                 implementation(compose.animation)
-                implementation(libs.compose.material3)
                 // Navigation — exposed as api so consumers (e.g. :shared) can use NavKey directly
                 api(libs.androidx.navigation3.ui)
             }

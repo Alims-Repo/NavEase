@@ -155,9 +155,32 @@ internal object Animations {
         NavTransition.Instant -> instantTransform
     }
 
-    // ── Legacy aliases (kept for any in-tree callers) ────────────────────────
+    // ── Legacy aliases (removed from public use — will be deleted in a future release) ──
+    @Deprecated(
+        message = "Use Animations.forward(NavTransition.Push) instead.",
+        replaceWith = ReplaceWith("Animations.forward(NavTransition.Push)"),
+        level = DeprecationLevel.ERROR,
+    )
     val transitionSpec    get() = pushForward
+
+    @Deprecated(
+        message = "Use Animations.back(NavTransition.Push) instead.",
+        replaceWith = ReplaceWith("Animations.back(NavTransition.Push)"),
+        level = DeprecationLevel.ERROR,
+    )
     val popTransitionSpec get() = pushBack
+
+    @Deprecated(
+        message = "Use Animations.forward(NavTransition.Push) instead.",
+        replaceWith = ReplaceWith("Animations.forward(NavTransition.Push)"),
+        level = DeprecationLevel.ERROR,
+    )
     val forwardTransition get() = pushForward
+
+    @Deprecated(
+        message = "Use Animations.back(NavTransition.Push) instead.",
+        replaceWith = ReplaceWith("Animations.back(NavTransition.Push)"),
+        level = DeprecationLevel.ERROR,
+    )
     val backTransition    get() = pushBack
 }

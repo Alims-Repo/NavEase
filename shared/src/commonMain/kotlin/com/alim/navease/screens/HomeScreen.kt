@@ -1,6 +1,8 @@
 package com.alim.navease.screens
 
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionDefaults
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -125,8 +127,8 @@ class HomeScreen : NavScreen() {
 
                 // ── Library catalogue ──────────────────────────────────────────
                 items(allLibraries, key = { it.id }) { lib ->
-                    val accent      = accentColorAt(lib.colorIndex)
-                    val container   = containerColorAt(lib.colorIndex)
+                    val accent = accentColorAt(lib.colorIndex)
+                    val container = containerColorAt(lib.colorIndex)
                     val onContainer = onContainerColorAt(lib.colorIndex)
 
                     // Shared-bounds modifier — morphs into the hero card on LibraryDetailScreen
@@ -135,6 +137,8 @@ class HomeScreen : NavScreen() {
                             Modifier.sharedBounds(
                                 sharedContentState = rememberSharedContentState(key = "lib_card_${lib.id}"),
                                 animatedVisibilityScope = animatedScope,
+                                resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                                placeholderSize = SharedTransitionScope.PlaceholderSize.AnimatedSize,
                             )
                         }
                     } else Modifier

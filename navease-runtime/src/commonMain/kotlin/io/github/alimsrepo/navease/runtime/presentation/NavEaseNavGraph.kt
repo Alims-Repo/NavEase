@@ -5,12 +5,12 @@ package io.github.alimsrepo.navease.runtime.presentation
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -57,10 +57,17 @@ fun NavEaseNavGraph(
         initialScreen,
     )
 
-    val navController = remember {
+    // Capture onExitRequest as an updated state so that if the lambda identity changes
+    // (e.g. because the caller is recomposed with a new lambda), the NavController still
+    // calls the latest version without needing to be recreated.
+    val currentOnExitRequest by rememberUpdatedState(onExitRequest)
+
+    // Re-create the NavController when the app-level default transition changes so that
+    // defaultTransition inside the controller always reflects the current value.
+    val navController = remember(navTransition) {
         NavController(
             backStack = applicationStack,
-            showExitDialog = onExitRequest,
+            showExitDialog = { currentOnExitRequest() },
             defaultTransition = navTransition,
         )
     }
@@ -73,8 +80,7 @@ fun NavEaseNavGraph(
         CompositionLocalProvider(LocalNavEaseController provides navController) {
             NavDisplay(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(color = MaterialTheme.colorScheme.background),
+                    .fillMaxSize(),
                 backStack = applicationStack,
                 sharedTransitionScope = sharedScope,
                 // Look up the per-navigate transition for the destination; fall back to the

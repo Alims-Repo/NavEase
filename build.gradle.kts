@@ -17,6 +17,7 @@ plugins {
 dependencies {
     dokka(project(":navease-ksp"))
     dokka(project(":navease-runtime"))
+    dokka(project(":navease-gradle-plugin"))
 }
 
 dokka {

@@ -1,7 +1,7 @@
 package io.github.alimsrepo.navease.runtime.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,8 +43,10 @@ fun NavController.backWithResult(result: Any) {
  * - The [results] map is a [androidx.compose.runtime.snapshots.SnapshotStateMap], so reading
  *   it inside [derivedStateOf] creates a reactive dependency — recomposition triggers
  *   automatically the moment [backWithResult] puts a matching entry.
- * - [LaunchedEffect] runs after the first recomposition that observes a non-null pending value,
- *   removes the entry from [results] (one-shot), and commits it to a stable local [State].
+ * - [SideEffect] runs synchronously after every successful recomposition. When a pending value
+ *   is observed it is removed from [results] and committed to the stable local [State] **in
+ *   the same frame** — eliminating the one-frame null window that a [LaunchedEffect] would
+ *   introduce.
  *
  * @param clazz The [KClass] of the expected result type.
  */
@@ -70,7 +72,10 @@ fun <T : Any> NavController.resultOf(clazz: KClass<T>): State<T?> {
         }
     }.value
 
-    LaunchedEffect(pending) {
+    // SideEffect runs after every successful recomposition — same frame as the observation.
+    // This avoids the one-frame null window that LaunchedEffect would cause (coroutine launch
+    // is deferred to after the composition phase).
+    SideEffect {
         if (pending != null) {
             results.remove(key)
             state.value = pending
