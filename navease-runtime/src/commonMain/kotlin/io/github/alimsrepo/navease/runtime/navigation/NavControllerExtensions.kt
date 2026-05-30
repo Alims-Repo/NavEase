@@ -48,6 +48,11 @@ fun NavController.backWithResult(result: Any) {
  *   the same frame** — eliminating the one-frame null window that a [LaunchedEffect] would
  *   introduce.
  *
+ * Prefer the inline reified overload [resultOf] when the type is known at the call site:
+ * ```kotlin
+ * val result by navController.resultOf<ProfileScreen.Result>()
+ * ```
+ *
  * @param clazz The [KClass] of the expected result type.
  */
 @Composable
@@ -84,3 +89,49 @@ fun <T : Any> NavController.resultOf(clazz: KClass<T>): State<T?> {
 
     return state
 }
+
+/**
+ * Inline reified convenience overload of [resultOf].
+ *
+ * Observes the result of type [T] posted by a child screen via [backWithResult].
+ * The result is consumed exactly once — see [resultOf] for full semantics.
+ *
+ * ## Pattern for [io.github.alimsrepo.navease.runtime.presentation.ActivityScreen]
+ *
+ * Define the result as a nested `data class` inside the child screen, then observe it
+ * in the parent screen using this function:
+ *
+ * ```kotlin
+ * // ── Child screen — posts a result before popping ─────────────────────────
+ * class ProfileScreen : ActivityScreen<AppScreens.Profile>() {
+ *
+ *     data class Result(val selectedUserId: Int)
+ *
+ *     @Composable
+ *     override fun Content(navKey: AppScreens.Profile, navController: NavController) {
+ *         Button(onClick = {
+ *             navController.backWithResult(Result(selectedUserId = 42))
+ *         }) { Text("Select") }
+ *     }
+ * }
+ *
+ * // ── Parent screen — observes the result ──────────────────────────────────
+ * class HomeScreen : ActivityScreen<AppScreens.Home>() {
+ *     @Composable
+ *     override fun Content(navKey: AppScreens.Home, navController: NavController) {
+ *
+ *         val result by navController.resultOf<ProfileScreen.Result>()
+ *
+ *         result?.let { Text("Selected user #${it.selectedUserId}") }
+ *
+ *         Button(onClick = { navController.navigate(AppScreens.Profile) }) {
+ *             Text("Open Profile")
+ *         }
+ *     }
+ * }
+ * ```
+ *
+ * @param T The expected result type. Typically a nested `data class` inside the child screen.
+ */
+@Composable
+inline fun <reified T : Any> NavController.resultOf(): State<T?> = resultOf(T::class)

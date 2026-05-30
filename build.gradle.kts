@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.navease) apply false
     alias(libs.plugins.androidLint) apply false
 
     alias(libs.plugins.dokka)
@@ -17,7 +18,6 @@ plugins {
 dependencies {
     dokka(project(":navease-ksp"))
     dokka(project(":navease-runtime"))
-    dokka(project(":navease-gradle-plugin"))
 }
 
 dokka {

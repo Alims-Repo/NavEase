@@ -20,28 +20,92 @@ import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import io.github.alimsrepo.navease.runtime.navigation.NavController
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Private core — shared by both public overloads
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Core navigation host composable.
+ * Internal engine. Both public [NavEaseNavGraph] overloads delegate here so all
+ * animation, controller, and shared-transition logic lives in exactly one place.
  *
- * This composable:
- * 1. Creates and remembers the back stack via [rememberNavBackStack].
- * 2. Creates and remembers a [NavController] scoped to this composition.
- * 3. Provides the controller to the entire subtree via [LocalNavEaseController].
- * 4. Drives [NavDisplay] with the default slide transitions.
- * 5. Optionally wraps everything in [SharedTransitionLayout] for shared element transitions.
+ * @param contentProvider   Called inside each [NavEntry] to render the current route.
+ *                          [LocalNavEaseController] is already provided at that point.
+ */
+@Composable
+internal fun NavEaseNavGraphCore(
+    initialScreen: NavKey,
+    savedStateConfig: SavedStateConfiguration,
+    contentProvider: @Composable (NavKey) -> Unit,
+    onExitRequest: () -> Unit,
+    enableSharedTransitions: Boolean,
+    navTransition: NavTransition,
+) {
+    val applicationStack = rememberNavBackStack(
+        configuration = savedStateConfig,
+        initialScreen,
+    )
+
+    val currentOnExitRequest by rememberUpdatedState(onExitRequest)
+
+    val navController = remember(navTransition) {
+        NavController(
+            backStack = applicationStack,
+            showExitDialog = { currentOnExitRequest() },
+            defaultTransition = navTransition,
+        )
+    }
+
+    @Composable
+    fun Display(sharedScope: SharedTransitionScope?) {
+        CompositionLocalProvider(LocalNavEaseController provides navController) {
+            NavDisplay(
+                modifier = Modifier.fillMaxSize(),
+                backStack = applicationStack,
+                sharedTransitionScope = sharedScope,
+                transitionSpec = {
+                    val transition = navController.transitionStore[targetState.key] ?: navTransition
+                    Animations.forward(transition)
+                },
+                popTransitionSpec = {
+                    val transition = navController.transitionStore[initialState.key] ?: navTransition
+                    Animations.back(transition)
+                },
+            ) { route ->
+                NavEntry(route) {
+                    contentProvider(route)
+                }
+            }
+        }
+    }
+
+    if (enableSharedTransitions) {
+        SharedTransitionLayout {
+            CompositionLocalProvider(LocalNavEaseSharedTransitionScope provides this) {
+                Display(sharedScope = this)
+            }
+        }
+    } else {
+        Display(sharedScope = null)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Public API — KSP / legacy variant
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Core navigation host composable — **KSP / legacy variant**.
  *
- * **Do not call this directly** — use the KSP-generated `NavEaseHost()` composable instead.
+ * Accepts the classic `(NavKey) -> NavScreen` factory produced by KSP or written by hand.
+ * Prefer the [NavEaseGraph] overload for new projects — it requires no code generation and
+ * has zero rebuild friction.
  *
  * @param initialScreen         The first screen placed on the back stack.
  * @param savedStateConfig      Serialization config for back-stack state restoration.
  * @param screenFactory         Maps a [NavKey] to its [NavScreen]. Typically KSP-generated.
  * @param onExitRequest         Called when back is pressed at the root screen. No-op by default.
- * @param enableSharedTransitions When `true`, wraps the display in [SharedTransitionLayout] and
- *                              wires the [SharedTransitionScope] into both [NavDisplay] (native
- *                              support) and [LocalNavEaseSharedTransitionScope] (for user screens).
- *                              Defaults to `false`.
- * @param navTransition         The screen-transition animation style. Defaults to [NavTransition.Push]
- *                              (iOS-style horizontal slide). See [NavTransition] for all options.
+ * @param enableSharedTransitions When `true`, wraps in [SharedTransitionLayout].
+ * @param navTransition         Default screen-transition animation. Defaults to [NavTransition.Push].
  */
 @Composable
 fun NavEaseNavGraph(
@@ -51,73 +115,62 @@ fun NavEaseNavGraph(
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
     navTransition: NavTransition = NavTransition.Push,
-) {
-    val applicationStack = rememberNavBackStack(
-        configuration = savedStateConfig,
-        initialScreen,
-    )
+) = NavEaseNavGraphCore(
+    initialScreen = initialScreen,
+    savedStateConfig = savedStateConfig,
+    contentProvider = { key ->
+        val nav = LocalNavEaseController.current
+            ?: error("NavEase: LocalNavEaseController is null — Content called outside NavEaseNavGraph.")
+        screenFactory(key).Content(navKey = key, navController = nav)
+    },
+    onExitRequest = onExitRequest,
+    enableSharedTransitions = enableSharedTransitions,
+    navTransition = navTransition,
+)
 
-    // Capture onExitRequest as an updated state so that if the lambda identity changes
-    // (e.g. because the caller is recomposed with a new lambda), the NavController still
-    // calls the latest version without needing to be recreated.
-    val currentOnExitRequest by rememberUpdatedState(onExitRequest)
+// ─────────────────────────────────────────────────────────────────────────────
+// Public API — zero-rebuild DSL variant
+// ─────────────────────────────────────────────────────────────────────────────
 
-    // Re-create the NavController when the app-level default transition changes so that
-    // defaultTransition inside the controller always reflects the current value.
-    val navController = remember(navTransition) {
-        NavController(
-            backStack = applicationStack,
-            showExitDialog = { currentOnExitRequest() },
-            defaultTransition = navTransition,
-        )
-    }
-
-    // Extracts the NavDisplay call so it can be reused in both branches.
-    // sharedScope is null when transitions are disabled — NavDisplay skips its shared-element
-    // wiring in that case (no overhead).
-    @Composable
-    fun Display(sharedScope: SharedTransitionScope?) {
-        CompositionLocalProvider(LocalNavEaseController provides navController) {
-            NavDisplay(
-                modifier = Modifier
-                    .fillMaxSize(),
-                backStack = applicationStack,
-                sharedTransitionScope = sharedScope,
-                // Look up the per-navigate transition for the destination; fall back to the
-                // app-level default if the key has no recorded override (e.g. the root screen).
-                // targetState is Scene<NavKey>; Scene.key == NavEntry.contentKey == navKey.toString()
-                transitionSpec = {
-                    val transition = navController.transitionStore[targetState.key] ?: navTransition
-                    Animations.forward(transition)
-                },
-                // For pops, read the transition that was used to push the screen being removed
-                // (initialState) so the pop plays the same animation in reverse.
-                popTransitionSpec = {
-                    val transition = navController.transitionStore[initialState.key] ?: navTransition
-                    Animations.back(transition)
-                },
-            ) { route ->
-                NavEntry(route) {
-                    screenFactory(route).Content(
-                        navKey = route,
-                        navController = navController,
-                    )
-                }
-            }
-        }
-    }
-
-    if (enableSharedTransitions) {
-        SharedTransitionLayout {
-            // Make the SharedTransitionScope available to every screen in the subtree
-            // via LocalNavEaseSharedTransitionScope.current.
-            // The AnimatedVisibilityScope (AnimatedContentScope) is provided per-entry
-            // by NavDisplay via LocalNavAnimatedContentScope (androidx.navigation3.ui).
-            CompositionLocalProvider(LocalNavEaseSharedTransitionScope provides this) {
-                Display(sharedScope = this)
-            }
-        }
-    } else {
-        Display(sharedScope = null)
-    }
-}
+/**
+ * Core navigation host composable — **zero-rebuild DSL variant**.
+ *
+ * Accepts a [NavEaseGraph] built with [navEaseGraph]. No code generation, no KSP, no rebuild
+ * required after adding a new screen — just register it in the DSL and navigate immediately.
+ *
+ * ```kotlin
+ * val appGraph = navEaseGraph(start = AppScreen.Home) {
+ *     screen<AppScreen.Home> { HomeScreen() }
+ *     screen<AppScreen.Detail> { key -> DetailScreen(id = key.id) }
+ * }
+ *
+ * // In your root composable:
+ * NavEaseNavGraph(appGraph)
+ * ```
+ *
+ * @param graph                 The navigation graph built via [navEaseGraph].
+ * @param onExitRequest         Called when back is pressed at the root screen. No-op by default.
+ * @param enableSharedTransitions When `true`, wraps in [SharedTransitionLayout].
+ * @param navTransition         Default screen-transition animation. Defaults to [NavTransition.Push].
+ */
+@Composable
+fun NavEaseNavGraph(
+    graph: NavEaseGraph,
+    onExitRequest: () -> Unit = {},
+    enableSharedTransitions: Boolean = false,
+    navTransition: NavTransition = NavTransition.Push,
+) = NavEaseNavGraphCore(
+    initialScreen = graph.start,
+    savedStateConfig = graph.savedStateConfig,
+    contentProvider = { key ->
+        graph.contentFor(key)?.invoke()
+            ?: error(
+                "NavEase: No screen registered for '${key::class.simpleName}'. " +
+                    "Did you forget to add screen<${key::class.simpleName}> { } " +
+                    "inside your navEaseGraph { } block?"
+            )
+    },
+    onExitRequest = onExitRequest,
+    enableSharedTransitions = enableSharedTransitions,
+    navTransition = navTransition,
+)

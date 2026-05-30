@@ -9,9 +9,7 @@ import io.github.alimsrepo.navease.runtime.presentation.NavTransition
 fun App() {
     MaterialTheme {
         NavEaseHost(
-            onExitRequest = {
-
-            },
+            onExitRequest = {},
             enableSharedTransitions = true,
             navTransition = NavTransition.Push,
         )

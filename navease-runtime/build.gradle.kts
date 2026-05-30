@@ -56,6 +56,8 @@ kotlin {
                 implementation(compose.animation)
                 // Navigation — exposed as api so consumers (e.g. :shared) can use NavKey directly
                 api(libs.androidx.navigation3.ui)
+                // Serialization — needed for KSerializer in NavEaseGraph DSL
+                api(libs.kotlinx.serializationCore)
             }
         }
     }

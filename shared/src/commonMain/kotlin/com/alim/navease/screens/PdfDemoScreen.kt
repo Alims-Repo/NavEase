@@ -31,17 +31,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation3.runtime.NavKey
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
-import io.github.alimsrepo.navease.runtime.domain.NavScreen
+import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
 import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 
-@NavEaseScreen(route = "PdfDemo")
-class PdfDemoScreen : NavScreen() {
+@AutoRegister
+class PdfDemoScreen : ActivityScreen<AppScreens.PdfDemo>() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(navKey: NavKey, navController: NavController) {
+    override fun Content(navKey: AppScreens.PdfDemo, navController: NavController) {
         Scaffold(
             topBar = {
                 TopAppBar(

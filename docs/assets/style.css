@@ -240,6 +240,29 @@ section { padding: 96px 0; }
 }
 .theme-toggle svg { display: block; pointer-events: none; }
 
+/* ── Hero tab buttons ─────────────────────────────────────────── */
+.hero-tab-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+  white-space: nowrap;
+}
+.hero-tab-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.hero-tab-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 /* ── Buttons ──────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;

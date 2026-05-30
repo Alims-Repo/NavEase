@@ -37,40 +37,24 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
-import io.github.alimsrepo.navease.generated.backWithLibraryDetailResult
-import io.github.alimsrepo.navease.generated.libraryDetailArgs
-import io.github.alimsrepo.navease.generated.navigateToCrashGuardDemo
-import io.github.alimsrepo.navease.generated.navigateToFlowTabDemo
-import io.github.alimsrepo.navease.generated.navigateToLibraryDetail
-import io.github.alimsrepo.navease.generated.navigateToNavEaseDemo
-import io.github.alimsrepo.navease.generated.navigateToPdfDemo
-import io.github.alimsrepo.navease.generated.navigateToPrayerTimesDemo
-import io.github.alimsrepo.navease.generated.navigateToSecureVaultDemo
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseArgs
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseResult
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
-import io.github.alimsrepo.navease.runtime.domain.NavScreen
+import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
 import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.navigation.backWithResult
+import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 import io.github.alimsrepo.navease.runtime.presentation.LocalNavEaseSharedTransitionScope
 
-@NavEaseScreen(route = "LibraryDetail")
-class LibraryDetailScreen : NavScreen() {
+@AutoRegister
+class LibraryDetailScreen : ActivityScreen<AppScreens.LibraryDetail>() {
 
-    @NavEaseArgs
-    data class Args(val libId: String, val libName: String)
-
-    @NavEaseResult
     data class Result(val starred: Boolean)
 
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
     @Composable
-    override fun Content(navKey: NavKey, navController: NavController) {
-        val args = navKey.libraryDetailArgs()
-        val lib = libraryById(args.libId) ?: run {
+    override fun Content(navKey: AppScreens.LibraryDetail, navController: NavController) {
+        val lib = libraryById(navKey.libId) ?: run {
             // Fallback — should never happen
-            Text("Library not found: ${args.libId}")
+            Text("Library not found: ${navKey.libId}")
             return
         }
 
@@ -339,12 +323,12 @@ class LibraryDetailScreen : NavScreen() {
                     Button(
                         onClick = {
                             when (lib.id) {
-                                "navease"      -> navController.navigateToNavEaseDemo()
-                                "securevault"  -> navController.navigateToSecureVaultDemo()
-                                "flowtab"      -> navController.navigateToFlowTabDemo()
-                                "prayertimes"  -> navController.navigateToPrayerTimesDemo()
-                                "crashguard"   -> navController.navigateToCrashGuardDemo()
-                                "pdfgenerator" -> navController.navigateToPdfDemo()
+                                "navease"      -> navController.navigate(AppScreens.NavEaseDemo)
+                                "securevault"  -> navController.navigate(AppScreens.SecureVaultDemo)
+                                "flowtab"      -> navController.navigate(AppScreens.FlowTabDemo)
+                                "prayertimes"  -> navController.navigate(AppScreens.PrayerTimesDemo)
+                                "crashguard"   -> navController.navigate(AppScreens.CrashGuardDemo)
+                                "pdfgenerator" -> navController.navigate(AppScreens.PdfDemo)
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -390,7 +374,7 @@ class LibraryDetailScreen : NavScreen() {
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Button(
-                                    onClick = { navController.backWithLibraryDetailResult(starred = true) },
+                                    onClick = { navController.backWithResult(Result(starred = true)) },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(
@@ -398,7 +382,7 @@ class LibraryDetailScreen : NavScreen() {
                                     )
                                 ) { Text("⭐  Star") }
                                 OutlinedButton(
-                                    onClick = { navController.backWithLibraryDetailResult(starred = false) },
+                                    onClick = { navController.backWithResult(Result(starred = false)) },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp)
                                 ) { Text("Skip") }
