@@ -36,10 +36,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation3.runtime.NavKey
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
-import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 
 private data class CityPrayers(
     val city: String,
@@ -65,12 +63,11 @@ private val cityData = listOf(
 
 private val prayerNames = listOf("Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha")
 
-@NavEaseScreen(route = "PrayerTimesDemo")
-class PrayerTimesDemoScreen : NavScreen() {
+class PrayerTimesDemoScreen : ActivityScreen<AppScreens.PrayerTimesDemo>() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(navKey: NavKey, navController: NavController) {
+    override fun Content(navKey: AppScreens.PrayerTimesDemo, navController: NavController) {
         var selectedCity by remember { mutableStateOf(cityData[0]) }
 
         Scaffold(

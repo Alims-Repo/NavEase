@@ -40,25 +40,21 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation3.runtime.NavKey
-import io.github.alimsrepo.navease.generated.navigateToHome
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
-import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 import kotlinx.coroutines.delay
 
-@NavEaseScreen(route = "Splash", startDestination = true)
-class SplashScreen : NavScreen() {
+class SplashScreen : ActivityScreen<AppScreens.Splash>() {
 
     @Composable
-    override fun Content(navKey: NavKey, navController: NavController) {
+    override fun Content(navKey: AppScreens.Splash, navController: NavController) {
 
         var hasNavigated by rememberSaveable { mutableStateOf(false) }
         LaunchedEffect(hasNavigated) {
             if (!hasNavigated) {
                 delay(2_600L)
                 hasNavigated = true
-                navController.navigateToHome(finish = true)
+                navController.navigate(AppScreens.Home, finish = true)
             }
         }
 

@@ -34,11 +34,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation3.runtime.NavKey
-import io.github.alimsrepo.navease.generated.navigateToTransitionPreview
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
-import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 import io.github.alimsrepo.navease.runtime.presentation.NavTransition
 
 private data class TransitionEntry(
@@ -85,12 +82,11 @@ private val transitions = listOf(
         NavTransition.Instant, 5),
 )
 
-@NavEaseScreen(route = "NavEaseDemo")
-class NavEaseDemoScreen : NavScreen() {
+class NavEaseDemoScreen : ActivityScreen<AppScreens.NavEaseDemo>() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(navKey: NavKey, navController: NavController) {
+    override fun Content(navKey: AppScreens.NavEaseDemo, navController: NavController) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -217,9 +213,11 @@ class NavEaseDemoScreen : NavScreen() {
                             Spacer(Modifier.height(14.dp))
                             Button(
                                 onClick = {
-                                    navController.navigateToTransitionPreview(
-                                        transitionName = t.name,
-                                        tagline = t.tagline,
+                                    navController.navigate(
+                                        AppScreens.TransitionPreview(
+                                            transitionName = t.name,
+                                            tagline = t.tagline
+                                        ),
                                         navTransition = t.transition
                                     )
                                 },

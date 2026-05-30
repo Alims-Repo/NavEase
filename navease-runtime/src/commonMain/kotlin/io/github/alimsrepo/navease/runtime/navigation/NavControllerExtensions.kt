@@ -135,4 +135,3 @@ fun <T : Any> NavController.resultOf(clazz: KClass<T>): State<T?> {
  */
 @Composable
 inline fun <reified T : Any> NavController.resultOf(): State<T?> = resultOf(T::class)
-

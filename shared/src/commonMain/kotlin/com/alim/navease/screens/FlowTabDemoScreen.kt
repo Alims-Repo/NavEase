@@ -43,10 +43,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation3.runtime.NavKey
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
-import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 
 private enum class IndicatorStyle(val label: String, val description: String) {
     Ripple("Ripple", "Full-width background highlight behind the selected item"),
@@ -63,12 +61,11 @@ private val demoTabs = listOf(
     NavTabItem("profile",  "👤", "Profile"),
 )
 
-@NavEaseScreen(route = "FlowTabDemo")
-class FlowTabDemoScreen : NavScreen() {
+class FlowTabDemoScreen : ActivityScreen<AppScreens.FlowTabDemo>() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(navKey: NavKey, navController: NavController) {
+    override fun Content(navKey: AppScreens.FlowTabDemo, navController: NavController) {
         var selectedTab by remember { mutableStateOf("home") }
         var selectedStyle by remember { mutableStateOf(IndicatorStyle.Ripple) }
 

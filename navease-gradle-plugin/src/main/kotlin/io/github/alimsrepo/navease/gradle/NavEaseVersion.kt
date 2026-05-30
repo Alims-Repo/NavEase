@@ -6,12 +6,12 @@ package io.github.alimsrepo.navease.gradle
  */
 internal object NavEaseVersion {
     const val VERSION = "0.0.3"
-    const val GROUP   = "io.github.alims-repo"
+    const val GROUP = "io.github.alims-repo"
 
     const val RUNTIME_ARTIFACT = "navease-runtime"
-    const val KSP_ARTIFACT     = "navease-ksp"
+    const val KSP_ARTIFACT = "navease-ksp"
 
+    val kspCoordinate get() = "$GROUP:$KSP_ARTIFACT:$VERSION"
     val runtimeCoordinate get() = "$GROUP:$RUNTIME_ARTIFACT:$VERSION"
-    val kspCoordinate     get() = "$GROUP:$KSP_ARTIFACT:$VERSION"
 }
 

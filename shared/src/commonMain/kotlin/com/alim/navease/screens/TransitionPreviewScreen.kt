@@ -28,28 +28,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation3.runtime.NavKey
-import io.github.alimsrepo.navease.generated.transitionPreviewArgs
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseArgs
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
-import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 
 /**
  * Intentionally minimal — the only animation you see here is the nav transition itself.
  * No inner AnimatedVisibility, no LaunchedEffect, no stagger.
  */
-@NavEaseScreen(route = "TransitionPreview")
-class TransitionPreviewScreen : NavScreen() {
-
-    @NavEaseArgs
-    data class Args(val transitionName: String, val tagline: String)
+class TransitionPreviewScreen : ActivityScreen<AppScreens.TransitionPreview>() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(navKey: NavKey, navController: NavController) {
-        val args = navKey.transitionPreviewArgs()
-
+    override fun Content(navKey: AppScreens.TransitionPreview, navController: NavController) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -84,7 +74,7 @@ class TransitionPreviewScreen : NavScreen() {
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = when (args.transitionName) {
+                            text = when (navKey.transitionName) {
                                 "Push"    -> "↔"
                                 "Fade"    -> "◎"
                                 "Rise"    -> "↑"
@@ -98,7 +88,7 @@ class TransitionPreviewScreen : NavScreen() {
                     }
 
                     Text(
-                        text = "NavTransition.${args.transitionName}",
+                        text = "NavTransition.${navKey.transitionName}",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace,
@@ -106,7 +96,7 @@ class TransitionPreviewScreen : NavScreen() {
                     )
 
                     Text(
-                        text = args.tagline,
+                        text = navKey.tagline,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f)
                     )
@@ -139,10 +129,12 @@ class TransitionPreviewScreen : NavScreen() {
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
-                            text = "navController.navigateToTransitionPreview(\n" +
-                                   "    transitionName = \"${args.transitionName}\",\n" +
-                                   "    tagline        = \"${args.tagline}\",\n" +
-                                   "    navTransition  = NavTransition.${args.transitionName},\n)",
+                        text = "navController.navigate(\n" +
+                               "    AppScreens.TransitionPreview(\n" +
+                               "        transitionName = \"${navKey.transitionName}\",\n" +
+                               "        tagline        = \"${navKey.tagline}\",\n" +
+                               "    ),\n" +
+                               "    navTransition = NavTransition.${navKey.transitionName},\n)",
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = FontFamily.Monospace,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.80f),

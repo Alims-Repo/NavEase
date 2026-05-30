@@ -1,4 +1,3 @@
-import org.gradle.kotlin.dsl.project
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -8,8 +7,6 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
-
-    alias(libs.plugins.ksp)
 }
 
 kotlin {
@@ -53,7 +50,6 @@ kotlin {
         }
 
         commonMain {
-            kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
 
             dependencies {
                 implementation(libs.compose.runtime)
@@ -80,13 +76,6 @@ kotlin {
 }
 
 dependencies {
-    add("kspCommonMainMetadata", project(":navease-ksp"))
-
     androidRuntimeClasspath(libs.compose.uiTooling)
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
-    if (name != "kspCommonMainKotlinMetadata") {
-        dependsOn("kspCommonMainKotlinMetadata")
-    }
-}
