@@ -1,6 +1,7 @@
 import com.vanniktech.maven.publish.GradlePlugin
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.SonatypeHost
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinJvm)
@@ -13,6 +14,57 @@ plugins {
 
 kotlin {
     jvmToolchain(11)
+}
+
+// ── Generate NavEaseVersion.kt from gradle.properties ──────────────────────
+// providers.gradleProperty inherits from the outer (including) build's gradle.properties
+val navEaseVersion: String = providers.gradleProperty("VERSION_NAME").getOrElse(
+    file("../gradle.properties").let { f ->
+        Properties().also { p -> f.inputStream().use { p.load(it) } }.getProperty("VERSION_NAME")
+    } ?: error("VERSION_NAME not found in gradle.properties")
+)
+val navEaseGroup: String = providers.gradleProperty("GROUP").getOrElse(
+    file("../gradle.properties").let { f ->
+        Properties().also { p -> f.inputStream().use { p.load(it) } }.getProperty("GROUP")
+    } ?: error("GROUP not found in gradle.properties")
+)
+
+val generateNavEaseVersion by tasks.registering {
+    val outputDir = layout.buildDirectory.dir("generated/navease-version/kotlin")
+
+    inputs.property("version", navEaseVersion)
+    inputs.property("group", navEaseGroup)
+    outputs.dir(outputDir)
+
+    doLast {
+        val outFile = outputDir.get().file(
+            "io/github/alimsrepo/navease/gradle/NavEaseVersion.kt"
+        ).asFile
+        outFile.parentFile.mkdirs()
+        outFile.writeText(
+            """
+            package io.github.alimsrepo.navease.gradle
+
+            /**
+             * Auto-generated from gradle.properties — do not edit manually.
+             */
+            internal object NavEaseVersion {
+                const val VERSION = "$navEaseVersion"
+                const val GROUP   = "$navEaseGroup"
+
+                const val RUNTIME_ARTIFACT = "navease-runtime"
+                const val KSP_ARTIFACT     = "navease-ksp"
+
+                val kspCoordinate     get() = "${'$'}{GROUP}:${'$'}{KSP_ARTIFACT}:${'$'}{VERSION}"
+                val runtimeCoordinate get() = "${'$'}{GROUP}:${'$'}{RUNTIME_ARTIFACT}:${'$'}{VERSION}"
+            }
+            """.trimIndent()
+        )
+    }
+}
+
+kotlin.sourceSets.main {
+    kotlin.srcDir(generateNavEaseVersion.map { layout.buildDirectory.dir("generated/navease-version/kotlin").get() })
 }
 
 dependencies {
