@@ -34,7 +34,7 @@ class NavEaseProcessor(
     private val generatedPackage: String = "io.github.alimsrepo.navease.generated",
 ) : SymbolProcessor {
 
-    private var generated = false
+//    private var generated = false
 
     /**
      * Resolved type information for a single constructor parameter.
@@ -65,7 +65,7 @@ class NavEaseProcessor(
     )
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        if (generated) return emptyList()
+//        if (generated) return emptyList()
 
         // Correct FQN matches the annotations sub-package
         val symbols = resolver
@@ -80,7 +80,7 @@ class NavEaseProcessor(
 
         if (symbols.isEmpty() && autoRegisterSymbols.isEmpty()) return emptyList()
 
-        generated = true
+//        generated = true
 
         // Collect all source files that contribute @NavEaseScreen classes so KSP can
         // correctly track which outputs depend on which inputs for incremental builds.

@@ -8,6 +8,7 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -47,12 +48,16 @@ internal fun NavEaseNavGraphCore(
 
     val currentOnExitRequest by rememberUpdatedState(onExitRequest)
 
-    val navController = remember(navTransition) {
+    val navController = remember(applicationStack) {
         NavController(
             backStack = applicationStack,
             showExitDialog = { currentOnExitRequest() },
             defaultTransition = navTransition,
         )
+    }
+
+    SideEffect {
+        navController.defaultTransition = navTransition
     }
 
     @Composable

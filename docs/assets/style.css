@@ -982,3 +982,299 @@ section { padding: 96px 0; }
   .tab { font-size: 0.8rem; padding: 8px 14px; }
 }
 
+  /* ──────────────────────────────────────────────────────────────
+     NavEase — GitHub Pages stylesheet (Enhanced)
+     ────────────────────────────────────────────────────────────── */
+
+  /* [KEEP ALL EXISTING CSS FROM YOUR ORIGINAL FILE, THEN ADD BELOW] */
+
+  /* ── Paths / Choose Your Path ─────────────────────────────────── */
+  .paths { background: var(--bg-card); }
+
+  .paths-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+  }
+
+  .path-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    transition: all var(--transition);
+    position: relative;
+  }
+
+  .path-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px rgba(124,106,247,0.12);
+  }
+
+  .path-card.recommended {
+    border-color: var(--accent);
+    box-shadow: 0 0 32px var(--accent-glow);
+  }
+
+  .path-badge {
+    position: absolute;
+    top: -1px;
+    right: 20px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 12px;
+    border-radius: 0 0 8px 8px;
+  }
+
+  .path-icon {
+    font-size: 2.2rem;
+    margin-bottom: 14px;
+  }
+
+  .path-card h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .path-desc {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 16px;
+    flex: 1;
+  }
+
+  .path-pros {
+    list-style: none;
+    margin-bottom: 20px;
+    padding: 0;
+  }
+
+  .path-pros li {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 6px;
+  }
+
+  .path-pros li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* ── Implementation Steps ─────────────────────────────────────── */
+  .implementation { background: var(--bg); }
+  .implementation.alt-bg { background: var(--bg-card); }
+
+  .step-track {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .step-item {
+    display: flex;
+    gap: 20px;
+    padding: 28px 0;
+  }
+
+  .step-marker {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: #fff;
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .step-body {
+    flex: 1;
+  }
+
+  .step-body h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .step-body p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 14px;
+    line-height: 1.7;
+  }
+
+  .step-note {
+    font-size: 0.85rem !important;
+    color: var(--text-dim) !important;
+    border-left: 3px solid var(--accent);
+    padding-left: 14px;
+    margin-top: 12px;
+  }
+
+  .step-arrow {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 1.6rem;
+    padding: 4px 0;
+    padding-left: 68px;
+  }
+
+  /* ── Configuration Table ──────────────────────────────────────── */
+  .configure { background: var(--bg-card); }
+
+  .config-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+  }
+
+  .config-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  .config-table th,
+  .config-table td {
+    padding: 14px 18px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .config-table th {
+    background: var(--bg-card-2);
+    color: var(--text);
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .config-table td {
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+
+  .config-table td code {
+    font-size: 0.85em;
+    background: rgba(124,106,247,0.08);
+    border-color: rgba(124,106,247,0.2);
+    color: var(--accent);
+  }
+
+  .config-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* ── FAQ Accordion ───────────────────────────────────────────── */
+  .faq { background: var(--bg); }
+
+  .faq-list {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .faq-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    transition: all var(--transition);
+  }
+
+  .faq-item.open {
+    border-color: var(--accent);
+    box-shadow: 0 4px 24px rgba(124,106,247,0.08);
+  }
+
+  .faq-question {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .faq-chevron {
+    color: var(--text-dim);
+    font-size: 1.4rem;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+    margin-left: 12px;
+  }
+
+  .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0 22px;
+  }
+
+  .faq-item.open .faq-answer {
+    max-height: 300px;
+    padding: 0 22px 18px;
+  }
+
+  .faq-answer p {
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    line-height: 1.7;
+  }
+
+  /* ── Responsive additions ─────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .step-item {
+      flex-direction: column;
+      gap: 14px;
+    }
+    .step-arrow {
+      padding-left: 0;
+      text-align: center;
+    }
+    .step-marker {
+      width: 40px;
+      height: 40px;
+      font-size: 1rem;
+    }
+    .config-table th,
+    .config-table td {
+      padding: 10px 12px;
+      font-size: 0.85rem;
+    }
+    .path-card {
+      padding: 22px;
+    }
+  }
