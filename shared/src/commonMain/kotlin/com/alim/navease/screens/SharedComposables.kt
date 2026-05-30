@@ -30,7 +30,7 @@ fun NavBackButton(onClick: () -> Unit) {
         )
     ) {
         Icon(
-            imageVector = Icons.Default.ArrowBack,
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = null
         )
     }

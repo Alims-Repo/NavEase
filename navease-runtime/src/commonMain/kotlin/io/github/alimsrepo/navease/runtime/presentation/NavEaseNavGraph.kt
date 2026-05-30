@@ -5,9 +5,7 @@ package io.github.alimsrepo.navease.runtime.presentation
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -73,8 +71,7 @@ fun NavEaseNavGraph(
         CompositionLocalProvider(LocalNavEaseController provides navController) {
             NavDisplay(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(color = MaterialTheme.colorScheme.background),
+                    .fillMaxSize(),
                 backStack = applicationStack,
                 sharedTransitionScope = sharedScope,
                 // Look up the per-navigate transition for the destination; fall back to the
