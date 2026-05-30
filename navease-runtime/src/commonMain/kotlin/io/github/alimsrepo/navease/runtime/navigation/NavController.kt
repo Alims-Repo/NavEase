@@ -60,13 +60,14 @@ class NavController(
     /**
      * Pops the current screen. If the back stack contains only the root screen,
      * [showExitDialog] is invoked instead.
+     *
+     * **Do not** remove the transition entry from [transitionStore] here.
+     * [androidx.navigation3.ui.NavDisplay] reads `popTransitionSpec` **after** the backstack
+     * mutation, so the entry must still be present when the pop animation starts.
+     * Stale entries are evicted lazily on the next [navigate] call.
      */
     fun back() {
         if (backStack.size > 1) {
-            // Evict the transition recorded for the screen being removed so the map
-            // does not grow unboundedly over the lifetime of the NavController.
-            val removing = backStack.last()
-            transitionStore.remove(removing.toString())
             backStack.removeLastOrNull()
         } else showExitDialog()
     }
@@ -93,14 +94,20 @@ class NavController(
         }
         // Resolve and record the transition before the push so transitionSpec can read it
         // the moment NavDisplay animates the change.
+        // Key is navKey.toString() which equals NavEntry.contentKey = Scene.key inside the
+        // transitionSpec lambda — the only publicly accessible identifier for the entry.
         transitionStore[navKey.toString()] = navTransition ?: defaultTransition
         backStack.add(navKey)
         if (finish && backStack.size >= 2) {
-            // Evict the transition for the screen being replaced
-            val replaced = backStack[backStack.size - 2]
-            transitionStore.remove(replaced.toString())
             backStack.removeAt(backStack.size - 2)
         }
+        // Lazy eviction: remove any transitionStore entries whose screens are no longer on
+        // the back stack. This is safe to do here because the user cannot trigger a new
+        // navigate() while a pop animation is still running — the previous animation is
+        // always complete before the next interaction is possible. This prevents unbounded
+        // map growth without breaking in-flight pop animations (see back() / popUpTo()).
+        val liveKeys = backStack.mapTo(HashSet()) { it.toString() }
+        transitionStore.keys.retainAll(liveKeys)
     }
 
     /**
@@ -118,11 +125,10 @@ class NavController(
         val index = backStack.indexOfLast { it::class == key::class }
         if (index < 0) return
         val removeCount = if (inclusive) backStack.size - index else backStack.size - index - 1
-        repeat(removeCount) {
-            val removing = backStack.last()
-            transitionStore.remove(removing.toString())
-            backStack.removeLastOrNull()
-        }
+        // Do NOT remove from transitionStore here — the pop exit animations for the removed
+        // screens still need their transition entries. Stale entries are cleaned up lazily
+        // on the next navigate() call.
+        repeat(removeCount) { backStack.removeLastOrNull() }
     }
 
     /**
@@ -131,11 +137,8 @@ class NavController(
      */
     fun popToIndex(index: Int) {
         val currentSize = backStack.size
-        repeat(currentSize - index - 1) {
-            val removing = backStack.last()
-            transitionStore.remove(removing.toString())
-            backStack.removeLastOrNull()
-        }
+        // Do NOT remove from transitionStore here — same reasoning as popUpTo().
+        repeat(currentSize - index - 1) { backStack.removeLastOrNull() }
     }
 
     /** Returns a snapshot of the current back stack, oldest entry first. */
