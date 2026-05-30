@@ -57,18 +57,16 @@
   <div class="hero-inner">
     <div class="hero-badge">
       <span class="badge-dot"></span>
-      KSP · Kotlin Multiplatform · Compose
+      KMP · Compose Multiplatform · Navigation3
     </div>
     <h1 class="hero-title">
       Navigation that <br/>
       <span class="gradient-text">writes itself.</span>
     </h1>
     <p class="hero-subtitle">
-      NavEase is a KSP-powered, annotation-driven navigation library for
-      Kotlin Multiplatform + Compose Multiplatform. Annotate your screen
-      classes — KSP generates the route hierarchy, typed arguments, typed
-      results, and the nav host at compile time. No manual registration.
-      No reflection. No string routes.
+      NavEase is a Kotlin Multiplatform navigation library with three levels of integration:
+      KSP annotation generation, a zero-rebuild DSL, and a typed class-based API.
+      No reflection. No string routes. No red underlines while writing.
     </p>
     <div class="hero-cta">
       <a href="#quick-start" class="btn btn-primary">Get Started →</a>
@@ -79,30 +77,67 @@
       <a href="https://github.com/alims-repo/NavEase" target="_blank" class="btn btn-ghost">View on GitHub</a>
     </div>
 
-    <!-- Hero code snippet -->
+    <!-- Hero code snippet — three tabs -->
     <div class="hero-code">
-      <div class="code-header">
+      <div class="code-header" style="gap:6px;flex-wrap:wrap">
         <span class="dot red"></span>
         <span class="dot yellow"></span>
         <span class="dot green"></span>
-        <span class="code-title">MainScreen.kt</span>
+        <span class="code-title" id="heroTabLabel" style="flex:1">Approach 1 — KSP Annotations</span>
+        <button class="hero-tab-btn active" onclick="heroTab(0)">KSP</button>
+        <button class="hero-tab-btn" onclick="heroTab(1)">DSL</button>
+        <button class="hero-tab-btn" onclick="heroTab(2)">ActivityScreen</button>
       </div>
-      <pre class="code-block"><span class="kw">@NavEaseScreen</span>(route = <span class="str">"Main"</span>)
+
+      <!-- Tab 0: KSP -->
+      <pre class="code-block hero-snippet" id="heroSnippet0"><span class="cmt">// Approach 1 — KSP Annotations</span>
+<span class="kw">@NavEaseScreen</span>(route = <span class="str">"Main"</span>)
 <span class="kw">class</span> <span class="cls">MainScreen</span> : <span class="cls">NavScreen</span>() {
 
     <span class="kw">@NavEaseArgs</span>
-    <span class="kw">data class</span> <span class="cls">Args</span>(<span class="kw">val</span> userId: <span class="cls">String</span>, <span class="kw">val</span> age: <span class="cls">Int</span>)
+    <span class="kw">data class</span> <span class="cls">Args</span>(<span class="kw">val</span> userId: <span class="cls">String</span>)
 
     <span class="kw">@NavEaseResult</span>
     <span class="kw">data class</span> <span class="cls">Result</span>(<span class="kw">val</span> value: <span class="cls">Int</span>)
 
     <span class="ann">@Composable</span>
     <span class="kw">override fun</span> <span class="fn">Content</span>(navKey: <span class="cls">NavKey</span>, navController: <span class="cls">NavController</span>) {
-        <span class="kw">val</span> args = navKey.<span class="fn">mainArgs</span>()   <span class="cmt">// ← KSP-generated, fully typed ✅</span>
+        <span class="kw">val</span> args = navKey.<span class="fn">mainArgs</span>()   <span class="cmt">// ← KSP-generated ✅</span>
         <span class="cls">Text</span>(<span class="str">"Hello, ${args.userId}!"</span>)
         <span class="cls">Button</span>(onClick = { navController.<span class="fn">backWithMainResult</span>(value = <span class="num">42</span>) }) {
             <span class="cls">Text</span>(<span class="str">"Return result"</span>)
         }
+    }
+}</pre>
+
+      <!-- Tab 1: navEaseGraph DSL -->
+      <pre class="code-block hero-snippet" id="heroSnippet1" style="display:none"><span class="cmt">// Approach 2 — navEaseGraph DSL (zero rebuild)</span>
+<span class="ann">@Serializable</span> <span class="kw">sealed class</span> <span class="cls">AppScreen</span> : <span class="cls">NavKey</span> {
+    <span class="ann">@Serializable</span> <span class="kw">data object</span> <span class="cls">Home</span> : <span class="cls">AppScreen</span>()
+    <span class="ann">@Serializable</span> <span class="kw">data class</span>  <span class="cls">Detail</span>(<span class="kw">val</span> id: <span class="cls">String</span>) : <span class="cls">AppScreen</span>()
+}
+
+<span class="kw">val</span> graph = <span class="fn">navEaseGraph</span>(start = AppScreen.Home) {
+    <span class="fn">screen</span>&lt;<span class="cls">AppScreen.Home</span>&gt;   { <span class="cls">HomeScreen</span>() }
+    <span class="fn">screen</span>&lt;<span class="cls">AppScreen.Detail</span>&gt; { key -&gt; <span class="cls">DetailScreen</span>(id = key.id) }
+    <span class="cmt">//                          ^^^  typed — no casting ✅</span>
+}
+
+<span class="cmt">// Navigate — no generated code, IDE resolves immediately:</span>
+nav.<span class="fn">navigate</span>(AppScreen.Detail(id = <span class="str">"abc"</span>))</pre>
+
+      <!-- Tab 2: ActivityScreen -->
+      <pre class="code-block hero-snippet" id="heroSnippet2" style="display:none"><span class="cmt">// Approach 3 — ActivityScreen&lt;K&gt; (class-based, typed navKey)</span>
+<span class="kw">class</span> <span class="cls">DetailScreen</span> : <span class="cls">ActivityScreen</span>&lt;<span class="cls">AppScreens.Detail</span>&gt;() {
+
+    <span class="kw">data class</span> <span class="cls">Result</span>(<span class="kw">val</span> confirmed: <span class="cls">Boolean</span>)
+
+    <span class="ann">@Composable</span>
+    <span class="kw">override fun</span> <span class="fn">Content</span>(navKey: <span class="cls">AppScreens.Detail</span>, navController: <span class="cls">NavController</span>) {
+        <span class="cls">Text</span>(navKey.id)   <span class="cmt">// ← typed, no cast, no xxxArgs() ✅</span>
+        <span class="cls">Button</span>(onClick = {
+            navController.<span class="fn">backWithResult</span>(<span class="cls">Result</span>(confirmed = <span class="kw">true</span>))
+        }) { <span class="cls">Text</span>(<span class="str">"Confirm"</span>) }
     }
 }</pre>
     </div>
@@ -135,8 +170,20 @@
 
       <div class="feature-card">
         <div class="feature-icon">⚡</div>
-        <h3>Zero Boilerplate</h3>
-        <p>KSP generates the entire route sealed class, screen factory, and all typed extensions at compile time. Annotate and go.</p>
+        <h3>Three Approaches</h3>
+        <p><strong>KSP annotations</strong> for zero-boilerplate generation · <strong>navEaseGraph DSL</strong> for zero-rebuild · <strong>ActivityScreen&lt;K&gt;</strong> for typed class-based screens. All share the same engine.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <h3>Zero-Rebuild DSL</h3>
+        <p><code>navEaseGraph { screen&lt;K&gt; { … } }</code> — define screens in plain Kotlin. No annotation processing, no rebuild required after adding a screen.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🏗️</div>
+        <h3>Typed ActivityScreen&lt;K&gt;</h3>
+        <p>Extend <code>ActivityScreen&lt;K&gt;</code> and receive a fully-typed <code>navKey: K</code> in <code>Content()</code>. No casting, no <code>xxxArgs()</code> call — direct field access.</p>
       </div>
 
       <div class="feature-card">
@@ -196,37 +243,38 @@
   <div class="container">
     <div class="section-header">
       <span class="section-tag">How It Works</span>
-      <h2>Annotate once.<br/>KSP does the rest.</h2>
+      <h2>Three paths.<br/>One engine.</h2>
+      <p>Pick the integration style that fits your project — all three use the same <code>NavController</code>, <code>NavDisplay</code>, and shared-transition engine.</p>
     </div>
     <div class="steps">
       <div class="step">
         <div class="step-number">1</div>
         <div class="step-content">
-          <h3>Annotate your screen</h3>
-          <p>Apply <code>@NavEaseScreen</code>, optionally add <code>@NavEaseArgs</code> and <code>@NavEaseResult</code> inner classes.</p>
+          <h3>KSP Annotations</h3>
+          <p>Annotate with <code>@NavEaseScreen</code>, add <code>@NavEaseArgs</code> / <code>@NavEaseResult</code>. KSP generates 5 files — routes, factory, typed extensions, results, and the host.</p>
         </div>
       </div>
-      <div class="step-arrow">→</div>
+      <div class="step-arrow">or</div>
       <div class="step">
         <div class="step-number">2</div>
         <div class="step-content">
-          <h3>KSP generates 5 files</h3>
-          <p><code>AppScreens</code>, <code>ScreenFactory</code>, <code>NavEaseExtensions</code>, <code>NavEaseResults</code>, and <code>NavEaseHost</code> — all in <code>io.github.alimsrepo.navease.generated</code>.</p>
+          <h3>navEaseGraph DSL</h3>
+          <p>Define a <code>@Serializable sealed class</code>, call <code>navEaseGraph { screen&lt;K&gt; { … } }</code>. No KSP, no rebuild — the IDE resolves types instantly.</p>
         </div>
       </div>
-      <div class="step-arrow">→</div>
+      <div class="step-arrow">or</div>
       <div class="step">
         <div class="step-number">3</div>
         <div class="step-content">
-          <h3>Drop in NavEaseHost</h3>
-          <p>Replace your content root with <code>NavEaseHost()</code>. Navigate with type-safe generated extensions.</p>
+          <h3>ActivityScreen&lt;K&gt;</h3>
+          <p>Extend <code>ActivityScreen&lt;K&gt;</code> for each screen. Register with <code>NavEaseHost&lt;Root&gt; { add(Screen()) }</code>. Receive a fully-typed <code>navKey</code> in <code>Content()</code>.</p>
         </div>
       </div>
     </div>
 
     <div class="flow-diagram">
       <div class="flow-card source">
-        <div class="flow-label">You write</div>
+        <div class="flow-label">Approach 1</div>
         <code>@NavEaseScreen<br/>@NavEaseArgs<br/>@NavEaseResult</code>
       </div>
       <div class="flow-arrow">⟶</div>
@@ -236,9 +284,12 @@
       </div>
       <div class="flow-arrow">⟶</div>
       <div class="flow-card runtime">
-        <div class="flow-label">Runtime</div>
+        <div class="flow-label">Runtime (all approaches)</div>
         <code>NavEaseHost<br/>↓<br/>NavDisplay<br/>↓<br/>NavController</code>
       </div>
+    </div>
+    <div style="text-align:center;color:var(--text-muted);font-size:0.85rem;margin-top:12px">
+      Approaches 2 and 3 skip the KSP step — they go straight to runtime.
     </div>
   </div>
 </section>
@@ -252,11 +303,13 @@
     </div>
 
     <div class="tabs">
-      <button class="tab active" onclick="showTab('setup')">1. Setup</button>
-      <button class="tab" onclick="showTab('setup-manual')">1b. Manual Setup</button>
-      <button class="tab" onclick="showTab('screens')">2. Screens</button>
-      <button class="tab" onclick="showTab('host')">3. NavEaseHost</button>
-      <button class="tab" onclick="showTab('shared')">4. Shared Transitions</button>
+      <button class="tab active" onclick="showTab('setup')">Setup (Plugin)</button>
+      <button class="tab" onclick="showTab('setup-manual')">Setup (Manual)</button>
+      <button class="tab" onclick="showTab('screens')">KSP Screens</button>
+      <button class="tab" onclick="showTab('dsl')">DSL Graph</button>
+      <button class="tab" onclick="showTab('activity')">ActivityScreen</button>
+      <button class="tab" onclick="showTab('host')">NavEaseHost</button>
+      <button class="tab" onclick="showTab('shared')">Shared Transitions</button>
     </div>
 
     <!-- Setup tab (plugin) -->
@@ -412,9 +465,88 @@ result?.<span class="fn">let</span> { <span class="cls">Text</span>(<span class=
       </div>
     </div>
 
+    <!-- DSL tab -->
+    <div class="tab-content" id="tab-dsl">
+      <p class="tab-desc">The <strong>zero-rebuild</strong> approach — no KSP, no annotations, no rebuild after adding a screen:</p>
+      <div class="code-window">
+        <div class="code-header">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <span class="code-title">AppScreen.kt + App.kt</span>
+        </div>
+        <pre class="code-block"><span class="cmt">// 1. Define NavKeys — plain sealed class, no annotations needed</span>
+<span class="ann">@Serializable</span> <span class="kw">sealed class</span> <span class="cls">AppScreen</span> : <span class="cls">NavKey</span> {
+    <span class="ann">@Serializable</span> <span class="kw">data object</span> <span class="cls">Home</span>   : <span class="cls">AppScreen</span>()
+    <span class="ann">@Serializable</span> <span class="kw">data class</span>  <span class="cls">Detail</span>(<span class="kw">val</span> id: <span class="cls">String</span>) : <span class="cls">AppScreen</span>()
+}
+
+<span class="cmt">// 2. Build the graph — typed lambda, no casting</span>
+<span class="kw">val</span> graph = <span class="fn">navEaseGraph</span>(start = AppScreen.Home) {
+    <span class="fn">screen</span>&lt;<span class="cls">AppScreen.Home</span>&gt;   { <span class="cls">HomeScreen</span>() }
+    <span class="fn">screen</span>&lt;<span class="cls">AppScreen.Detail</span>&gt; { key -&gt; <span class="cls">DetailScreen</span>(id = key.id) }
+}
+
+<span class="cmt">// 3. Host — same NavEaseHost, different overload</span>
+<span class="ann">@Composable</span>
+<span class="kw">fun</span> <span class="fn">App</span>() {
+    <span class="cls">MaterialTheme</span> { <span class="cls">NavEaseHost</span>(graph = graph) }
+}
+
+<span class="cmt">// 4. Navigate — IDE resolves instantly, no rebuild required</span>
+nav.<span class="fn">navigate</span>(<span class="cls">AppScreen.Detail</span>(id = <span class="str">"abc"</span>))
+
+<span class="cmt">// Back-with-result — no generated wrappers needed</span>
+<span class="kw">data class</span> <span class="cls">DetailResult</span>(<span class="kw">val</span> confirmed: <span class="cls">Boolean</span>)
+nav.<span class="fn">backWithResult</span>(<span class="cls">DetailResult</span>(confirmed = <span class="kw">true</span>))
+<span class="kw">val</span> result <span class="kw">by</span> nav.<span class="fn">resultOf</span>&lt;<span class="cls">DetailResult</span>&gt;()</pre>
+      </div>
+    </div>
+
+    <!-- ActivityScreen tab -->
+    <div class="tab-content" id="tab-activity">
+      <p class="tab-desc">The <strong>class-based typed</strong> approach — typed <code>navKey: K</code> in Content(), OOP screen structure:</p>
+      <div class="code-window">
+        <div class="code-header">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <span class="code-title">Screens.kt + App.kt</span>
+        </div>
+        <pre class="code-block"><span class="cmt">// 1. Define NavKeys</span>
+<span class="ann">@Serializable</span> <span class="kw">sealed class</span> <span class="cls">AppScreens</span> : <span class="cls">NavKey</span> {
+    <span class="ann">@Serializable</span> <span class="kw">data object</span> <span class="cls">Home</span>   : <span class="cls">AppScreens</span>()
+    <span class="ann">@Serializable</span> <span class="kw">data class</span>  <span class="cls">Detail</span>(<span class="kw">val</span> id: <span class="cls">String</span>) : <span class="cls">AppScreens</span>()
+}
+
+<span class="cmt">// 2. Extend ActivityScreen&lt;K&gt; — Content() gets a typed navKey</span>
+<span class="kw">class</span> <span class="cls">DetailScreen</span> : <span class="cls">ActivityScreen</span>&lt;<span class="cls">AppScreens.Detail</span>&gt;() {
+
+    <span class="kw">data class</span> <span class="cls">Result</span>(<span class="kw">val</span> confirmed: <span class="cls">Boolean</span>)
+
+    <span class="ann">@Composable</span>
+    <span class="kw">override fun</span> <span class="fn">Content</span>(navKey: <span class="cls">AppScreens.Detail</span>, navController: <span class="cls">NavController</span>) {
+        <span class="cls">Text</span>(navKey.id)   <span class="cmt">// ← typed, no xxxArgs() needed ✅</span>
+        <span class="cls">Button</span>(onClick = {
+            navController.<span class="fn">backWithResult</span>(<span class="cls">Result</span>(confirmed = <span class="kw">true</span>))
+        }) { <span class="cls">Text</span>(<span class="str">"Confirm"</span>) }
+    }
+}
+
+<span class="cmt">// 3. Host — register screens in the lambda</span>
+<span class="ann">@Composable</span>
+<span class="kw">fun</span> <span class="fn">App</span>() {
+    <span class="cls">MaterialTheme</span> {
+        <span class="cls">NavEaseHost</span>&lt;<span class="cls">AppScreens</span>&gt;(start = AppScreens.Home) {
+            <span class="fn">add</span>(<span class="cls">HomeScreen</span>())
+            <span class="fn">add</span>(<span class="cls">DetailScreen</span>())
+        }
+    }
+}
+
+<span class="cmt">// 4. Receive result in parent screen</span>
+<span class="kw">val</span> result <span class="kw">by</span> navController.<span class="fn">resultOf</span>&lt;<span class="cls">DetailScreen.Result</span>&gt;()</pre>
+      </div>
+    </div>
+
     <!-- Shared transitions tab -->
     <div class="tab-content" id="tab-shared">
-      <p class="tab-desc">Enable shared element transitions in one parameter — use them in any screen:</p>
       <div class="code-window">
         <div class="code-header">
           <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
@@ -791,6 +923,23 @@ Modifier.<span class="fn">sharedBounds</span>(
     document.querySelectorAll('.tab').forEach(function (el) { el.classList.remove('active'); });
     document.getElementById('tab-' + name).classList.add('active');
     event.target.classList.add('active');
+  }
+
+  /* ── Hero tab switching ──────────────────────────────────────── */
+  var heroLabels = [
+    'Approach 1 — KSP Annotations',
+    'Approach 2 — navEaseGraph DSL',
+    'Approach 3 — ActivityScreen\u003cK\u003e',
+  ];
+  function heroTab(idx) {
+    document.querySelectorAll('.hero-snippet').forEach(function (el, i) {
+      el.style.display = i === idx ? '' : 'none';
+    });
+    document.querySelectorAll('.hero-tab-btn').forEach(function (btn, i) {
+      btn.classList.toggle('active', i === idx);
+    });
+    var lbl = document.getElementById('heroTabLabel');
+    if (lbl) lbl.textContent = heroLabels[idx];
   }
 
   /* ── Mobile menu ─────────────────────────────────────────────── */
