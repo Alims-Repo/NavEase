@@ -84,7 +84,8 @@ class NavEaseProcessor(
 
         val entries = symbols.map { cls ->
             val annotation = cls.annotations.first { it.shortName.asString() == "NavEaseScreen" }
-            val route = annotation.arguments.first { it.name?.asString() == "route" }.value as String
+            val route =
+                annotation.arguments.first { it.name?.asString() == "route" }.value as String
             val isStart = annotation.arguments
                 .firstOrNull { it.name?.asString() == "startDestination" }
                 ?.value as? Boolean ?: false
@@ -119,7 +120,7 @@ class NavEaseProcessor(
         routeCounts.filter { it.value > 1 }.forEach { (route, count) ->
             logger.error(
                 "NavEase: route \"$route\" is declared $count times. " +
-                "Each @NavEaseScreen must have a unique route value."
+                        "Each @NavEaseScreen must have a unique route value."
             )
         }
         if (routeCounts.any { it.value > 1 }) return emptyList()
@@ -129,8 +130,8 @@ class NavEaseProcessor(
         if (startEntries.size > 1) {
             logger.warn(
                 "NavEase: ${startEntries.size} screens are marked with startDestination = true " +
-                "(${startEntries.joinToString { "\"${it.route}\"" }}). " +
-                "Only the first one (\"${startEntries.first().route}\") will be used."
+                        "(${startEntries.joinToString { "\"${it.route}\"" }}). " +
+                        "Only the first one (\"${startEntries.first().route}\") will be used."
             )
         }
 
@@ -179,18 +180,18 @@ class NavEaseProcessor(
 
         // Primitive Kotlin types — never need an import
         val primitiveShort = when (fqn) {
-            "kotlin.String"  -> "String"
-            "kotlin.Int"     -> "Int"
-            "kotlin.Long"    -> "Long"
+            "kotlin.String" -> "String"
+            "kotlin.Int" -> "Int"
+            "kotlin.Long" -> "Long"
             "kotlin.Boolean" -> "Boolean"
-            "kotlin.Double"  -> "Double"
-            "kotlin.Float"   -> "Float"
-            "kotlin.Byte"    -> "Byte"
-            "kotlin.Short"   -> "Short"
-            "kotlin.Char"    -> "Char"
-            "kotlin.Unit"    -> "Unit"
-            "kotlin.Any"     -> "Any"
-            else             -> null
+            "kotlin.Double" -> "Double"
+            "kotlin.Float" -> "Float"
+            "kotlin.Byte" -> "Byte"
+            "kotlin.Short" -> "Short"
+            "kotlin.Char" -> "Char"
+            "kotlin.Unit" -> "Unit"
+            "kotlin.Any" -> "Any"
+            else -> null
         }
         if (primitiveShort != null) return TypeInfo("$primitiveShort$nullable", null)
 
@@ -257,7 +258,11 @@ class NavEaseProcessor(
             .toSortedSet()
             .joinToString("\n") { "import $it" }
 
-    private fun generateAppScreens(entries: List<ScreenEntry>, startRoute: String, deps: Dependencies) {
+    private fun generateAppScreens(
+        entries: List<ScreenEntry>,
+        startRoute: String,
+        deps: Dependencies
+    ) {
         val customImports = importsFrom(entries.flatMap { it.args.orEmpty() })
 
         // Subclass declarations: each line already carries its 4-space indent so they can
@@ -266,7 +271,8 @@ class NavEaseProcessor(
             if (entry.args == null) {
                 "    @Serializable data object ${entry.route} : AppScreens()"
             } else {
-                val params = entry.args.joinToString(", ") { (name, t) -> "val $name: ${t.shortName}" }
+                val params =
+                    entry.args.joinToString(", ") { (name, t) -> "val $name: ${t.shortName}" }
                 "    @Serializable data class ${entry.route}($params) : AppScreens()"
             }
         }
@@ -350,7 +356,8 @@ class NavEaseProcessor(
         val customImports = importsFrom(withResults.flatMap { it.result.orEmpty() })
 
         val resultClasses = withResults.joinToString("\n\n") { entry ->
-            val params = entry.result!!.joinToString(", ") { (name, t) -> "val $name: ${t.shortName}" }
+            val params =
+                entry.result!!.joinToString(", ") { (name, t) -> "val $name: ${t.shortName}" }
             "data class ${entry.route}Result($params)"
         }
 
@@ -400,7 +407,7 @@ class NavEaseProcessor(
                 "finish: Boolean = false,\n    navTransition: NavTransition? = null"
             } else {
                 entry.args.joinToString(", ") { (name, t) -> "$name: ${t.shortName}" } +
-                    ", finish: Boolean = false,\n    navTransition: NavTransition? = null"
+                        ", finish: Boolean = false,\n    navTransition: NavTransition? = null"
             }
             val keyConstruct = if (entry.args.isNullOrEmpty()) {
                 "AppScreens.${entry.route}"
@@ -412,19 +419,21 @@ class NavEaseProcessor(
         }
 
         // xxxArgs() — one extension per screen that has @NavEaseArgs
-        val argsExtensions = entries.filter { !it.args.isNullOrEmpty() }.joinToString("\n\n") { entry ->
-            val simpleName = entry.fqName.substringAfterLast('.')
-            val fnName = "${entry.route.replaceFirstChar { it.lowercaseChar() }}Args"
-            val argAssignments = entry.args!!.joinToString(", ") { (name, _) -> "$name = key.$name" }
-            "fun NavKey.${fnName}(): $simpleName.Args {\n" +
-                "    val key = this as? AppScreens.${entry.route}\n" +
-                "        ?: error(\n" +
-                "            \"NavEase: ${fnName}() called on '\${this::class.simpleName}' \" +\n" +
-                "            \"but expected AppScreens.${entry.route}. \" +\n" +
-                "            \"Make sure you only call ${fnName}() from inside the ${entry.route} screen.\"\n" +
-                "        )\n" +
-                "    return $simpleName.Args($argAssignments)\n}"
-        }
+        val argsExtensions =
+            entries.filter { !it.args.isNullOrEmpty() }.joinToString("\n\n") { entry ->
+                val simpleName = entry.fqName.substringAfterLast('.')
+                val fnName = "${entry.route.replaceFirstChar { it.lowercaseChar() }}Args"
+                val argAssignments =
+                    entry.args!!.joinToString(", ") { (name, _) -> "$name = key.$name" }
+                "fun NavKey.${fnName}(): $simpleName.Args {\n" +
+                        "    val key = this as? AppScreens.${entry.route}\n" +
+                        "        ?: error(\n" +
+                        "            \"NavEase: ${fnName}() called on '\${this::class.simpleName}' \" +\n" +
+                        "            \"but expected AppScreens.${entry.route}. \" +\n" +
+                        "            \"Make sure you only call ${fnName}() from inside the ${entry.route} screen.\"\n" +
+                        "        )\n" +
+                        "    return $simpleName.Args($argAssignments)\n}"
+            }
 
         val customImports = importsFrom(entries.flatMap { it.args.orEmpty() })
         val screenImports = entries
@@ -501,3 +510,4 @@ class NavEaseProcessor(
         val file = codeGenerator.createNewFile(deps, generatedPackage, "NavEaseHost")
         file.bufferedWriter().use { it.write(content) }
     }
+}

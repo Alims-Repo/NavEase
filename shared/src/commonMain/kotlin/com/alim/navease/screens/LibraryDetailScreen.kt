@@ -1,7 +1,9 @@
 package com.alim.navease.screens
 
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +43,7 @@ import io.github.alimsrepo.navease.generated.backWithLibraryDetailResult
 import io.github.alimsrepo.navease.generated.libraryDetailArgs
 import io.github.alimsrepo.navease.generated.navigateToCrashGuardDemo
 import io.github.alimsrepo.navease.generated.navigateToFlowTabDemo
+import io.github.alimsrepo.navease.generated.navigateToLibraryDetail
 import io.github.alimsrepo.navease.generated.navigateToNavEaseDemo
 import io.github.alimsrepo.navease.generated.navigateToPdfDemo
 import io.github.alimsrepo.navease.generated.navigateToPrayerTimesDemo
@@ -85,6 +88,8 @@ class LibraryDetailScreen : NavScreen() {
                 Modifier.sharedBounds(
                     sharedContentState = rememberSharedContentState(key = "lib_card_${lib.id}"),
                     animatedVisibilityScope = animatedScope,
+                    resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                    placeholderSize = SharedTransitionScope.PlaceholderSize.AnimatedSize,
                 )
             }
         } else Modifier
@@ -125,11 +130,19 @@ class LibraryDetailScreen : NavScreen() {
             ) {
                 // ── Hero card (shared bounds with HomeScreen card) ──────────
                 item {
-                    Surface(
+                    Card(
                         modifier = heroSharedModifier.fillMaxWidth(),
                         shape = RoundedCornerShape(24.dp),
-                        color = container
+                        colors = CardDefaults.cardColors(containerColor = container),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
+
+//                    Surface(
+//                        modifier = heroSharedModifier.fillMaxWidth(),
+//                        shape = RoundedCornerShape(24.dp),
+//                        color = container
+//                    ) {
+
                         Column(modifier = Modifier.padding(24.dp)) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
