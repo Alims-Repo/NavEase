@@ -45,7 +45,7 @@ import io.github.alimsrepo.navease.runtime.navigation.NavController
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 import kotlinx.coroutines.delay
 
-@AutoRegister
+@AutoRegister(startDestination = true)
 class SplashScreen : ActivityScreen<AppScreens.Splash>() {
 
     @Composable
