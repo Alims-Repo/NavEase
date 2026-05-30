@@ -15,6 +15,10 @@ pluginManagement {
     }
 }
 
+// Include the navease-gradle-plugin as a composite build so its plugin ID
+// (io.github.alims-repo.navease) is available to all subprojects without publishing.
+includeBuild("navease-gradle-plugin")
+
 dependencyResolutionManagement {
     repositories {
         google {
@@ -38,4 +42,3 @@ include(":shared")
 include(":webApp")
 include(":navease-ksp")
 include(":navease-runtime")
-include(":navease-gradle-plugin")

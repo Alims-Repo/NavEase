@@ -7,7 +7,12 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
-    alias(libs.plugins.ksp)
+    alias(libs.plugins.navease)
+}
+
+navease {
+    kspProcessorDependency = project(":navease-ksp")
+    runtimeDependency = project(":navease-runtime")
 }
 
 kotlin {
@@ -50,25 +55,19 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
         }
 
-        commonMain {
-            kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+        commonMain.dependencies {
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.material3)
+            implementation(libs.compose.animation)
+            implementation(libs.compose.ui)
+            implementation(libs.compose.components.resources)
+            implementation(libs.compose.uiToolingPreview)
 
-            dependencies {
-                implementation(libs.compose.runtime)
-                implementation(libs.compose.foundation)
-                implementation(libs.compose.material3)
-                implementation(libs.compose.animation)
-                implementation(libs.compose.ui)
-                implementation(libs.compose.components.resources)
-                implementation(libs.compose.uiToolingPreview)
+            implementation(libs.material.icons.extended)
 
-                implementation(libs.material.icons.extended)
-
-                implementation(libs.androidx.lifecycle.viewmodelCompose)
-                implementation(libs.androidx.lifecycle.runtimeCompose)
-
-                implementation(project(":navease-runtime"))
-            }
+            implementation(libs.androidx.lifecycle.viewmodelCompose)
+            implementation(libs.androidx.lifecycle.runtimeCompose)
         }
 
         jsMain.dependencies {
@@ -78,13 +77,5 @@ kotlin {
 }
 
 dependencies {
-    add("kspCommonMainMetadata", project(":navease-ksp"))
     androidRuntimeClasspath(libs.compose.uiTooling)
 }
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
-    if (name != "kspCommonMainKotlinMetadata") {
-        dependsOn("kspCommonMainKotlinMetadata")
-    }
-}
-

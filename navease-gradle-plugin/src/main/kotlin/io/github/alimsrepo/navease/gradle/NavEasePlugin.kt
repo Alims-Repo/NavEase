@@ -34,17 +34,23 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
  * }
  * ```
  *
- * **After (with this plugin — 2 lines):**
+ * **After (with this plugin — 1 line):**
  * ```kotlin
  * plugins {
  *     kotlin("multiplatform")
- *     id("com.google.devtools.ksp")
  *     id("io.github.alims-repo.navease") version "<version>"
  * }
- * // Done — navease-runtime, navease-ksp, srcDir, and task wiring are all handled.
+ * // Done — KSP is applied automatically, navease-runtime, navease-ksp, srcDir,
+ * // and task wiring are all handled. Zero boilerplate.
  * ```
  *
- * Optional configuration via the `navease {}` extension block.
+ * For local monorepo development, override dependencies via the `navease {}` extension:
+ * ```kotlin
+ * navease {
+ *     kspProcessorDependency = project(":navease-ksp")
+ *     runtimeDependency      = project(":navease-runtime")
+ * }
+ * ```
  */
 class NavEasePlugin : Plugin<Project> {
 
@@ -53,15 +59,18 @@ class NavEasePlugin : Plugin<Project> {
         // Register the extension so users can configure it before afterEvaluate fires
         val extension = target.extensions.create("navease", NavEaseExtension::class.java)
 
-        // ── Step 1: Wire task dependencies ─────────────────────────────────────
-        // Registered eagerly so it captures tasks added by KSP after afterEvaluate.
+        // ── Step 1: Apply the KSP plugin so users don't need to ────────────────
+        target.pluginManager.apply("com.google.devtools.ksp")
+
+        // ── Step 2: Wire task dependencies ─────────────────────────────────────
+        // Registered eagerly so it captures tasks added by KSP after plugin apply.
         target.tasks.withType(KotlinCompilationTask::class.java).configureEach { task ->
             if (task.name != "kspCommonMainKotlinMetadata") {
                 task.dependsOn("kspCommonMainKotlinMetadata")
             }
         }
 
-        // ── Steps 2–5: deferred until after evaluation so extension values are set
+        // ── Steps 3–6: deferred until after evaluation so extension values are set
         target.afterEvaluate { project ->
             val kmp = project.extensions.findByType(KotlinMultiplatformExtension::class.java)
             if (kmp == null) {
@@ -72,35 +81,33 @@ class NavEasePlugin : Plugin<Project> {
                 return@afterEvaluate
             }
 
-            // ── Step 2: Add navease-ksp to the kspCommonMainMetadata configuration ──
+            // ── Step 3: Add navease-ksp to the kspCommonMainMetadata configuration ──
             try {
-                project.dependencies.add(
-                    "kspCommonMainMetadata",
-                    extension.resolvedKspCoordinate()
-                )
-                project.logger.info("[NavEase] Added KSP processor: ${extension.resolvedKspCoordinate()}")
+                val kspDep = extension.effectiveKspDependency()
+                project.dependencies.add("kspCommonMainMetadata", kspDep)
+                project.logger.info("[NavEase] Added KSP processor: $kspDep")
             } catch (e: Exception) {
                 project.logger.warn(
-                    "[NavEase] Could not add kspCommonMainMetadata dependency — " +
-                    "make sure the KSP plugin (com.google.devtools.ksp) is applied. ${e.message}"
+                    "[NavEase] Could not add kspCommonMainMetadata dependency: ${e.message}"
                 )
             }
 
-            // ── Step 3: Register generated-source directory with commonMain ──────
+            // ── Step 4: Register generated-source directory with commonMain ──────
             val generatedSrcDir = project.layout.buildDirectory
                 .dir("generated/ksp/metadata/commonMain/kotlin")
             kmp.sourceSets.findByName("commonMain")?.kotlin?.srcDir(generatedSrcDir)
             project.logger.info("[NavEase] Registered srcDir: $generatedSrcDir")
 
-            // ── Step 4: Optionally add navease-runtime to commonMain ─────────────
+            // ── Step 5: Optionally add navease-runtime to commonMain ─────────────
             if (extension.addRuntimeDependency) {
+                val runtimeDep = extension.effectiveRuntimeDependency()
                 kmp.sourceSets.findByName("commonMain")?.dependencies {
-                    implementation(extension.resolvedRuntimeCoordinate())
+                    implementation(runtimeDep)
                 }
-                project.logger.info("[NavEase] Added runtime: ${extension.resolvedRuntimeCoordinate()}")
+                project.logger.info("[NavEase] Added runtime: $runtimeDep")
             }
 
-            // ── Step 5: Forward generatedPackage to the KSP processor arg ────────
+            // ── Step 6: Forward generatedPackage to the KSP processor arg ────────
             val customPackage = extension.generatedPackage.trim()
             if (customPackage.isNotBlank()) {
                 forwardKspArg(project, "navease.generatedPackage", customPackage)

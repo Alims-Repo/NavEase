@@ -66,6 +66,7 @@ kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+navease = { id = "io.github.alims-repo.navease" }
 androidLint = { id = "com.android.lint", version.ref = "agp" }
 
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
