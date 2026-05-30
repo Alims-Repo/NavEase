@@ -1,7 +1,11 @@
 package com.alim.navease.screens
 
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,11 +29,9 @@ fun NavBackButton(onClick: () -> Unit) {
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     ) {
-        Text(
-            text = "‹",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        Icon(
+            imageVector = Icons.Default.ArrowBack,
+            contentDescription = null
         )
     }
 }
