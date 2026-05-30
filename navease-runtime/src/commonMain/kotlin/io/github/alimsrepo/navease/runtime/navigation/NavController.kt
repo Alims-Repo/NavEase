@@ -62,9 +62,13 @@ class NavController(
      * [showExitDialog] is invoked instead.
      */
     fun back() {
-        if (backStack.size > 1)
+        if (backStack.size > 1) {
+            // Evict the transition recorded for the screen being removed so the map
+            // does not grow unboundedly over the lifetime of the NavController.
+            val removing = backStack.last()
+            transitionStore.remove(removing.toString())
             backStack.removeLastOrNull()
-        else showExitDialog()
+        } else showExitDialog()
     }
 
     /**
@@ -89,11 +93,12 @@ class NavController(
         }
         // Resolve and record the transition before the push so transitionSpec can read it
         // the moment NavDisplay animates the change.
-        // Key is navKey.toString() which equals NavEntry.contentKey = Scene.key inside the
-        // transitionSpec lambda — the only publicly accessible identifier for the entry.
         transitionStore[navKey.toString()] = navTransition ?: defaultTransition
         backStack.add(navKey)
         if (finish && backStack.size >= 2) {
+            // Evict the transition for the screen being replaced
+            val replaced = backStack[backStack.size - 2]
+            transitionStore.remove(replaced.toString())
             backStack.removeAt(backStack.size - 2)
         }
     }
@@ -113,7 +118,11 @@ class NavController(
         val index = backStack.indexOfLast { it::class == key::class }
         if (index < 0) return
         val removeCount = if (inclusive) backStack.size - index else backStack.size - index - 1
-        repeat(removeCount) { backStack.removeLastOrNull() }
+        repeat(removeCount) {
+            val removing = backStack.last()
+            transitionStore.remove(removing.toString())
+            backStack.removeLastOrNull()
+        }
     }
 
     /**
@@ -123,6 +132,8 @@ class NavController(
     fun popToIndex(index: Int) {
         val currentSize = backStack.size
         repeat(currentSize - index - 1) {
+            val removing = backStack.last()
+            transitionStore.remove(removing.toString())
             backStack.removeLastOrNull()
         }
     }
