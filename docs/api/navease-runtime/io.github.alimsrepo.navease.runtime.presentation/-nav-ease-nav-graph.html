@@ -1,0 +1,114 @@
+<!doctype html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>NavEaseNavGraph</title>
+<link href="../../images/logo-icon.svg" rel="icon" type="image/svg">    <script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async></script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<link href="../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/clipboard.js" async></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async></script>
+<script type="text/javascript" src="../../scripts/main.js" defer></script>
+<script type="text/javascript" src="../../scripts/prism.js" async></script>
+<script type="text/javascript" src="../../ui-kit/ui-kit.min.js" defer></script>
+<script type="text/javascript" src="../../scripts/symbol-parameters-wrapper_deferred.js" defer></script></head>
+<body>
+    <div class="root">
+    <nav class="navigation theme-dark" id="navigation-wrapper">
+<a class="library-name--link" href="../../index.html">
+                    NavEase CMP
+            </a>        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle" type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+        </div>
+        <div class="navigation-controls">
+        <div class="filter-section filter-section_loading" id="filter-section">
+                <button class="platform-tag platform-selector common-like" data-active="" data-filter=":navease-runtime/commonMain">common</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox" data-role="dropdown-toggle" aria-controls="platform-tags-listbox" aria-haspopup="listbox" aria-expanded="false" aria-label="Toggle source sets"></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox">
+                    <div class="dropdown--header"><span>Platform filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close platform filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option common-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":navease-runtime/commonMain" data-filter=":navease-runtime/commonMain">
+                                <span class="checkbox--icon"></span>
+                                common
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </div>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button" type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                    <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list" data-role="dropdown-listbox">
+                        <div class="dropdown--header">
+                            <span>
+                                    NavEase CMP
+                            </span>
+                            <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                                <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                            </button>
+                        </div>
+                        <div class="sidebar--inner" id="sideMenu"></div>
+                    </ul>
+                    <div class="dropdown--overlay"></div>
+                </div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="member" id="content" pageids="navease-runtime::io.github.alimsrepo.navease.runtime.presentation//NavEaseNavGraph/#androidx.navigation3.runtime.NavKey#androidx.savedstate.serialization.SavedStateConfiguration#kotlin.Function1[androidx.navigation3.runtime.NavKey,io.github.alimsrepo.navease.runtime.domain.NavScreen]#kotlin.Function0[kotlin.Unit]#kotlin.Boolean#io.github.alimsrepo.navease.runtime.presentation.NavTransition/PointingToDeclaration//-327814507">
+  <div class="breadcrumbs"><a href="../index.html">navease-runtime</a><span class="delimiter">/</span><a href="index.html">io.github.alimsrepo.navease.runtime.presentation</a><span class="delimiter">/</span><span class="current">NavEaseNavGraph</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Nav</span><wbr><span>Ease</span><wbr><span>Nav</span><wbr><span><span>Graph</span></span></h1>
+  </div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":navease-runtime/commonMain"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://developer.android.com/reference/kotlin/androidx/compose/runtime/Composable.html"><span class="token annotation builtin">Composable</span></a></div></div><span class="token keyword">fun </span><a href="-nav-ease-nav-graph.html"><span class="token function">NavEaseNavGraph</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">initialScreen<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/navigation3/runtime/NavKey.html">NavKey</a><span class="token punctuation">, </span></span><span class="parameter ">savedStateConfig<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/androidx/savedstate/serialization/SavedStateConfiguration.html">SavedStateConfiguration</a><span class="token punctuation">, </span></span><span class="parameter ">screenFactory<span class="token operator">: </span><span class="token punctuation">(</span><a href="https://developer.android.com/reference/kotlin/androidx/navigation3/runtime/NavKey.html">NavKey</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../io.github.alimsrepo.navease.runtime.domain/-nav-screen/index.html">NavScreen</a><span class="token punctuation">, </span></span><span class="parameter ">onExitRequest<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator"> = </span>{}<span class="token punctuation">, </span></span><span class="parameter ">enableSharedTransitions<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter ">navTransition<span class="token operator">: </span><a href="-nav-transition/index.html">NavTransition</a><span class="token operator"> = </span>NavTransition.Push</span></span><span class="token punctuation">)</span></div><p class="paragraph">Core navigation host composable.</p><p class="paragraph">This composable:</p><ol><li><p class="paragraph">Creates and remembers the back stack via <a href="https://developer.android.com/reference/kotlin/androidx/navigation3/runtime/package-summary.html">rememberNavBackStack</a>.</p></li><li><p class="paragraph">Creates and remembers a <a href="../io.github.alimsrepo.navease.runtime.navigation/-nav-controller/index.html">NavController</a> scoped to this composition.</p></li><li><p class="paragraph">Provides the controller to the entire subtree via <a href="-local-nav-ease-controller.html">LocalNavEaseController</a>.</p></li><li><p class="paragraph">Drives <a href="https://developer.android.com/reference/kotlin/androidx/navigation3/ui/NavDisplay.html">NavDisplay</a> with the default slide transitions.</p></li><li><p class="paragraph">Optionally wraps everything in <a href="https://developer.android.com/reference/kotlin/androidx/compose/animation/package-summary.html">SharedTransitionLayout</a> for shared element transitions.</p></li></ol><p class="paragraph"><strong>Do not call this directly</strong> — use the KSP-generated <code class="lang-kotlin">NavEaseHost()</code> composable instead.</p><h4 class="">Parameters</h4><div class="table"><div class="table-row" data-filterable-current=":navease-runtime/commonMain" data-filterable-set=":navease-runtime/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>initial</span><wbr><span><span>Screen</span></span></u></div></span></div><div><div class="title"><p class="paragraph">The first screen placed on the back stack.</p></div></div></div></div><div class="table-row" data-filterable-current=":navease-runtime/commonMain" data-filterable-set=":navease-runtime/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>saved</span><wbr><span>State</span><wbr><span><span>Config</span></span></u></div></span></div><div><div class="title"><p class="paragraph">Serialization config for back-stack state restoration.</p></div></div></div></div><div class="table-row" data-filterable-current=":navease-runtime/commonMain" data-filterable-set=":navease-runtime/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>screen</span><wbr><span><span>Factory</span></span></u></div></span></div><div><div class="title"><p class="paragraph">Maps a <a href="https://developer.android.com/reference/kotlin/androidx/navigation3/runtime/NavKey.html">NavKey</a> to its <a href="../io.github.alimsrepo.navease.runtime.domain/-nav-screen/index.html">NavScreen</a>. Typically KSP-generated.</p></div></div></div></div><div class="table-row" data-filterable-current=":navease-runtime/commonMain" data-filterable-set=":navease-runtime/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>on</span><wbr><span>Exit</span><wbr><span><span>Request</span></span></u></div></span></div><div><div class="title"><p class="paragraph">Called when back is pressed at the root screen. No-op by default.</p></div></div></div></div><div class="table-row" data-filterable-current=":navease-runtime/commonMain" data-filterable-set=":navease-runtime/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>enable</span><wbr><span>Shared</span><wbr><span><span>Transitions</span></span></u></div></span></div><div><div class="title"><p class="paragraph">When <code class="lang-kotlin">true</code>, wraps the display in <a href="https://developer.android.com/reference/kotlin/androidx/compose/animation/package-summary.html">SharedTransitionLayout</a> and     wires the <a href="https://developer.android.com/reference/kotlin/androidx/compose/animation/SharedTransitionScope.html">SharedTransitionScope</a> into both <a href="https://developer.android.com/reference/kotlin/androidx/navigation3/ui/NavDisplay.html">NavDisplay</a> (native     support) and <a href="-local-nav-ease-shared-transition-scope.html">LocalNavEaseSharedTransitionScope</a> (for user screens).     Defaults to <code class="lang-kotlin">false</code>.</p></div></div></div></div><div class="table-row" data-filterable-current=":navease-runtime/commonMain" data-filterable-set=":navease-runtime/commonMain"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>nav</span><wbr><span><span>Transition</span></span></u></div></span></div><div><div class="title"><p class="paragraph">The screen-transition animation style. Defaults to <a href="-nav-transition/-push/index.html">NavTransition.Push</a>     (iOS-style horizontal slide). See <a href="-nav-transition/index.html">NavTransition</a> for all options.</p></div></div></div></div></div></div></div>
+</div>
+    <div class="footer">
+        <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+        <span>© 2026 Copyright</span>
+        <span class="pull-right">
+            <span>Generated by </span>
+            <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                <span>dokka</span>
+            </a>
+        </span>
+    </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
