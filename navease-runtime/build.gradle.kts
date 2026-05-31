@@ -1,7 +1,6 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
-import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -108,6 +107,6 @@ mavenPublishing {
         }
     }
 
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = false)
+    publishToMavenCentral()
     signAllPublications()
 }

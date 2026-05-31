@@ -64,6 +64,25 @@ class NavEaseProcessor(
         val result: List<ArgParam>?
     )
 
+    // Helper: convert arbitrary route strings into safe Kotlin identifiers used in generated code.
+    // We keep the original `route` string for user-facing messages, but always emit sanitized
+    // identifiers where Kotlin identifiers are required (class names, function names, etc.).
+    private fun safeClassIdent(route: String): String {
+        // Replace invalid characters with underscore
+        var s = route.replace(Regex("[^A-Za-z0-9_]"), "_")
+        if (s.isEmpty()) s = "Screen"
+        // If starts with digit, prefix underscore
+        if (s[0].isDigit()) s = "_${s}"
+        // Ensure first char is uppercase for class/data/object names
+        s = s.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        return s
+    }
+
+    private fun safeFunIdent(route: String): String {
+        val c = safeClassIdent(route)
+        return c.replaceFirstChar { it.lowercaseChar() }
+    }
+
     override fun process(resolver: Resolver): List<KSAnnotated> {
 //        if (generated) return emptyList()
 
@@ -281,18 +300,20 @@ class NavEaseProcessor(
         // Subclass declarations: each line already carries its 4-space indent so they can
         // be embedded verbatim inside the sealed class body.
         val subclasses = entries.joinToString("\n") { entry ->
+            val cls = safeClassIdent(entry.route)
             if (entry.args == null) {
-                "    @Serializable data object ${entry.route} : AppScreens()"
+                "    @Serializable data object $cls : AppScreens()"
             } else {
                 val params =
                     entry.args.joinToString(", ") { (name, t) -> "val $name: ${t.shortName}" }
-                "    @Serializable data class ${entry.route}($params) : AppScreens()"
+                "    @Serializable data class $cls($params) : AppScreens()"
             }
         }
 
         // subclass() calls inside the polymorphic block (20-space indent)
         val subclassEntries = entries.joinToString("\n") { entry ->
-            "                    subclass(${entry.route}::class)"
+            val cls = safeClassIdent(entry.route)
+            "                    subclass($cls::class)"
         }
 
         val content = buildString {
@@ -334,7 +355,8 @@ class NavEaseProcessor(
         val imports = entries.joinToString("\n") { "import ${it.fqName}" }
         val whenBranches = entries.joinToString("\n") { entry ->
             val simpleName = entry.fqName.substringAfterLast('.')
-            "            is AppScreens.${entry.route} -> $simpleName()"
+            val cls = safeClassIdent(entry.route)
+            "            is AppScreens.$cls -> $simpleName()"
         }
 
         val content = buildString {
@@ -369,20 +391,23 @@ class NavEaseProcessor(
         val customImports = importsFrom(withResults.flatMap { it.result.orEmpty() })
 
         val resultClasses = withResults.joinToString("\n\n") { entry ->
+            val cls = safeClassIdent(entry.route)
             val params =
                 entry.result!!.joinToString(", ") { (name, t) -> "val $name: ${t.shortName}" }
-            "data class ${entry.route}Result($params)"
+            "data class ${cls}Result($params)"
         }
 
         val backFunctions = withResults.joinToString("\n\n") { entry ->
+            val cls = safeClassIdent(entry.route)
             val params = entry.result!!.joinToString(", ") { (name, t) -> "$name: ${t.shortName}" }
             val args = entry.result.joinToString(", ") { (name, _) -> name }
-            "fun NavController.backWith${entry.route}Result($params) {\n    backWithResult(${entry.route}Result($args))\n}"
+            "fun NavController.backWith${cls}Result($params) {\n    backWithResult(${cls}Result($args))\n}"
         }
 
         val resultFunctions = withResults.joinToString("\n\n") { entry ->
-            val fnName = entry.route.replaceFirstChar { it.lowercaseChar() }
-            "@Composable\nfun NavController.${fnName}Result(): State<${entry.route}Result?> =\n    resultOf(${entry.route}Result::class)"
+            val fnName = safeFunIdent(entry.route)
+            val cls = safeClassIdent(entry.route)
+            "@Composable\nfun NavController.${fnName}Result(): State<${cls}Result?> =\n    resultOf(${cls}Result::class)"
         }
 
         val content = buildString {
@@ -415,7 +440,8 @@ class NavEaseProcessor(
     private fun generateNavEaseExtensions(entries: List<ScreenEntry>, deps: Dependencies) {
         // navigateToXxx() — one top-level extension per screen on NavController
         val navExtensions = entries.joinToString("\n\n") { entry ->
-            val fnName = "navigateTo${entry.route}"
+            val cls = safeClassIdent(entry.route)
+            val fnName = "navigateTo${cls}"
             val paramList = if (entry.args.isNullOrEmpty()) {
                 "finish: Boolean = false,\n    navTransition: NavTransition? = null"
             } else {
@@ -423,10 +449,10 @@ class NavEaseProcessor(
                         ", finish: Boolean = false,\n    navTransition: NavTransition? = null"
             }
             val keyConstruct = if (entry.args.isNullOrEmpty()) {
-                "AppScreens.${entry.route}"
+                "AppScreens.$cls"
             } else {
                 val argNames = entry.args.joinToString(", ") { (name, _) -> "$name = $name" }
-                "AppScreens.${entry.route}($argNames)"
+                "AppScreens.$cls($argNames)"
             }
             "fun NavController.$fnName($paramList) {\n    navigate($keyConstruct, finish = finish, navTransition = navTransition)\n}"
         }
@@ -435,17 +461,18 @@ class NavEaseProcessor(
         val argsExtensions =
             entries.filter { !it.args.isNullOrEmpty() }.joinToString("\n\n") { entry ->
                 val simpleName = entry.fqName.substringAfterLast('.')
-                val fnName = "${entry.route.replaceFirstChar { it.lowercaseChar() }}Args"
-                val argAssignments =
-                    entry.args!!.joinToString(", ") { (name, _) -> "$name = key.$name" }
-                "fun NavKey.${fnName}(): $simpleName.Args {\n" +
-                        "    val key = this as? AppScreens.${entry.route}\n" +
-                        "        ?: error(\n" +
-                        "            \"NavEase: ${fnName}() called on '\${this::class.simpleName}' \" +\n" +
-                        "            \"but expected AppScreens.${entry.route}. \" +\n" +
-                        "            \"Make sure you only call ${fnName}() from inside the ${entry.route} screen.\"\n" +
-                        "        )\n" +
-                        "    return $simpleName.Args($argAssignments)\n}"
+                    val fnName = "${safeFunIdent(entry.route)}Args"
+                        val argAssignments =
+                            entry.args!!.joinToString(", ") { (name, _) -> "$name = key.$name" }
+                        val cls = safeClassIdent(entry.route)
+                        "fun NavKey.${fnName}(): $simpleName.Args {\n" +
+                                "    val key = this as? AppScreens.$cls\n" +
+                                "        ?: error(\n" +
+                                "            \"NavEase: ${fnName}() called on '\${this::class.simpleName}' \" +\n" +
+                                "            \"but expected AppScreens.$cls. \" +\n" +
+                                "            \"Make sure you only call ${fnName}() from inside the ${cls} screen.\"\n" +
+                                "        )\n" +
+                                "    return $simpleName.Args($argAssignments)\n}"
             }
 
         val customImports = importsFrom(entries.flatMap { it.args.orEmpty() })

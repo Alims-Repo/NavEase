@@ -1,6 +1,5 @@
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinJvm
-import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     alias(libs.plugins.kotlinJvm)
@@ -69,6 +68,6 @@ mavenPublishing {
         }
     }
 
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = false)
+    publishToMavenCentral()
     signAllPublications()
 }
