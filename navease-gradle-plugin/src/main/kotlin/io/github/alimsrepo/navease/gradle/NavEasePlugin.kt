@@ -65,7 +65,15 @@ class NavEasePlugin : Plugin<Project> {
         val extension = target.extensions.create("navease", NavEaseExtension::class.java)
 
         // ── Step 1: Apply the KSP plugin so users don't need to ────────────────
-        target.pluginManager.apply("com.google.devtools.ksp")
+        // Guard: if the consumer already applied KSP (with their own version),
+        // skip applying it again — using two different versions in the same
+        // build causes a "Plugin already applied" / classpath conflict error.
+        if (!target.pluginManager.hasPlugin("com.google.devtools.ksp")) {
+            target.pluginManager.apply("com.google.devtools.ksp")
+            target.logger.info("[NavEase] Applied com.google.devtools.ksp automatically.")
+        } else {
+            target.logger.info("[NavEase] com.google.devtools.ksp already present — skipping auto-apply.")
+        }
 
         // ── Step 2: Wire task dependencies ─────────────────────────────────────
         // Two separate hooks are needed because KSP target tasks (e.g.
@@ -164,4 +172,3 @@ class NavEasePlugin : Plugin<Project> {
         }
     }
 }
-
