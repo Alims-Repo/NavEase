@@ -28,6 +28,12 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Extract version from tag
+        # Tag is e.g. "v0.0.8" — strip the leading "v" to get the artifact version.
+        # ORG_GRADLE_PROJECT_VERSION_NAME overrides VERSION_NAME in every
+        # gradle.properties (root + composite builds) automatically.
+        run: echo "VERSION_NAME=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
       - name: Publish to Maven Central
         # SIGNING_KEY = base64-encoded armored private key (avoids multiline env-var issues)
         run: |
@@ -38,6 +44,7 @@ jobs:
             :navease-gradle-plugin:publishAllPublicationsToMavenCentralRepository \
             --no-configuration-cache
         env:
+          ORG_GRADLE_PROJECT_VERSION_NAME: ${{ env.VERSION_NAME }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
