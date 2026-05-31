@@ -2,9 +2,13 @@ public class io/github/alimsrepo/navease/gradle/NavEaseExtension {
 	public fun <init> ()V
 	public final fun getAddRuntimeDependency ()Z
 	public final fun getGeneratedPackage ()Ljava/lang/String;
+	public final fun getKspProcessorDependency ()Ljava/lang/Object;
+	public final fun getRuntimeDependency ()Ljava/lang/Object;
 	public final fun getVersion ()Ljava/lang/String;
 	public final fun setAddRuntimeDependency (Z)V
 	public final fun setGeneratedPackage (Ljava/lang/String;)V
+	public final fun setKspProcessorDependency (Ljava/lang/Object;)V
+	public final fun setRuntimeDependency (Ljava/lang/Object;)V
 	public final fun setVersion (Ljava/lang/String;)V
 }
 

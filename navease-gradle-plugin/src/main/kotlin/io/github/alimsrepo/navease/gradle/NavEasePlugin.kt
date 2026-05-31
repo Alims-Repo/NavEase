@@ -45,8 +45,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
  *     kotlin("multiplatform")
  *     id("io.github.alims-repo.navease") version "<version>"
  * }
- * // Done — KSP is applied automatically, navease-runtime, navease-ksp, srcDir,
- * // and task wiring are all handled. Zero boilerplate.
+ * // Done — KSP and the Kotlin Serialization compiler plugin are applied automatically,
+ * // navease-runtime (with kotlinx-serialization-core as api), navease-ksp, srcDir,
+ * // and task wiring are all handled. Zero boilerplate — @Serializable just works.
  * ```
  *
  * For local monorepo development, override dependencies via the `navease {}` extension:
@@ -64,8 +65,28 @@ class NavEasePlugin : Plugin<Project> {
         // Register the extension so users can configure it before afterEvaluate fires
         val extension = target.extensions.create("navease", NavEaseExtension::class.java)
 
-        // ── Step 1: Apply the KSP plugin so users don't need to ────────────────
-        target.pluginManager.apply("com.google.devtools.ksp")
+        // ── Step 1: Apply required compiler plugins ────────────────────────────
+
+        // 1a. KSP — needed to run the NavEase annotation processor.
+        // Guard against re-applying if the consumer already declared it (version conflict).
+        if (!target.pluginManager.hasPlugin("com.google.devtools.ksp")) {
+            target.pluginManager.apply("com.google.devtools.ksp")
+            target.logger.info("[NavEase] Applied com.google.devtools.ksp automatically.")
+        } else {
+            target.logger.info("[NavEase] com.google.devtools.ksp already present — skipping auto-apply.")
+        }
+
+        // 1b. Kotlin Serialization compiler plugin — required so that @Serializable
+        // actually generates serializers for the client's screen classes and for the
+        // KSP-generated AutoRegisterScreens.kt file.
+        // Without this plugin the annotation compiles but no serializer is produced,
+        // causing runtime failures.
+        if (!target.pluginManager.hasPlugin("org.jetbrains.kotlin.plugin.serialization")) {
+            target.pluginManager.apply("org.jetbrains.kotlin.plugin.serialization")
+            target.logger.info("[NavEase] Applied org.jetbrains.kotlin.plugin.serialization automatically.")
+        } else {
+            target.logger.info("[NavEase] kotlin.plugin.serialization already present — skipping auto-apply.")
+        }
 
         // ── Step 2: Wire task dependencies ─────────────────────────────────────
         // Two separate hooks are needed because KSP target tasks (e.g.
@@ -164,4 +185,3 @@ class NavEasePlugin : Plugin<Project> {
         }
     }
 }
-

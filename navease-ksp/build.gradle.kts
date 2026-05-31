@@ -1,6 +1,5 @@
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinJvm
-import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     alias(libs.plugins.kotlinJvm)
@@ -12,6 +11,13 @@ plugins {
 
 kotlin {
     jvmToolchain(21)
+}
+
+// Tests are currently commented out while the compilation-testing dependency
+// is being aligned with KSP2. Suppress the "no tests found" build error so
+// the module still builds cleanly.
+tasks.withType<Test>().configureEach {
+    failOnNoDiscoveredTests = false
 }
 
 dependencies {
@@ -27,7 +33,7 @@ dependencies {
 mavenPublishing {
     configure(
         KotlinJvm(
-            javadocJar = JavadocJar.Dokka("dokkaHtml"),
+            javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml"),
             sourcesJar = true,
         ),
     )
@@ -69,6 +75,6 @@ mavenPublishing {
         }
     }
 
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = false)
+    publishToMavenCentral()
     signAllPublications()
 }

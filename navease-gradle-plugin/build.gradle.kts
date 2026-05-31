@@ -1,6 +1,5 @@
 import com.vanniktech.maven.publish.GradlePlugin
 import com.vanniktech.maven.publish.JavadocJar
-import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     alias(libs.plugins.kotlinJvm)
@@ -66,6 +65,12 @@ dependencies {
     // Keep this version in sync with [versions] kotlin in gradle/libs.versions.toml.
     compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.21")
 
+    // Bundle the KSP Gradle plugin so that pluginManager.apply("com.google.devtools.ksp")
+    // works automatically for consumers without any manual KSP setup.
+    // Using implementation (not compileOnly) so it is present at runtime when the
+    // navease plugin is loaded from Maven Central.
+    implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:${libs.versions.ksp.get()}")
+
     // Plugin functional tests
     testImplementation(gradleTestKit())
     testImplementation(libs.junit)
@@ -89,7 +94,7 @@ gradlePlugin {
 mavenPublishing {
     configure(
         GradlePlugin(
-            javadocJar = JavadocJar.Dokka("dokkaHtml"),
+            javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml"),
             sourcesJar = true,
         )
     )
@@ -132,7 +137,6 @@ mavenPublishing {
         }
     }
 
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = false)
+    publishToMavenCentral()
     signAllPublications()
 }
-
