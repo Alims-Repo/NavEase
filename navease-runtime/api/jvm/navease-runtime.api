@@ -1,3 +1,7 @@
+public abstract interface annotation class io/github/alimsrepo/navease/runtime/annotations/AutoRegister : java/lang/annotation/Annotation {
+	public abstract fun startDestination ()Z
+}
+
 public abstract interface annotation class io/github/alimsrepo/navease/runtime/annotations/NavEaseArgs : java/lang/annotation/Annotation {
 }
 

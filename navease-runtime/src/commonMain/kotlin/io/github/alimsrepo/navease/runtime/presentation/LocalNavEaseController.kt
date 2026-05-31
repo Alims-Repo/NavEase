@@ -19,6 +19,5 @@ import io.github.alimsrepo.navease.runtime.navigation.NavController
  * The value is `null` outside of a [NavEaseNavGraph] composition (e.g. in Compose Previews).
  * Guard with a null-check or use `!!` only when you are certain a host is in scope.
  */
-val LocalNavEaseController: ProvidableCompositionLocal<NavController?> =
-    compositionLocalOf { null }
+val LocalNavEaseController: ProvidableCompositionLocal<NavController?> = compositionLocalOf { null }
 
