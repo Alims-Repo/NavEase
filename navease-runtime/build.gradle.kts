@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
 
@@ -25,6 +26,11 @@ kotlin {
         }
         minSdk = 24
 //        consumerProguardFiles("consumer-rules.pro")
+        // Explicitly target JVM 11 so inline functions in this library
+        // produce JVM-11-compatible bytecode — consumers targeting JVM 11+ work fine.
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_11
+        }
     }
 
     listOf(
@@ -37,7 +43,12 @@ kotlin {
         }
     }
 
-    jvm()
+    jvm {
+        // Same reason: pin the output bytecode to JVM 11 for broad consumer compatibility.
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_11
+        }
+    }
 
     js { browser() }
 
@@ -65,7 +76,7 @@ kotlin {
 mavenPublishing {
     configure(
         KotlinMultiplatform(
-            javadocJar = JavadocJar.Dokka("dokkaHtml"),
+            javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml"),
             sourcesJar = true,
         ),
     )
