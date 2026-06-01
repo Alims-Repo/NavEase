@@ -37,15 +37,16 @@ object NavEaseAutoRegistry {
     /**
      * Fully-qualified class name of the KSP-generated initializer file.
      *
-     * Defaults to `io.github.alimsrepo.navease.generated.AutoRegisterScreensKt`,
-     * which matches the default `navease.generatedPackage` KSP option.
+     * Defaults to `io.github.alimsrepo.navease.runtime.presentation.AutoRegisterScreensKt`,
+     * which is the fixed package where the `@AutoRegister` file is always generated so that
+     * overload resolution can find the typed `autoRegisterScreens()` extension alongside the
+     * no-op stub without requiring an extra import in App.kt.
      *
-     * If you use a custom `generatedPackage`, set this to
-     * `"<yourPackage>.AutoRegisterScreensKt"` **before** first composition — e.g.
-     * inside your `Application.onCreate()` or platform entry point.
+     * Only override this if you use a fully custom KSP setup that places the generated file
+     * elsewhere. Set it **before** first composition — e.g. inside `Application.onCreate()`.
      */
     var generatedClassHint: String =
-        "io.github.alimsrepo.navease.generated.AutoRegisterScreensKt"
+        "io.github.alimsrepo.navease.runtime.presentation.AutoRegisterScreensKt"
 
     /**
      * Set by the KSP-generated `NavEaseAutoInit.init {}` block via [setRegistrar].

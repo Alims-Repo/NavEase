@@ -508,6 +508,12 @@ class NavEaseProcessor(
         symbols: List<KSClassDeclaration>,
         deps: Dependencies,
     ) {
+        // autoRegisterScreens() MUST be generated in the same package as the no-op stub so
+        // that a single `import io.github.alimsrepo.navease.runtime.presentation.autoRegisterScreens`
+        // in App.kt brings both overloads into scope and Kotlin's overload resolution can
+        // pick this more-specific typed extension over the star-projected stub.
+        val autoRegisterPackage = "io.github.alimsrepo.navease.runtime.presentation"
+
         val activityScreenFqn = "io.github.alimsrepo.navease.runtime.presentation.ActivityScreen"
 
         data class AutoEntry(
@@ -633,11 +639,14 @@ class NavEaseProcessor(
         val addCalls = entries.joinToString("\n") { "    add(${it.screenSimpleName}())" }
 
         val content = buildString {
-            appendLine("package $generatedPackage")
+            // Use the runtime presentation package so this file's autoRegisterScreens() extension
+            // is co-located with the no-op stub. That way a single import statement in App.kt
+            // brings both overloads into scope and Kotlin resolves the correct typed one.
+            appendLine("package $autoRegisterPackage")
             appendLine()
             appendLine("import $rootFqn")
-            appendLine("import io.github.alimsrepo.navease.runtime.presentation.NavEaseAutoRegistry")
-            appendLine("import io.github.alimsrepo.navease.runtime.presentation.NavEaseScreenScope")
+            // NavEaseAutoRegistry and NavEaseScreenScope are in the same package — no import needed,
+            // but kept for clarity in case the generated file is read in isolation.
             appendLine("import kotlinx.serialization.serializer")
             appendLine(screenImports)
             appendLine()
@@ -702,7 +711,9 @@ class NavEaseProcessor(
             append("}")
         }
 
-        val file = codeGenerator.createNewFile(deps, generatedPackage, "AutoRegisterScreens")
+        // File is created in the runtime presentation package directory so both overloads of
+        // autoRegisterScreens() (stub + generated) live in the same package.
+        val file = codeGenerator.createNewFile(deps, autoRegisterPackage, "AutoRegisterScreens")
         file.bufferedWriter().use { it.write(content) }
     }
 
