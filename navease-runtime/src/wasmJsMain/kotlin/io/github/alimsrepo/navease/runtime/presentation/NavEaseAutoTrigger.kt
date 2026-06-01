@@ -3,9 +3,9 @@ package io.github.alimsrepo.navease.runtime.presentation
 /**
  * Kotlin/Wasm implementation — no-op.
  *
- * In Kotlin/Wasm the generated `_navEaseAutoInit` top-level property is initialised
- * during module startup. Use [navEaseInit] in your Wasm entry point if the zero-arg
- * [NavEaseHost] is needed without an explicit `autoRegisterScreens()` call.
+ * In Kotlin/Wasm the generated `_navEaseAutoInit` top-level property (declared `internal`
+ * to survive DCE) is initialised during module startup. No manual call to
+ * `navEaseBootstrap()` is needed.
  */
-internal actual fun navEaseAutoTriggerInit() { /* no-op on Kotlin/Wasm */ }
+internal actual fun navEaseAutoTriggerInit() { /* no-op — module-level init handles WasmJS */ }
 
