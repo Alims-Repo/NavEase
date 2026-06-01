@@ -14,18 +14,16 @@ import kotlin.reflect.KClass
  * **You do not normally interact with this object directly.**
  * It is populated automatically by the KSP-generated `NavEaseAutoInit` initializer.
  *
- * Bootstraps automatically on all platforms — no manual call required in your code:
+ * Initialization per platform:
  *
- * - **Android / JVM / Desktop**: [NavEaseHost][io.github.alimsrepo.navease.runtime.host.NavEaseHost]
- *   loads the generated class via `Class.forName` on first composition, which triggers
- *   `NavEaseAutoInit.init {}`.
- * - **iOS / Native**: the generated `_navEaseAutoInit` property is annotated with
- *   `@EagerInitialization`, so it runs when the Kotlin framework is loaded.
- * - **JS / WasmJS**: the generated module-level property is initialised when the
- *   JS module is first loaded by the runtime.
- *
- * The previously required `navEaseBootstrap()` call from platform entry points is
- * **no longer needed**. Existing calls are safe to remove.
+ * - **Android / JVM / Desktop**: automatic — [NavEaseHost][io.github.alimsrepo.navease.runtime.host.NavEaseHost]
+ *   loads the generated class via `Class.forName` on first composition.
+ * - **iOS / Native**: call the generated `navEaseBootstrap()` once from your platform
+ *   entry point before the first composition:
+ *   ```kotlin
+ *   fun MainViewController() = ComposeUIViewController { navEaseBootstrap(); App() }
+ *   ```
+ * - **JS / WasmJS**: automatic — module-level property init runs at module load time.
  */
 object NavEaseAutoRegistry {
 
@@ -46,6 +44,15 @@ object NavEaseAutoRegistry {
 
     /** `true` once [entries] has been populated and [startKey] is set. */
     val isInitialized: Boolean get() = startKey != null
+
+    /**
+     * Optional hook set by the KSP-generated `_navEaseAutoInit` property initializer.
+     *
+     * When the generated class is loaded (JVM) or `navEaseBootstrap()` is called (iOS),
+     * this hook is registered so that future calls to [ensureInitialized] can re-trigger
+     * initialization without another `Class.forName` lookup.
+     */
+    internal var bootstrapHook: (() -> Unit)? = null
 
     /**
      * A registered screen entry produced by [addEntry].
@@ -88,14 +95,26 @@ object NavEaseAutoRegistry {
     }
 
     /**
-     * Ensures the registry is populated on JVM/Android via class-loading.
+     * Called by the KSP-generated `AutoRegisterScreens.kt` when `_navEaseAutoInit` is
+     * first accessed, registering the lambda that can re-trigger `NavEaseAutoInit.init {}`.
+     */
+    fun registerBootstrapHook(hook: () -> Unit) {
+        bootstrapHook = hook
+    }
+
+    /**
+     * Ensures the registry is populated.
      *
-     * On iOS/Native this is a no-op — the registry is populated when the Kotlin
-     * framework is loaded via `@EagerInitialization`.
+     * - On **JVM/Android/Desktop**: triggers `Class.forName` via [navEaseAutoTriggerInit],
+     *   which loads the generated class and runs `NavEaseAutoInit.init {}`.
+     * - On **iOS/Native**: no-op — call the generated `navEaseBootstrap()` from your
+     *   iOS entry point instead.
+     * - On **JS/WasmJS**: module-level init already ran; this is a safety check.
      */
     internal fun ensureInitialized() {
         if (isInitialized) return
-        navEaseAutoTriggerInit()
+        bootstrapHook?.invoke()      // fast path if hook already registered
+        if (!isInitialized) navEaseAutoTriggerInit()  // JVM Class.forName fallback
     }
 }
 

@@ -165,8 +165,10 @@ fun NavEaseHost(
         registry.ensureInitialized()
         check(registry.isInitialized) {
             "NavEase: No @AutoRegister screens found in the registry.\n" +
-            "• Rebuild the project once: ./gradlew :shared:kspCommonMainKotlinMetadata\n" +
-            "• On iOS/Native/JS: the registry is populated automatically — no bootstrap call needed."
+            "• On Android/JVM/Desktop: rebuild once — ./gradlew :shared:kspCommonMainKotlinMetadata\n" +
+            "• On iOS/Native: call navEaseBootstrap() from your platform entry point before App():\n" +
+            "    fun MainViewController() = ComposeUIViewController { navEaseBootstrap(); App() }\n" +
+            "• On JS/WasmJS: ensure the shared module is properly imported."
         }
         NavEaseScreenScope<NavKey>().also { s ->
             registry.entries.forEach { entry ->
