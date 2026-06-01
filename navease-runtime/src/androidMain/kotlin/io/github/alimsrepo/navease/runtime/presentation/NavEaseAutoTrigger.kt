@@ -1,15 +1,4 @@
 package io.github.alimsrepo.navease.runtime.presentation
 
-/**
- * Android/JVM implementation of the auto-init trigger.
- *
- * Loads the KSP-generated class via `Class.forName`, which triggers the JVM static
- * initialiser (`<clinit>`), initialising `_navEaseAutoInit` and therefore running
- * `NavEaseAutoInit.init {}` — which sets [NavEaseAutoRegistry.registrar].
- */
-internal actual fun navEaseAutoTriggerInit() {
-    runCatching {
-        Class.forName(NavEaseAutoRegistry.generatedClassHint)
-    }
-}
-
+// navEaseAutoTriggerInit() has moved to io.github.alimsrepo.navease.runtime.registry.
+// The actual implementations are now in registry/NavEaseAutoTrigger.kt for each platform.

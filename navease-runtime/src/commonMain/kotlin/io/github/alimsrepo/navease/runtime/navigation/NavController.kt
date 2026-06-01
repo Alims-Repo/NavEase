@@ -4,7 +4,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
-import io.github.alimsrepo.navease.runtime.presentation.NavTransition
+import io.github.alimsrepo.navease.runtime.transition.NavTransition
 
 /**
  * Orchestrates navigation across the back stack.

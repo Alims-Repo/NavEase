@@ -1,23 +1,13 @@
 package io.github.alimsrepo.navease.runtime.presentation
 
-import androidx.compose.runtime.ProvidableCompositionLocal
-import androidx.compose.runtime.compositionLocalOf
-import io.github.alimsrepo.navease.runtime.navigation.NavController
-
-/**
- * A [androidx.compose.runtime.CompositionLocal] that provides the nearest [NavController]
- * to any composable in the tree without manual parameter passing.
- *
- * [NavEaseNavGraph] automatically provides the current [NavController] via
- * [androidx.compose.runtime.CompositionLocalProvider], so all composables hosted inside it
- * can read the controller with:
- *
- * ```kotlin
- * val navController = LocalNavEaseController.current
- * ```
- *
- * The value is `null` outside of a [NavEaseNavGraph] composition (e.g. in Compose Previews).
- * Guard with a null-check or use `!!` only when you are certain a host is in scope.
- */
-val LocalNavEaseController: ProvidableCompositionLocal<NavController?> = compositionLocalOf { null }
-
+// Moved to io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController
+// Re-exported here for backward compatibility — update your import.
+@Deprecated(
+    message = "LocalNavEaseController has moved to io.github.alimsrepo.navease.runtime.composition.",
+    replaceWith = ReplaceWith(
+        "LocalNavEaseController",
+        "io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController"
+    ),
+    level = DeprecationLevel.WARNING,
+)
+val LocalNavEaseController get() = io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController

@@ -96,7 +96,7 @@ fun <T : Any> NavController.resultOf(clazz: KClass<T>): State<T?> {
  * Observes the result of type [T] posted by a child screen via [backWithResult].
  * The result is consumed exactly once — see [resultOf] for full semantics.
  *
- * ## Pattern for [io.github.alimsrepo.navease.runtime.presentation.ActivityScreen]
+ * ## Pattern for [io.github.alimsrepo.navease.runtime.screen.ActivityScreen]
  *
  * Define the result as a nested `data class` inside the child screen, then observe it
  * in the parent screen using this function:

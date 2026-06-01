@@ -1,6 +1,6 @@
 package com.alim.navease.screens
 
-import io.github.alimsrepo.navease.runtime.presentation.NavTransition
+import io.github.alimsrepo.navease.runtime.transition.NavTransition
 
 // ── Library category ──────────────────────────────────────────────────────────
 

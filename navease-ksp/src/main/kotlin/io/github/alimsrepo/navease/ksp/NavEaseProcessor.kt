@@ -485,7 +485,7 @@ class NavEaseProcessor(
             appendLine()
             appendLine("import androidx.navigation3.runtime.NavKey")
             appendLine("import io.github.alimsrepo.navease.runtime.navigation.NavController")
-            appendLine("import io.github.alimsrepo.navease.runtime.presentation.NavTransition")
+            appendLine("import io.github.alimsrepo.navease.runtime.transition.NavTransition")
             if (screenImports.isNotEmpty()) appendLine(screenImports)
             if (customImports.isNotEmpty()) appendLine(customImports)
             appendLine()
@@ -508,8 +508,13 @@ class NavEaseProcessor(
         symbols: List<KSClassDeclaration>,
         deps: Dependencies,
     ) {
-        val activityScreenFqn = "io.github.alimsrepo.navease.runtime.presentation.ActivityScreen"
-        val registryFqn      = "io.github.alimsrepo.navease.runtime.presentation.NavEaseAutoRegistry"
+        // Accept both the canonical new package and the old presentation typealias so that
+        // users who still import from presentation.ActivityScreen are not broken.
+        val activityScreenFqns = setOf(
+            "io.github.alimsrepo.navease.runtime.screen.ActivityScreen",
+            "io.github.alimsrepo.navease.runtime.presentation.ActivityScreen",
+        )
+        val registryFqn = "io.github.alimsrepo.navease.runtime.registry.NavEaseAutoRegistry"
 
         data class AutoEntry(
             val screenFqn: String,
@@ -532,11 +537,12 @@ class NavEaseProcessor(
 
             val superType = cls.superTypes
                 .map { it.resolve() }
-                .firstOrNull { it.declaration.qualifiedName?.asString() == activityScreenFqn }
+                .firstOrNull { it.declaration.qualifiedName?.asString() in activityScreenFqns }
 
             if (superType == null) {
                 logger.error(
-                    "NavEase: @AutoRegister class '$screenSimpleName' must extend ActivityScreen<K>."
+                    "NavEase: @AutoRegister class '$screenSimpleName' must extend " +
+                    "ActivityScreen<K> (import from io.github.alimsrepo.navease.runtime.screen)."
                 )
                 return@mapNotNull null
             }
@@ -629,6 +635,8 @@ class NavEaseProcessor(
         }
 
         val content = buildString {
+            appendLine("@file:OptIn(kotlin.ExperimentalStdlibApi::class)")
+            appendLine()
             appendLine("package $generatedPackage")
             appendLine()
             appendLine("import $rootFqn")
@@ -662,7 +670,7 @@ class NavEaseProcessor(
             appendLine("// Class.forName() in NavEaseAutoRegistry.ensureInitialized() still handles")
             appendLine("// initialisation there.  On JS/WasmJS module-level initialisation runs")
             appendLine("// automatically; internal visibility prevents DCE from removing the property.")
-            appendLine("@Suppress(\"unused\", \"OPT_IN_USAGE\")")
+            appendLine("@Suppress(\"unused\")")
             appendLine("@kotlin.native.EagerInitialization")
             appendLine("internal val _navEaseAutoInit: Any = NavEaseAutoInit")
             appendLine()
@@ -701,8 +709,8 @@ class NavEaseProcessor(
             appendLine("package $generatedPackage")
             appendLine()
             appendLine("import androidx.compose.runtime.Composable")
-            appendLine("import io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph")
-            appendLine("import io.github.alimsrepo.navease.runtime.presentation.NavTransition")
+            appendLine("import io.github.alimsrepo.navease.runtime.host.NavEaseNavGraph")
+            appendLine("import io.github.alimsrepo.navease.runtime.transition.NavTransition")
             appendLine()
             appendLine("/**")
             appendLine(" * Generated navigation host. Place this once in your root composable.")

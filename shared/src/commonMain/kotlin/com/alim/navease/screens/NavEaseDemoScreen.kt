@@ -36,8 +36,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
 import io.github.alimsrepo.navease.runtime.navigation.NavController
-import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
-import io.github.alimsrepo.navease.runtime.presentation.NavTransition
+import io.github.alimsrepo.navease.runtime.screen.ActivityScreen
+import io.github.alimsrepo.navease.runtime.transition.NavTransition
 
 private data class TransitionEntry(
     val name: String,

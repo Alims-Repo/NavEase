@@ -21,7 +21,7 @@ abstract class NavScreen {
      *                      Use the KSP-generated `navKey.xxxArgs()` extension to access typed
      *                      route arguments without referencing generated types directly.
      * @param navController The [NavController] scoped to the current navigation host.
-     *                      Use [io.github.alimsrepo.navease.runtime.presentation.LocalNavEaseController]
+     *                      Use [io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController]
      *                      if you need the controller from a deeply nested composable.
      */
     @Composable

@@ -2,8 +2,8 @@ package com.alim.navease.screens
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import io.github.alimsrepo.navease.runtime.presentation.NavEaseHost
-import io.github.alimsrepo.navease.runtime.presentation.NavTransition
+import io.github.alimsrepo.navease.runtime.host.NavEaseHost
+import io.github.alimsrepo.navease.runtime.transition.NavTransition
 
 @Composable
 fun App() {
