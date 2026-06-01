@@ -47,15 +47,20 @@ fun NavEaseHost(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NavEaseHost — ActivityScreen variant
+// NavEaseHost — ActivityScreen variant (explicit start)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Zero-rebuild navigation host — **[ActivityScreen] variant**.
+ * Zero-rebuild navigation host — **[ActivityScreen] variant** with an explicit start destination.
  *
  * Register screens via the trailing `screens` lambda using [NavEaseScreenScope.add].
  * Each [ActivityScreen] subclass receives a **typed** [navKey][ActivityScreen.Content] in
  * its [Content][ActivityScreen.Content] override — no casting or `.xxxArgs()` needed.
+ *
+ * The sealed [Root] type parameter acts as a **scope boundary**: only screens belonging to
+ * this sealed hierarchy are rendered by this host. This enables **multiple independent
+ * NavEaseHost instances** in the same composition tree — for example, a top-level host for
+ * main navigation and a nested host inside a tab or dialog for its own sub-flow.
  *
  * ```kotlin
  * class DetailScreen : ActivityScreen<AppScreens.Detail>() {
@@ -76,6 +81,7 @@ fun NavEaseHost(
  *
  * @param Root                    The sealed [NavKey] root class (e.g. `AppScreens`).
  *                                Must be specified explicitly: `NavEaseHost<AppScreens>(...)`.
+ *                                Scopes this host to only handle screens from this hierarchy.
  * @param start                   The [NavKey] instance placed on the back stack first.
  * @param onExitRequest           Called when back is pressed at the root screen.
  * @param enableSharedTransitions `true` to enable shared-element transitions.
@@ -121,6 +127,120 @@ fun <Root : NavKey> NavEaseHost(
                 ?: error(
                     "NavEase: No screen registered for '${key::class.simpleName}'. " +
                     "Add it inside NavEaseHost<...>(...) { add(${key::class.simpleName}()) }."
+                )
+            val nav = LocalNavEaseController.current
+                ?: error("NavEase: LocalNavEaseController is null — called outside NavEaseNavGraph.")
+            screen.Content(key, nav)
+        },
+        onExitRequest        = onExitRequest,
+        enableSharedTransitions = enableSharedTransitions,
+        navTransition        = navTransition,
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NavEaseHost — ActivityScreen variant (auto-inferred start)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Zero-rebuild, zero-config navigation host — **[ActivityScreen] variant** with automatic
+ * start destination inference.
+ *
+ * This is the **simplest entry point** for using NavEase without any code generation,
+ * KSP, or platform-specific initialization:
+ *
+ * ```kotlin
+ * @Composable fun App() {
+ *     NavEaseHost<AppScreens> {
+ *         add(SplashScreen(), startWith = AppScreens.Splash)
+ *         add(HomeScreen())
+ *         add(DetailScreen())
+ *     }
+ * }
+ * ```
+ *
+ * **Start Destination Rules:**
+ * - Pass `startWith = YourScreens.Start` to one of your [add][NavEaseScreenScope.add] calls.
+ * - If no screen specifies `startWith`, an error is thrown at composition time.
+ *
+ * **Nested Navigation:**
+ *
+ * Because the [Root] type parameter scopes this host to a specific sealed class hierarchy,
+ * you can nest multiple independent `NavEaseHost` instances in the same composition tree.
+ * Each operates on its own controller and back stack:
+ *
+ * ```kotlin
+ * // Main app-level navigation
+ * NavEaseHost<AppScreens> {
+ *     add(HomeScreen(), startWith = AppScreens.Home)
+ *     add(TabsScreen())
+ * }
+ *
+ * // Inside TabsScreen — nested host with its own sealed hierarchy
+ * class TabsScreen : ActivityScreen<AppScreens.Tabs>() {
+ *     @Composable
+ *     override fun Content(navKey: AppScreens.Tabs, navEaseController: NavEaseController) {
+ *         NavEaseHost<TabScreens> {
+ *             add(FeedScreen(), startWith = TabScreens.Feed)
+ *             add(ProfileScreen())
+ *         }
+ *     }
+ * }
+ * ```
+ *
+ * @param Root                    The sealed [NavKey] root class. Scopes this host to only
+ *                                render screens from this sealed hierarchy.
+ * @param onExitRequest           Called when back is pressed at the root screen.
+ * @param enableSharedTransitions `true` to enable shared-element transitions.
+ * @param navTransition           Default screen transition. Defaults to [NavTransition.Push].
+ * @param screens                 Registration block — call [NavEaseScreenScope.add] for each screen.
+ *                                Mark start destination with `startWith` parameter.
+ */
+@Composable
+fun <Root : NavKey> NavEaseHost(
+    onExitRequest: () -> Unit = {},
+    enableSharedTransitions: Boolean = false,
+    navTransition: NavTransition = NavTransition.Push,
+    screens: NavEaseScreenScope<Root>.() -> Unit,
+) {
+    val scope = remember { NavEaseScreenScope<Root>().apply(screens) }
+
+    val startKey: NavKey = checkNotNull(scope.inferredStart) {
+        "NavEase: Could not determine start destination.\n" +
+        "Either:\n" +
+        "  • Pass startWith to one of your add() calls: add(SplashScreen(), startWith = YourScreens.Splash)\n" +
+        "  • Or use the explicit-start overload: NavEaseHost<YourScreens>(start = YourScreens.Splash) { ... }"
+    }
+
+    val factory: Map<KClass<*>, ActivityScreen<*>> = remember(scope) {
+        scope.screens.associateBy { checkNotNull(it._keyClass) {
+            "ActivityScreen '${it::class.simpleName}' has a null _keyClass. " +
+            "Make sure it was registered via add(...) inside NavEaseHost { }."
+        }}
+    }
+
+    val savedStateConfig = remember(scope) {
+        SavedStateConfiguration {
+            serializersModule = SerializersModule {
+                @Suppress("UNCHECKED_CAST")
+                polymorphic(NavKey::class) {
+                    scope.serPairs.forEach { (kClass, ser) ->
+                        subclass(kClass as KClass<NavKey>, ser as KSerializer<NavKey>)
+                    }
+                }
+            }
+        }
+    }
+
+    NavEaseNavGraphCore(
+        initialScreen        = startKey,
+        savedStateConfig     = savedStateConfig,
+        contentProvider      = { key ->
+            @Suppress("UNCHECKED_CAST")
+            val screen = factory[key::class] as? ActivityScreen<NavKey>
+                ?: error(
+                    "NavEase: No screen registered for '${key::class.simpleName}'. " +
+                    "Add it inside NavEaseHost<...> { add(${key::class.simpleName}()) }."
                 )
             val nav = LocalNavEaseController.current
                 ?: error("NavEase: LocalNavEaseController is null — called outside NavEaseNavGraph.")
