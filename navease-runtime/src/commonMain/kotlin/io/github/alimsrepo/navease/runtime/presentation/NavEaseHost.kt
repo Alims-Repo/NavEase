@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavKey
 import androidx.savedstate.serialization.SavedStateConfiguration
-import io.github.alimsrepo.navease.runtime.navigation.NavController
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -68,24 +67,6 @@ class NavEaseScreenScope<Root : NavKey> @PublishedApi internal constructor() {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// autoRegisterScreens() — runtime no-op stub
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * No-op stub for `autoRegisterScreens()`.
- *
- * Before KSP runs this function is the only candidate, so referencing it inside a
- * `NavEaseHost<Root> { }` block compiles cleanly without errors.  After KSP generates
- * the more-specific typed overload (`fun NavEaseScreenScope<AppScreens>.autoRegisterScreens()`)
- * Kotlin's overload resolution picks that one, and this stub is never called.
- *
- * **Do not call this stub directly.** It is purely a compile-time shim.
- */
-@Suppress("UNUSED_PARAMETER")
-fun NavEaseScreenScope<*>.autoRegisterScreens() {
-    // no-op — superseded by the KSP-generated typed extension after first build
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NavEaseHost — DSL graph variant (existing)
@@ -232,15 +213,15 @@ fun <Root : NavKey> NavEaseHost(
  * **Platform notes**
  * - **Android / JVM**: auto-discovery works out of the box — the registry is populated
  *   transparently on first composition via class loading.
- * - **iOS / Desktop / Web**: call [navEaseInit] once before the first composition, or
- *   use the typed overload with [autoRegisterScreens] which works on every platform:
+ * - **iOS / Native / JS / Wasm**: call the KSP-generated `navEaseBootstrap()` once before
+ *   the first composition from your platform entry point:
  *   ```kotlin
- *   NavEaseHost<AppScreens>(start = AppScreens.Splash, onExitRequest = { ... }) {
- *       autoRegisterScreens()
- *   }
+ *   // iosMain — MainViewController.kt
+ *   import io.github.alimsrepo.navease.generated.navEaseBootstrap
+ *   fun MainViewController() = ComposeUIViewController { navEaseBootstrap(); App() }
  *   ```
  *
- * **Before KSP runs**: this composable compiles without errors. The registry will be
+ * **Before KSP runs**: this composable always compiles without errors. The registry will be
  * empty, producing a clear runtime message asking you to rebuild the project.
  *
  * @param onExitRequest           Called when back is pressed on the root screen.
@@ -261,9 +242,9 @@ fun NavEaseHost(
         registry.ensureInitialized()
         check(registry.isInitialized) {
             "NavEase: No @AutoRegister screens found in the registry.\n" +
-            "• Rebuild the project to run KSP code generation.\n" +
-            "• On non-JVM platforms, also call navEaseInit() from your platform entry " +
-            "point, or use NavEaseHost<Root>(start = ...) { autoRegisterScreens() }."
+            "• Rebuild the project once: ./gradlew :shared:kspCommonMainKotlinMetadata\n" +
+            "• On iOS/Native/JS: import navEaseBootstrap from io.github.alimsrepo.navease.generated\n" +
+            "  and call it before App() in your platform entry point."
         }
         NavEaseScreenScope<NavKey>().also { s ->
             registry.entries.forEach { entry ->
