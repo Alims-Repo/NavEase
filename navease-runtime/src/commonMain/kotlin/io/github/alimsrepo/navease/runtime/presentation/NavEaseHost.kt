@@ -58,18 +58,21 @@ fun <Root : NavKey> NavEaseHost(
 @Deprecated(
     message = "NavEaseHost has moved to io.github.alimsrepo.navease.runtime.host.",
     replaceWith = ReplaceWith(
-        "NavEaseHost(onExitRequest, enableSharedTransitions, navTransition)",
+        "NavEaseHost(start, onExitRequest, enableSharedTransitions, navTransition)",
         "io.github.alimsrepo.navease.runtime.host.NavEaseHost"
     ),
     level = DeprecationLevel.WARNING,
 )
 @Composable
 fun NavEaseHost(
+    start: NavKey,
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
     navTransition: NavTransition = NavTransition.Push,
-) = io.github.alimsrepo.navease.runtime.host.NavEaseHost(
-    onExitRequest = onExitRequest,
+) = io.github.alimsrepo.navease.runtime.host.NavEaseHostForRoot(
+    rootClass              = start::class,
+    start                  = start,
+    onExitRequest          = onExitRequest,
     enableSharedTransitions = enableSharedTransitions,
-    navTransition = navTransition,
+    navTransition          = navTransition,
 )

@@ -133,53 +133,87 @@ fun <Root : NavKey> NavEaseHost(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NavEaseHost — universal @AutoRegister variant (zero config)
+// NavEaseHost — typed auto-discover @AutoRegister variant
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * **Universal `@AutoRegister` navigation host** — the simplest entry point.
+ * **Typed auto-discover navigation host** — screens whose `NavKey` belongs to the
+ * sealed root class [Root] are discovered automatically from the global
+ * [NavEaseAutoRegistry], which is populated by KSP-generated code.
  *
- * Screens are discovered automatically from the global [NavEaseAutoRegistry], which is
- * populated by KSP-generated code. No explicit type parameter, no `start` key, and no
- * screens registration lambda are needed.
+ * No explicit `{ add(XxxScreen()) }` lambda needed — just supply the type parameter
+ * and the start destination:
  *
  * ```kotlin
+ * // Root host — discovers all screens whose NavKey is an AppScreens subtype
  * @Composable fun App() {
- *     NavEaseHost(onExitRequest = { finish() })
+ *     NavEaseHost<AppScreens>(start = AppScreens.Splash, onExitRequest = { finish() })
  * }
+ *
+ * // Nested inner host — discovers only WizardStep screens
+ * NavEaseHost<WizardStep>(
+ *     start         = WizardStep.SelectRole,
+ *     onExitRequest = { outerNav.back() },
+ *     navTransition = NavTransition.Push,
+ * )
  * ```
  *
+ * @param Root                    The sealed [NavKey] root class whose screens to include
+ *                                (e.g. `AppScreens` or `WizardStep`).
+ * @param start                   The [NavKey] instance placed on the back stack first.
  * @param onExitRequest           Called when back is pressed on the root screen.
  * @param enableSharedTransitions `true` to enable shared-element transitions.
  * @param navTransition           Default screen-to-screen animation.
  */
 @Composable
-fun NavEaseHost(
+inline fun <reified Root : NavKey> NavEaseHost(
+    start: Root,
+    noinline onExitRequest: () -> Unit = {},
+    enableSharedTransitions: Boolean = false,
+    navTransition: NavTransition = NavTransition.Push,
+) {
+    NavEaseHostForRoot(
+        rootClass              = Root::class,
+        start                  = start,
+        onExitRequest          = onExitRequest,
+        enableSharedTransitions = enableSharedTransitions,
+        navTransition          = navTransition,
+    )
+}
+
+/**
+ * Non-inline implementation backing [NavEaseHost] (typed auto-discover variant).
+ *
+ * Separated from the `inline reified` function so that the body (which contains
+ * `@Composable` state calls like [remember]) is not inlined at every call site.
+ */
+@Composable
+fun NavEaseHostForRoot(
+    rootClass: KClass<*>,
+    start: NavKey,
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
     navTransition: NavTransition = NavTransition.Push,
 ) {
     val registry = NavEaseAutoRegistry
 
-    val scope = remember {
+    val scope = remember(rootClass) {
         registry.ensureInitialized()
         check(registry.isInitialized) {
-            "NavEase: No @AutoRegister screens found in the registry.\n" +
-            "• On Android/JVM/Desktop: rebuild once — ./gradlew :shared:kspCommonMainKotlinMetadata\n" +
-            "• On iOS/Native: call navEaseBootstrap() from your platform entry point before App():\n" +
-            "    fun MainViewController() = ComposeUIViewController { navEaseBootstrap(); App() }\n" +
-            "• On JS/WasmJS: ensure the shared module is properly imported."
+            "NavEase: Registry is empty. Rebuild the project " +
+            "(./gradlew :shared:kspCommonMainKotlinMetadata) to generate @AutoRegister screen entries."
+        }
+        // Filter entries to only those belonging to this Root type
+        val filtered = registry.entries.filter { it.rootKeyClass == rootClass }
+        check(filtered.isNotEmpty()) {
+            "NavEase: No @AutoRegister screens found for root type '${rootClass.simpleName}'. " +
+            "Ensure the screen classes are annotated with @AutoRegister and the project has been rebuilt."
         }
         NavEaseScreenScope<NavKey>().also { s ->
-            registry.entries.forEach { entry ->
+            filtered.forEach { entry ->
                 s.addUnchecked(entry.screen, entry.keyClass, entry.serializer)
             }
         }
-    }
-
-    val startKey: NavKey = checkNotNull(registry.startKey) {
-        "NavEase: Registry is populated but no start destination was found. " +
-        "Annotate exactly one screen with @AutoRegister(startDestination = true)."
     }
 
     val factory: Map<KClass<*>, ActivityScreen<*>> = remember(scope) {
@@ -200,13 +234,14 @@ fun NavEaseHost(
     }
 
     NavEaseNavGraphCore(
-        initialScreen        = startKey,
+        initialScreen        = start,
         savedStateConfig     = savedStateConfig,
         contentProvider      = { key ->
             @Suppress("UNCHECKED_CAST")
             val screen = factory[key::class] as? ActivityScreen<NavKey>
                 ?: error(
-                    "NavEase: No screen registered for '${key::class.simpleName}'. " +
+                    "NavEase: No screen registered for '${key::class.simpleName}' " +
+                    "in root '${rootClass.simpleName}'. " +
                     "Ensure it is annotated with @AutoRegister and the project has been rebuilt."
                 )
             val nav = LocalNavEaseController.current

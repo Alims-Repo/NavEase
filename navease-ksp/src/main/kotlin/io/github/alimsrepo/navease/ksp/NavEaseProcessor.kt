@@ -595,16 +595,6 @@ class NavEaseProcessor(
         }
         if (keyGroups.any { it.value.size > 1 }) return
 
-        // ── Validate: all screens share the same Root ──────────────────────────
-        val rootTypes = entries.map { it.rootFqn }.toSet()
-        if (rootTypes.size > 1) {
-            logger.error(
-                "NavEase: @AutoRegister screens belong to multiple root NavKey types: " +
-                "${rootTypes.joinToString { "'${it.substringAfterLast('.')}'" }}. " +
-                "All screens must share the same sealed root class."
-            )
-            return
-        }
 
         // ── Validate: exactly one startDestination ─────────────────────────────
         val startEntries = entries.filter { it.isStart }
@@ -619,22 +609,21 @@ class NavEaseProcessor(
 
         val startEntry = startEntries.firstOrNull()
         val screenImports = entries.joinToString("\n") { "import ${it.screenFqn}" }
-        val rootFqn = entries.first().rootFqn
+        // All unique root FQNs — may span multiple sealed classes (e.g. AppScreens + WizardStep)
+        val rootImports = entries.map { it.rootFqn }.distinct().joinToString("\n") { "import $it" }
+        val rootFqn = entries.first().rootFqn   // kept for legacy; use rootImports above
 
         val addEntryCalls = entries.joinToString("\n") { entry ->
             val cls  = entry.keySimpleName
             val root = entry.rootSimpleName
-            if (entry.isStart) {
-                "        NavEaseAutoRegistry.addEntry(${entry.screenSimpleName}(), $root.$cls::class, serializer<$root.$cls>(), $root.$cls)"
-            } else {
-                "        NavEaseAutoRegistry.addEntry(${entry.screenSimpleName}(), $root.$cls::class, serializer<$root.$cls>())"
-            }
+            // New signature: addEntry(screen, keyClass, rootKeyClass, serializer)
+            "        NavEaseAutoRegistry.addEntry(${entry.screenSimpleName}(), $root.$cls::class, $root::class, serializer<$root.$cls>())"
         }
 
         val content = buildString {
             appendLine("package $generatedPackage")
             appendLine()
-            appendLine("import $rootFqn")
+            appendLine(rootImports)   // all unique root sealed classes
             appendLine("import $registryFqn")
             appendLine("import kotlinx.serialization.serializer")
             appendLine(screenImports)

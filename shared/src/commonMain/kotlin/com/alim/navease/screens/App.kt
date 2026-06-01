@@ -7,9 +7,9 @@ import io.github.alimsrepo.navease.runtime.transition.NavTransition
 
 @Composable
 fun App() {
-
     MaterialTheme {
-        NavEaseHost(
+        NavEaseHost<AppScreens>(
+            start = AppScreens.Splash,
             onExitRequest = {},
             enableSharedTransitions = true,
             navTransition = NavTransition.Push

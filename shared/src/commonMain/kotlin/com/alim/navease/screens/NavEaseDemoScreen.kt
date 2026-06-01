@@ -20,7 +20,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -43,52 +42,38 @@ private data class TransitionEntry(
     val name: String,
     val emoji: String,
     val tagline: String,
-    val motion: String,
     val description: String,
-    val bestFor: String,
     val transition: NavTransition,
     val colorIndex: Int,
 )
 
 private val transitions = listOf(
     TransitionEntry("Push",    "↔", "iOS-style horizontal slide",
-        "→ slides in  ·  ← slides back (¼ parallax)",
-        "The default NavEase transition. Destination slides in from the trailing edge while source translates ¼ of the width toward the leading edge — a subtle parallax creating depth without any Z-axis tricks. Back navigation is the exact mirror image. 450 ms, no fade.",
-        "Hierarchical flows, settings sub-screens, detail pages",
+        "Destination slides in from the trailing edge. Source translates ¼-width toward the leading edge — a subtle parallax that implies depth. Back is the exact mirror.",
         NavTransition.Push, 0),
     TransitionEntry("Fade",    "◎", "Symmetric cross-dissolve",
-        "fades out  ↔  fades in — no spatial motion",
-        "A symmetric cross-dissolve with zero spatial motion. The outgoing screen fades out as the incoming fades in. Carries no directional meaning — calm and unobtrusive. Ideal when the relationship between screens is associative rather than hierarchical.",
-        "Tab switches, mode toggles (view/edit), unrelated screens",
+        "Outgoing screen fades out as incoming fades in. No spatial motion — ideal when screens are associatively related rather than hierarchically nested.",
         NavTransition.Fade, 1),
     TransitionEntry("Rise",    "↑", "Vertical slide from below",
-        "↑ rises up  ·  ↓ drops back",
-        "Slides the destination in from the bottom while the source nudges slightly upward. Implies upward progress — perfect for flows where each step feels like building on the previous. Back reverses: destination drops back down and source reappears.",
-        "Step-by-step flows, onboarding, checkout, form wizards",
+        "Destination slides in from the bottom. Implies upward progress — each step feels like building on the previous. Back reverses: screen drops back down.",
         NavTransition.Rise, 2),
     TransitionEntry("Zoom",    "⊕", "Scale and fade drill-down",
-        "86%→100% expands in  ·  shrinks back on pop",
-        "Scales the destination in from 86% while fading — as if it grows out of the source. The source fades out without scaling. Back: destination shrinks away while source reappears. Pairs especially well with shared element transitions for a 'drilling in' feel.",
-        "Detail views, photo viewers, card expansions",
+        "Destination scales in from 86% while fading — as if it grows out of the source. Pairs especially well with shared-element transitions for a 'drilling in' feel.",
         NavTransition.Zoom, 3),
     TransitionEntry("Depth",   "◉", "Material 3 shared-axis Z-motion",
-        "source recedes 100%→115%  ·  destination surfaces 80%→100%",
-        "Implements the Material Design 3 shared-axis Z-axis motion. Forward: destination scales up from 80% while source scales past 100% and fades — it 'recedes' into the background. Back reverses this, giving a convincing sense of physical layering.",
-        "Dashboards, feed items, notification-driven navigation",
+        "Forward: destination scales up from 80% as source recedes past 100% and fades — creating a convincing sense of physical layering. Back reverses this.",
         NavTransition.Depth, 4),
     TransitionEntry("Instant", "⚡", "Zero animation",
-        "screens swap immediately with no motion or delay",
-        "Removes all screen-transition animation. Screens replace each other synchronously with zero delay. Useful for UI automation tests (animations block test synchronization), deep navigation resets, or completed-flow returns where motion would feel redundant.",
-        "UI tests, deep stack resets, completed-flow returns",
+        "Screens swap immediately with zero delay. Useful for UI tests, deep-stack resets, or completed-flow returns where motion would feel redundant.",
         NavTransition.Instant, 5),
 )
 
 @AutoRegister
-class NavEaseDemoScreen : ActivityScreen<AppScreens.NavEaseDemo>() {
+class NavEaseDemoScreen : ActivityScreen<AppScreens.Transitions>() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(navKey: AppScreens.NavEaseDemo, navEaseController: NavEaseController) {
+    override fun Content(navKey: AppScreens.Transitions, navEaseController: NavEaseController) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -98,7 +83,7 @@ class NavEaseDemoScreen : ActivityScreen<AppScreens.NavEaseDemo>() {
                             Text(
                                 "6 built-in animation styles",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     },
@@ -106,128 +91,100 @@ class NavEaseDemoScreen : ActivityScreen<AppScreens.NavEaseDemo>() {
                         NavBackButton(onClick = { navEaseController.back() })
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
                 )
             },
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ) { padding ->
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
-                    Card(
+                    Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
                     ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            Text(
-                                "Tap any card — the selected NavTransition opens the preview screen",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f))
-                            Spacer(Modifier.height(10.dp))
-                            Text(
-                                text = "navController.navigateToXxx(\n    navTransition = NavTransition.Zoom,\n)",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Monospace,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.80f)
-                            )
-                        }
+                        Text(
+                            text = "Tap a card — the selected NavTransition animates the transition to the preview screen, with zero inner animations so you see only the nav motion.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        )
                     }
                 }
 
-                item {
-                    Text(
-                        "TAP TO EXPERIENCE EACH STYLE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    )
-                }
-
                 items(transitions) { t ->
-                    val container = containerColorAt(t.colorIndex)
+                    val container   = containerColorAt(t.colorIndex)
                     val onContainer = onContainerColorAt(t.colorIndex)
-                    val accent = accentColorAt(t.colorIndex)
-                    val onAccent = onAccentColorAt(t.colorIndex)
+                    val accent      = accentColorAt(t.colorIndex)
+                    val onAccent    = onAccentColorAt(t.colorIndex)
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = container),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .size(52.dp)
                                         .clip(RoundedCornerShape(14.dp))
-                                        .background(accent.copy(alpha = 0.20f)),
-                                    contentAlignment = Alignment.Center
+                                        .background(accent.copy(alpha = 0.18f)),
+                                    contentAlignment = Alignment.Center,
                                 ) {
                                     Text(t.emoji, style = MaterialTheme.typography.titleLarge, color = accent)
                                 }
                                 Column {
-                                    Text(t.name, style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold, color = onContainer)
-                                    Text(t.tagline, style = MaterialTheme.typography.bodySmall,
-                                        color = onContainer.copy(alpha = 0.70f))
+                                    Text(
+                                        "NavTransition.${t.name}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = onContainer,
+                                    )
+                                    Text(
+                                        t.tagline,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = onContainer.copy(alpha = 0.70f),
+                                    )
                                 }
                             }
+
                             Spacer(Modifier.height(10.dp))
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = accent.copy(alpha = 0.14f)
-                            ) {
-                                Text(
-                                    text = t.motion,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontFamily = FontFamily.Monospace,
-                                    fontWeight = FontWeight.Medium,
-                                    color = accent,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                                )
-                            }
-                            Spacer(Modifier.height(8.dp))
+
                             Text(
                                 text = t.description,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = onContainer.copy(alpha = 0.80f)
+                                color = onContainer.copy(alpha = 0.80f),
                             )
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = "✓  ${t.bestFor}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = accent, fontWeight = FontWeight.Medium
-                            )
+
                             Spacer(Modifier.height(14.dp))
+
                             Button(
                                 onClick = {
                                     navEaseController.navigate(
                                         AppScreens.TransitionPreview(
                                             transitionName = t.name,
-                                            tagline = t.tagline
+                                            tagline = t.tagline,
                                         ),
-                                        navTransition = t.transition
+                                        navTransition = t.transition,
                                     )
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = accent, contentColor = onAccent
-                                )
+                                    containerColor = accent,
+                                    contentColor = onAccent,
+                                ),
                             ) {
                                 Text("Try ${t.name} →", fontWeight = FontWeight.SemiBold)
                             }
@@ -240,4 +197,3 @@ class NavEaseDemoScreen : ActivityScreen<AppScreens.NavEaseDemo>() {
         }
     }
 }
-
