@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NavEase — Zero-Boilerplate KMP Navigation</title>
-    <meta name="description" content="NavEase is a Kotlin Multiplatform navigation library with plugin-only setup, @AutoRegister screen discovery, typed ActivityScreen&lt;K&gt;, a zero-rebuild DSL, and KSP annotation generation. No reflection. No string routes." />
+    <meta name="description" content="NavEase is a Kotlin Multiplatform navigation library with plugin-only setup, @AutoRegister screen discovery, typed ActivityScreen&lt;K&gt;, and a zero-rebuild DSL. No reflection. No string routes." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -21,7 +21,7 @@
 <body>
 
 <!-- ── NAV ──────────────────────────────────────────────────────────────── -->
-<<nav class="navbar">
+<nav class="navbar">
     <div class="nav-inner">
         <a class="nav-brand" href="#">
             <span class="brand-icon">⚡</span>
@@ -30,7 +30,8 @@
         <ul class="nav-links">
             <li><a href="#features">Features</a></li>
             <li><a href="#paths">Paths</a></li>
-            <li><a href="#implementation">Implementation</a></li>
+            <li><a href="#impl-autoregister">AutoRegister</a></li>
+            <li><a href="#impl-dsl">DSL Graph</a></li>
             <li><a href="#configure">Configure</a></li>
             <li><a href="#demo">Demo</a></li>
             <li><a href="api/index.html" class="nav-api-ref">
@@ -63,10 +64,10 @@
             <span class="gradient-text">writes itself.</span>
         </h1>
         <p class="hero-subtitle">
-            NavEase is a Kotlin Multiplatform navigation library with four levels of integration:
-            a <strong>single-line Gradle plugin</strong> that wires everything, <strong>@AutoRegister</strong> for zero-manual screen listing,
-            a typed <strong>ActivityScreen&lt;K&gt;</strong> class API, and a <strong>zero-rebuild DSL</strong>.
-            No reflection. No string routes.
+            NavEase is a Kotlin Multiplatform navigation library with two clean integration paths:
+            <strong>Plugin + @AutoRegister</strong> for zero-config screen discovery,
+            and a <strong>zero-rebuild DSL Graph</strong> for instant IDE resolution.
+            No reflection. No string routes. No boilerplate.
         </p>
         <div class="hero-cta">
             <a href="#paths" class="btn btn-primary">Choose Your Path →</a>
@@ -77,76 +78,56 @@
             <a href="https://github.com/alims-repo/NavEase" target="_blank" class="btn btn-ghost">View on GitHub</a>
         </div>
 
-        <!-- Hero code snippet — three tabs -->
+        <!-- Hero code snippet — two tabs -->
         <div class="hero-code">
             <div class="code-header" style="gap:6px;flex-wrap:wrap">
                 <span class="dot red"></span>
                 <span class="dot yellow"></span>
                 <span class="dot green"></span>
-                <span class="code-title" id="heroTabLabel" style="flex:1">Approach 1 — KSP Annotations</span>
-                <button class="hero-tab-btn active" onclick="heroTab(0)">KSP</button>
-                <button class="hero-tab-btn" onclick="heroTab(1)">DSL</button>
-                <button class="hero-tab-btn" onclick="heroTab(2)">ActivityScreen</button>
+                <span class="code-title" id="heroTabLabel" style="flex:1">Path 1 — Plugin + @AutoRegister</span>
+                <button class="hero-tab-btn active" onclick="heroTab(0)">@AutoRegister</button>
+                <button class="hero-tab-btn" onclick="heroTab(1)">DSL Graph</button>
             </div>
 
-            <!-- Tab 0: KSP -->
-            <pre class="code-block hero-snippet" id="heroSnippet0"><span class="cmt">// Approach 1 — KSP Annotations</span>
-<span class="kw">@NavEaseScreen</span>(route = <span class="str">"Main"</span>)
-<span class="kw">class</span> <span class="cls">MainScreen</span> : <span class="cls">NavScreen</span>() {
-
-    <span class="kw">@NavEaseArgs</span>
-    <span class="kw">data class</span> <span class="cls">Args</span>(<<span class="kw">val</span> userId: <span class="cls">String</span>)
-
-    <span class="kw">@NavEaseResult</span>
-    <span class="kw">data class</span> <span class="cls">Result</span>(<<span class="kw">val</span> value: <span class="cls">Int</span>)
-
+            <!-- Tab 0: @AutoRegister -->
+            <pre class="code-block hero-snippet" id="heroSnippet0"><span class="cmt">// 1. Annotate your screens — type-safe navKey, no casting</span>
+<span class="kw">@AutoRegister</span>(startDestination = <span class="kw">true</span>)
+<span class="kw">class</span> <span class="cls">HomeScreen</span> : <span class="cls">ActivityScreen</span>&lt;<span class="cls">AppScreens.Home</span>&gt;() {
     <span class="ann">@Composable</span>
-    <span class="kw">override fun</span> <span class="fn">Content</span>(navKey: <span class="cls">NavKey</span>, navController: <span class="cls">NavController</span>) {
-        <span class="kw">val</span> args = navKey.<span class="fn">mainArgs</span>()   <span class="cmt">// ← KSP-generated ✅</span>
-        <span class="cls">Text</span>(<<span class="str">"Hello, ${args.userId}!"</span>)
-        <span class="cls">Button</span>(onClick = { navController.<span class="fn">backWithMainResult</span>(value = <span class="num">42</span>) }) {
-            <span class="cls">Text</span>(<<span class="str">"Return result"</span>)
+    <span class="kw">override fun</span> <span class="fn">Content</span>(navKey: <span class="cls">AppScreens.Home</span>, nav: <span class="cls">NavController</span>) {
+        <span class="cls">Button</span>(onClick = { nav.<span class="fn">navigate</span>(<span class="cls">AppScreens</span>.Detail(id = <span class="str">"42"</span>)) }) {
+            <span class="cls">Text</span>(<span class="str">"Open Detail"</span>)
         }
     }
-}</pre>
-
-            <!-- Tab 1: navEaseGraph DSL -->
-            <pre class="code-block hero-snippet" id="heroSnippet1" style="display:none"><span class="cmt">// Approach 2 — navEaseGraph DSL (zero rebuild)</span>
-<span class="ann">@Serializable</span> <span class="kw">sealed class</span> <span class="cls">AppScreen</span> : <span class="cls">NavKey</span> {
-    <span class="ann">@Serializable</span> <span class="kw">data object</span> <span class="cls">Home</span> : <span class="cls">AppScreen</span>()
-    <span class="ann">@Serializable</span> <span class="kw">data class</span>  <span class="cls">Detail</span>(<<span class="kw">val</span> id: <span class="cls">String</span>) : <span class="cls">AppScreen</span>()
 }
 
+<span class="cmt">// 2. App.kt — works identically on Android, iOS, Desktop &amp; Web</span>
+<span class="ann">@Composable</span>
+<span class="kw">fun</span> <span class="fn">App</span>() {
+    <span class="fn">remember</span> { <span class="fn">navEaseBootstrap</span>() }   <span class="cmt">// ← auto-wires @AutoRegister on all platforms</span>
+    <span class="cls">NavEaseHost</span>(onExitRequest = {})   <span class="cmt">// ← that's it ✅</span>
+}
+
+<span class="cmt">// iOS entry — stays clean, nothing extra needed</span>
+<span class="kw">fun</span> <span class="fn">MainViewController</span>() = <span class="fn">ComposeUIViewController</span> { <span class="fn">App</span>() }</pre>
+
+            <!-- Tab 1: DSL Graph -->
+            <pre class="code-block hero-snippet" id="heroSnippet1" style="display:none"><span class="cmt">// 1. Define NavKeys — plain @Serializable sealed class</span>
+<span class="ann">@Serializable</span> <span class="kw">sealed class</span> <span class="cls">AppScreen</span> : <span class="cls">NavKey</span> {
+    <span class="ann">@Serializable</span> <span class="kw">data object</span> <span class="cls">Home</span>   : <span class="cls">AppScreen</span>()
+    <span class="ann">@Serializable</span> <span class="kw">data class</span>  <span class="cls">Detail</span>(<span class="kw">val</span> id: <span class="cls">String</span>) : <span class="cls">AppScreen</span>()
+}
+
+<span class="cmt">// 2. Build the graph — no annotations, no rebuild</span>
 <span class="kw">val</span> graph = <span class="fn">navEaseGraph</span>(start = AppScreen.Home) {
     <span class="fn">screen</span>&lt;<span class="cls">AppScreen.Home</span>&gt;   { <span class="cls">HomeScreen</span>() }
     <span class="fn">screen</span>&lt;<span class="cls">AppScreen.Detail</span>&gt; { key -&gt; <span class="cls">DetailScreen</span>(id = key.id) }
-    <span class="cmt">//                          ^^^  typed — no casting ✅</span>
-}
+}   <span class="cmt">// key is typed — no casting ✅</span>
 
-<span class="cmt">// Navigate — no generated code, IDE resolves immediately:</span>
-nav.<span class="fn">navigate</span>(AppScreen.Detail(id = <span class="str">"abc"</span>))</pre>
-
-            <!-- Tab 2: ActivityScreen -->
-            <pre class="code-block hero-snippet" id="heroSnippet2" style="display:none"><span class="cmt">// Approach 3 — @AutoRegister + ActivityScreen&lt;K&gt;</span>
-<span class="kw">@AutoRegister</span>(startDestination = <span class="kw">true</span>)
-<span class="kw">class</span> <span class="cls">SplashScreen</span> : <span class="cls">ActivityScreen</span>&lt;<span class="cls">AppScreens.Splash</span>&gt;() { <span class="cmt">/* … */</span> }
-
-<span class="kw">@AutoRegister</span>
-<span class="kw">class</span> <span class="cls">DetailScreen</span> : <span class="cls">ActivityScreen</span>&lt;<span class="cls">AppScreens.Detail</span>&gt;() {
-
-    <span class="ann">@Composable</span>
-    <span class="kw">override fun</span> <span class="fn">Content</span>(navKey: <span class="cls">AppScreens.Detail</span>, navController: <span class="cls">NavController</span>) {
-        <span class="cls">Text</span>(navKey.id)   <span class="cmt">// ← typed, no cast, no xxxArgs() ✅</span>
-        <span class="cls">Button</span>(onClick = {
-            navController.<span class="fn">backWithResult</span>(<<span class="cls">Result</span>(confirmed = <span class="kw">true</span>))
-        }) { <span class="cls">Text</span>(<<span class="str">"Confirm"</span>) }
-    }
-}
-
-<span class="cmt">// App.kt — KSP generates NavEaseHost() with all screens baked in</span>
+<span class="cmt">// 3. App.kt — pass the graph, zero boilerplate</span>
 <span class="ann">@Composable</span>
 <span class="kw">fun</span> <span class="fn">App</span>() {
-    <span class="cls">MaterialTheme</span> { <span class="cls">NavEaseHost</span>(onExitRequest = {}) }   <span class="cmt">// ← zero config ✅</span>
+    <span class="cls">NavEaseHost</span>(graph = graph)   <span class="cmt">// ← that's it ✅</span>
 }</pre>
         </div>
     </div>
@@ -178,8 +159,8 @@ nav.<span class="fn">navigate</span>(AppScreen.Detail(id = <span class="str">"ab
 
             <div class="feature-card">
                 <div class="feature-icon">⚡</div>
-                <h3>Four Approaches</h3>
-                <p><strong>Plugin-only setup</strong> with zero boilerplate · <strong>@AutoRegister</strong> for automatic screen discovery · <strong>ActivityScreen&lt;K&gt;</strong> for typed class-based screens · <strong>navEaseGraph DSL</strong> for zero-rebuild. All share the same engine.</p>
+                <h3>Two Clean Paths</h3>
+                <p><strong>Plugin + @AutoRegister</strong> — one annotation, <code>remember { navEaseBootstrap() }</code> in App.kt, and a zero-arg <code>NavEaseHost()</code>. iOS entry stays clean. <strong>DSL Graph</strong> — plain Kotlin, no annotations, instant IDE resolution. Both paths share the same runtime engine.</p>
             </div>
 
             <div class="feature-card">
@@ -191,31 +172,19 @@ nav.<span class="fn">navigate</span>(AppScreen.Detail(id = <span class="str">"ab
             <div class="feature-card">
                 <div class="feature-icon">🪄</div>
                 <h3>@AutoRegister</h3>
-                <p>Annotate any <code>ActivityScreen&lt;K&gt;</code> subclass with <code>@AutoRegister</code>. KSP generates <code>autoRegisterScreens()</code> and a complete <code>NavEaseHost()</code> overload — no manual <code>add(XxxScreen())</code> ever needed.</p>
+                <p>Annotate any <code>ActivityScreen&lt;K&gt;</code> subclass with <code>@AutoRegister</code>. KSP generates the registration glue — call <code>remember { navEaseBootstrap() }</code> once at the top of <code>App()</code> and then <code>NavEaseHost(onExitRequest = {})</code>. No manual <code>add(XxxScreen())</code>, no platform-specific entry points.</p>
             </div>
 
             <div class="feature-card">
                 <div class="feature-icon">🔄</div>
                 <h3>Zero-Rebuild DSL</h3>
-                <p><code>navEaseGraph { screen&lt;K&gt; { … } }</code> — define screens in plain Kotlin. No annotation processing, no rebuild required after adding a screen.</p>
+                <p><code>navEaseGraph { screen&lt;K&gt; { … } }</code> — define screens in plain Kotlin. No annotation processing, no rebuild required after adding a screen. The IDE resolves everything immediately.</p>
             </div>
 
             <div class="feature-card">
                 <div class="feature-icon">🏗️</div>
                 <h3>Typed ActivityScreen&lt;K&gt;</h3>
-                <p>Extend <code>ActivityScreen&lt;K&gt;</code> and receive a fully-typed <code>navKey: K</code> in <code>Content()</code>. No casting, no <code>xxxArgs()</code> call — direct field access on your sealed key class.</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">🎯</div>
-                <h3>Typed Arguments</h3>
-                <p><code>@NavEaseArgs</code> generates <code>navKey.xxxArgs()</code> extensions — no casting, no bundles, no string keys. Pure Kotlin.</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">↩️</div>
-                <h3>Typed Results</h3>
-                <p><code>@NavEaseResult</code> generates <code>backWithXxxResult()</code> and <code>xxxResult()</code> extensions. Screen-to-screen communication with full type safety.</p>
+                <p>Extend <code>ActivityScreen&lt;K&gt;</code> and receive a fully-typed <code>navKey: K</code> in <code>Content()</code>. No casting, no helper functions — direct field access on your sealed key class.</p>
             </div>
 
             <div class="feature-card">
@@ -227,13 +196,13 @@ nav.<span class="fn">navigate</span>(AppScreen.Detail(id = <span class="str">"ab
             <div class="feature-card">
                 <div class="feature-icon">🔒</div>
                 <h3>State Restoration</h3>
-                <p><code>SavedStateConfiguration</code> is generated and wired automatically. Your back stack survives process death out of the box.</p>
+                <p><code>SavedStateConfiguration</code> is built and wired automatically from registered screens. Your back stack survives process death out of the box on every platform.</p>
             </div>
 
             <div class="feature-card">
                 <div class="feature-icon">🗺️</div>
                 <h3>Powered by Navigation3</h3>
-                <p>Built on JetBrains Navigation3 — the new Compose-first, serializable NavKey API. Works on every KMP target.</p>
+                <p>Built on JetBrains Navigation3 — the new Compose-first, serializable NavKey API. Works on every KMP target: Android, iOS, Desktop, Web.</p>
             </div>
 
             <div class="feature-card">
@@ -257,58 +226,36 @@ nav.<span class="fn">navigate</span>(AppScreen.Detail(id = <span class="str">"ab
     <div class="container">
         <div class="section-header">
             <span class="section-tag">Choose Your Path</span>
-            <h2>Four ways to integrate.<br/>Pick the one that fits your workflow.</h2>
-            <p>All four paths share the same runtime engine. The difference is how much code generation you want versus how much manual control you need.</p>
+            <h2>Two ways to integrate.<br/>Pick the one that fits your workflow.</h2>
+            <p>Both paths share the same runtime engine, the same <code>NavEaseHost</code>, and the same typed navigation API. The difference is how much you want KSP to automate versus how much plain-Kotlin control you want.</p>
         </div>
 
-        <div class="paths-grid">
+        <div class="paths-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); max-width: 800px; margin: 0 auto;">
             <div class="path-card recommended">
                 <div class="path-badge">Recommended</div>
                 <div class="path-icon">🪄</div>
                 <h3>Plugin + @AutoRegister</h3>
-                <p class="path-desc">Zero manual screen listing. Annotate your <code>ActivityScreen</code> classes and KSP generates the entire graph + host.</p>
+                <p class="path-desc">Zero manual screen listing. Annotate your <code>ActivityScreen</code> subclasses and KSP discovers everything automatically.</p>
                 <ul class="path-pros">
-                    <li>Fastest setup</li>
-                    <li>Typed <code>navKey: K</code> in every screen</li>
-                    <li>Single <code>NavEaseHost()</code> call in App.kt</li>
+                    <li>Fastest setup — one annotation per screen</li>
+                    <li>Typed <code>navKey: K</code> in every screen, no casting</li>
+                    <li>One <code>remember { navEaseBootstrap() }</code> in App.kt, zero iOS-specific wiring</li>
+                    <li>KSP validates: no duplicates, one start destination</li>
                 </ul>
                 <a href="#impl-autoregister" class="btn btn-primary">Start This Path →</a>
             </div>
 
             <div class="path-card">
-                <div class="path-icon">📝</div>
-                <h3>Plugin + KSP Annotations</h3>
-                <p class="path-desc">Classic NavEase. Annotate with <code>@NavEaseScreen</code>, get generated routes, args, and results.</p>
-                <ul class="path-pros">
-                    <li>Generated <code>navigateToXxx()</code> extensions</li>
-                    <li>Generated <code>xxxArgs()</code> helpers</li>
-                    <li>Full result type safety</li>
-                </ul>
-                <a href="#impl-ksp" class="btn btn-outline">Start This Path →</a>
-            </div>
-
-            <div class="path-card">
                 <div class="path-icon">⚡</div>
                 <h3>DSL Graph (Zero Rebuild)</h3>
-                <p class="path-desc">No KSP. No annotations. No rebuild. Define screens in a Kotlin DSL and navigate immediately.</p>
+                <p class="path-desc">No KSP. No annotations. No rebuild. Define screens in a Kotlin DSL and navigate with full IDE support immediately.</p>
                 <ul class="path-pros">
-                    <li>Instant IDE resolution</li>
-                    <li>No processor configuration</li>
-                    <li>Perfect for rapid prototyping</li>
+                    <li>Instant IDE resolution — no rebuild ever</li>
+                    <li>No plugin or annotation processor needed</li>
+                    <li>Typed screen lambdas — <code>key</code> is fully typed</li>
+                    <li>Perfect for prototyping and small projects</li>
                 </ul>
                 <a href="#impl-dsl" class="btn btn-outline">Start This Path →</a>
-            </div>
-
-            <div class="path-card">
-                <div class="path-icon">🔧</div>
-                <h3>Manual Setup</h3>
-                <p class="path-desc">Skip the plugin. Apply KSP yourself, add dependencies manually, and wire task ordering.</p>
-                <ul class="path-pros">
-                    <li>Full control over versions</li>
-                    <li>No plugin abstraction layer</li>
-                    <li>Useful for complex existing builds</li>
-                </ul>
-                <a href="#impl-manual" class="btn btn-outline">Start This Path →</a>
             </div>
         </div>
     </div>
@@ -320,7 +267,7 @@ nav.<span class="fn">navigate</span>(AppScreen.Detail(id = <span class="str">"ab
         <div class="section-header">
             <span class="section-tag">Implementation</span>
             <h2>Path 1: Plugin + @AutoRegister</h2>
-            <p>The fastest way to production. One plugin line, two annotations, and you're navigating.</p>
+            <p>The fastest way to production. One plugin line, one annotation per screen, one <code>remember { navEaseBootstrap() }</code> in App.kt, and a zero-arg <code>NavEaseHost()</code>. No platform-specific entry points needed.</p>
         </div>
 
         <div class="step-track">
@@ -332,7 +279,7 @@ nav.<span class="fn">navigate</span>(AppScreen.Detail(id = <span class="str">"ab
                     <div class="code-window">
                         <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">shared/build.gradle.kts</span></div>
                         <pre class="code-block">plugins {
-    <span class="fn">kotlin</span>(<<span class="str">"multiplatform"</span>)
+    <span class="fn">kotlin</span>(<span class="str">"multiplatform"</span>)
     id(<span class="str">"io.github.alims-repo.navease"</span>) version <span class="str">"&lt;version&gt;"</span>
 }</pre>
                     </div>
@@ -355,7 +302,7 @@ nav.<span class="fn">navigate</span>(AppScreen.Detail(id = <span class="str">"ab
     <span class="kw">data object</span> <span class="cls">Home</span> : <span class="cls">AppScreens</span>()
 
     <span class="ann">@Serializable</span>
-    <span class="kw">data class</span> <span class="cls">Detail</span>(<<span class="kw">val</span> id: <span class="cls">String</span>) : <span class="cls">AppScreens</span>()
+    <span class="kw">data class</span> <span class="cls">Detail</span>(<span class="kw">val</span> id: <span class="cls">String</span>) : <span class="cls">AppScreens</span>()
 }</pre>
                     </div>
                 </div>
@@ -366,7 +313,7 @@ nav.<span class="fn">navigate</span>(AppScreen.Detail(id = <span class="str">"ab
             <div class="step-item">
                 <div class="step-marker">3</div>
                 <div class="step-body">
-                    <h3>Annotate Screens</h3>
+                    <h3>Annotate Your Screens</h3>
                     <p>Extend <code>ActivityScreen&lt;K&gt;</code> and add <code>@AutoRegister</code>. Mark exactly one screen as <code>startDestination = true</code>.</p>
                     <div class="code-window">
                         <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">HomeScreen.kt + DetailScreen.kt</span></div>
@@ -374,22 +321,22 @@ nav.<span class="fn">navigate</span>(AppScreen.Detail(id = <span class="str">"ab
 <span class="kw">class</span> <span class="cls">HomeScreen</span> : <span class="cls">ActivityScreen</span>&lt;<span class="cls">AppScreens.Home</span>&gt;() {
     <span class="ann">@Composable</span>
     <span class="kw">override fun</span> <span class="fn">Content</span>(navKey: <span class="cls">AppScreens.Home</span>, navController: <span class="cls">NavController</span>) {
-        <span class="cls">Button</span>(onClick = { navController.<span class="fn">navigate</span>(<<span class="cls">AppScreens</span>.Detail(id = <span class="str">"42"</span>)) }) {
-            <span class="cls">Text</span>(<<span class="str">"Open Detail"</span>)
+        <span class="cls">Button</span>(onClick = { navController.<span class="fn">navigate</span>(<span class="cls">AppScreens</span>.Detail(id = <span class="str">"42"</span>)) }) {
+            <span class="cls">Text</span>(<span class="str">"Open Detail"</span>)
         }
     }
 }
 
 <span class="kw">@AutoRegister</span>
 <span class="kw">class</span> <span class="cls">DetailScreen</span> : <span class="cls">ActivityScreen</span>&lt;<span class="cls">AppScreens.Detail</span>&gt;() {
-    <span class="kw">data class</span> <span class="cls">Result</span>(<<span class="kw">val</span> confirmed: <span class="cls">Boolean</span>)
+    <span class="kw">data class</span> <span class="cls">Result</span>(<span class="kw">val</span> confirmed: <span class="cls">Boolean</span>)
 
     <span class="ann">@Composable</span>
     <span class="kw">override fun</span> <span class="fn">Content</span>(navKey: <span class="cls">AppScreens.Detail</span>, navController: <span class="cls">NavController</span>) {
-        <span class="cls">Text</span>(<<span class="str">"ID: ${navKey.id}"</span>)   <span class="cmt">// ← typed, no casting</span>
+        <span class="cls">Text</span>(<span class="str">"ID: ${navKey.id}"</span>)   <span class="cmt">// ← typed, no casting ✅</span>
         <span class="cls">Button</span>(onClick = {
-            navController.<span class="fn">backWithResult</span>(<<span class="cls">Result</span>(confirmed = <span class="kw">true</span>))
-        }) { <span class="cls">Text</span>(<<span class="str">"Done"</span>) }
+            navController.<span class="fn">backWithResult</span>(<span class="cls">Result</span>(confirmed = <span class="kw">true</span>))
+        }) { <span class="cls">Text</span>(<span class="str">"Done"</span>) }
     }
 }</pre>
                     </div>
@@ -403,15 +350,135 @@ nav.<span class="fn">navigate</span>(AppScreen.Detail(id = <span class="str">"ab
                 <div class="step-marker">4</div>
                 <div class="step-body">
                     <h3>Host Your App</h3>
-                    <p>KSP generates a zero-config <code>NavEaseHost()</code>. Just drop it in your root composable:</p>
+                    <p>Add a single <code>remember { navEaseBootstrap() }</code> call at the top of <code>App()</code> to wire the registry on all platforms, then drop in <code>NavEaseHost</code>:</p>
+                    <div class="code-window">
+                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">App.kt — commonMain</span></div>
+                        <pre class="code-block"><span class="ann">@Composable</span>
+<span class="kw">fun</span> <span class="fn">App</span>() {
+    <span class="cmt">// Triggers @AutoRegister init on iOS/Native/JS.</span>
+    <span class="cmt">// On Android/JVM this is a fast no-op — screens are already discovered.</span>
+    <span class="cmt">// remember {} ensures it runs exactly once per composition, cheaply.</span>
+    <span class="fn">remember</span> { <span class="fn">navEaseBootstrap</span>() }
+
+    <span class="cls">MaterialTheme</span> {
+        <span class="cls">NavEaseHost</span>(   <span class="cmt">// ← no type param, no start =, no screens lambda ✅</span>
+            onExitRequest = { <span class="cmt">/* show exit dialog or finish() */</span> },
+            enableSharedTransitions = <span class="kw">true</span>,
+            navTransition = <span class="cls">NavTransition</span>.Push,
+        )
+    }
+}</pre>
+                    </div>
+                    <p class="step-note">Your iOS <code>MainViewController</code> stays completely clean — just <code>ComposeUIViewController { App() }</code>. No imports, no bootstrap call, no platform-specific wiring needed there.</p>
+                </div>
+            </div>
+
+            <div class="step-arrow">↓</div>
+
+            <div class="step-item">
+                <div class="step-marker">5</div>
+                <div class="step-body">
+                    <h3>Observe Results</h3>
+                    <p>In the parent screen, collect the typed result via the runtime API:</p>
+                    <div class="code-window">
+                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">HomeScreen.kt (result observer)</span></div>
+                        <pre class="code-block"><span class="kw">val</span> result <span class="kw">by</span> navController.<span class="fn">resultOf</span>&lt;<span class="cls">DetailScreen.Result</span>&gt;()
+result?.<span class="fn">let</span> { <span class="cls">Text</span>(<span class="str">"Confirmed: ${it.confirmed}"</span>) }</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── IMPLEMENTATION: DSL GRAPH ───────────────────────────────────────── -->
+<section class="implementation alt-bg" id="impl-dsl">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-tag">Implementation</span>
+            <h2>Path 2: DSL Graph (Zero Rebuild)</h2>
+            <p>No KSP. No annotations. Define everything in Kotlin and navigate immediately with full IDE support.</p>
+        </div>
+
+        <div class="step-track">
+            <div class="step-item">
+                <div class="step-marker">1</div>
+                <div class="step-body">
+                    <h3>Add the Runtime</h3>
+                    <p>You only need the runtime dependency — no KSP plugin required:</p>
+                    <div class="code-window">
+                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">shared/build.gradle.kts</span></div>
+                        <pre class="code-block">plugins {
+    <span class="fn">kotlin</span>(<span class="str">"multiplatform"</span>)
+    <span class="cmt">// The NavEase plugin is optional for this path.</span>
+    <span class="cmt">// You can also add the runtime manually:</span>
+}
+
+kotlin {
+    sourceSets {
+        commonMain {
+            dependencies {
+                <span class="fn">implementation</span>(<span class="str">"io.github.alims-repo:navease-runtime:&lt;version&gt;"</span>)
+            }
+        }
+    }
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-arrow">↓</div>
+
+            <div class="step-item">
+                <div class="step-marker">2</div>
+                <div class="step-body">
+                    <h3>Define NavKeys</h3>
+                    <p>Create a plain <code>@Serializable</code> sealed class — no annotations on the class itself:</p>
+                    <div class="code-window">
+                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">AppScreen.kt</span></div>
+                        <pre class="code-block"><span class="ann">@Serializable</span>
+<span class="kw">sealed class</span> <span class="cls">AppScreen</span> : <span class="cls">NavKey</span> {
+    <span class="ann">@Serializable</span> <span class="kw">data object</span> <span class="cls">Home</span>   : <span class="cls">AppScreen</span>()
+    <span class="ann">@Serializable</span> <span class="kw">data class</span>  <span class="cls">Detail</span>(<span class="kw">val</span> id: <span class="cls">String</span>) : <span class="cls">AppScreen</span>()
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-arrow">↓</div>
+
+            <div class="step-item">
+                <div class="step-marker">3</div>
+                <div class="step-body">
+                    <h3>Build the Graph</h3>
+                    <p>Use <code>navEaseGraph { }</code> — each screen lambda receives a typed key:</p>
+                    <div class="code-window">
+                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">Graph.kt</span></div>
+                        <pre class="code-block"><span class="kw">val</span> appGraph = <span class="fn">navEaseGraph</span>(start = AppScreen.Home) {
+    <span class="fn">screen</span>&lt;<span class="cls">AppScreen.Home</span>&gt;   { <span class="cls">HomeScreen</span>() }
+    <span class="fn">screen</span>&lt;<span class="cls">AppScreen.Detail</span>&gt; { key -&gt; <span class="cls">DetailScreen</span>(id = key.id) }
+    <span class="cmt">//                         ^^^  typed key — no casting ✅</span>
+}</pre>
+                    </div>
+                    <p class="step-note">The <code>screen&lt;K&gt; { }</code> lambda receives the fully-typed key. IDE resolves <code>key.id</code> instantly — no rebuild ever needed after adding a screen.</p>
+                </div>
+            </div>
+
+            <div class="step-arrow">↓</div>
+
+            <div class="step-item">
+                <div class="step-marker">4</div>
+                <div class="step-body">
+                    <h3>Host the Graph</h3>
+                    <p>Pass the graph to <code>NavEaseHost</code> — single call, zero boilerplate:</p>
                     <div class="code-window">
                         <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">App.kt</span></div>
                         <pre class="code-block"><span class="ann">@Composable</span>
 <span class="kw">fun</span> <span class="fn">App</span>() {
     <span class="cls">MaterialTheme</span> {
-        <span class="cls">NavEaseHost</span>(   <span class="cmt">// ← generated overload, zero arguments needed</span>
-            onExitRequest = { <span class="cmt">/* show exit dialog or finish() */</span> },
-            enableSharedTransitions = <span class="kw">true</span>,
+        <span class="cls">NavEaseHost</span>(   <span class="cmt">// ← DSL overload ✅</span>
+            graph = appGraph,
+            onExitRequest = {},
             navTransition = <span class="cls">NavTransition</span>.Push,
         )
     }
@@ -425,291 +492,21 @@ nav.<span class="fn">navigate</span>(AppScreen.Detail(id = <span class="str">"ab
             <div class="step-item">
                 <div class="step-marker">5</div>
                 <div class="step-body">
-                    <h3>Observe Results</h3>
-                    <p>In the parent screen, collect the typed result:</p>
-                    <div class="code-window">
-                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">HomeScreen.kt (result observer)</span></div>
-                        <pre class="code-block"><span class="kw">val</span> result <span class="kw">by</span> navController.<span class="fn">resultOf</span>&lt;<span class="cls">DetailScreen.Result</span>&gt;()
-result?.<<span class="fn">let</span> { <span class="cls">Text</span>(<<span class="str">"Confirmed: ${it.confirmed}"</span>) }</pre>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ── IMPLEMENTATION: KSP ANNOTATIONS ─────────────────────────────────── -->
-<section class="implementation alt-bg" id="impl-ksp">
-    <div class="container">
-        <div class="section-header">
-            <span class="section-tag">Implementation</span>
-            <h2>Path 2: Plugin + KSP Annotations</h2>
-            <p>Use <code>@NavEaseScreen</code>, <code>@NavEaseArgs</code>, and <code>@NavEaseResult</code> for full code generation.</p>
-        </div>
-
-        <div class="step-track">
-            <div class="step-item">
-                <div class="step-marker">1</div>
-                <div class="step-body">
-                    <h3>Apply the Plugin</h3>
-                    <p>Same as Path 1 — one line in <code>shared/build.gradle.kts</code>:</p>
-                    <div class="code-window">
-                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">shared/build.gradle.kts</span></div>
-                        <pre class="code-block">plugins {
-    <span class="fn">kotlin</span>(<<span class="str">"multiplatform"</span>)
-    id(<span class="str">"io.github.alims-repo.navease"</span>) version <span class="str">"&lt;version&gt;"</span>
-}</pre>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step-arrow">↓</div>
-
-            <div class="step-item">
-                <div class="step-marker">2</div>
-                <div class="step-body">
-                    <h3>Annotate Screens</h3>
-                    <p>Extend <code>NavScreen</code> and use the KSP annotations:</p>
-                    <div class="code-window">
-                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">DetailScreen.kt</span></div>
-                        <pre class="code-block"><span class="kw">@NavEaseScreen</span>(route = <span class="str">"Detail"</span>)
-<span class="kw">class</span> <span class="cls">DetailScreen</span> : <span class="cls">NavScreen</span>() {
-
-    <span class="kw">@NavEaseArgs</span>
-    <span class="kw">data class</span> <span class="cls">Args</span>(<<span class="kw">val</span> id: <span class="cls">String</span>, <span class="kw">val</span> title: <span class="cls">String</span>)
-
-    <span class="kw">@NavEaseResult</span>
-    <span class="kw">data class</span> <span class="cls">Result</span>(<<span class="kw">val</span> success: <span class="cls">Boolean</span>)
-
-    <span class="ann">@Composable</span>
-    <span class="kw">override fun</span> <span class="fn">Content</span>(navKey: <span class="cls">NavKey</span>, navController: <span class="cls">NavController</span>) {
-        <span class="kw">val</span> args = navKey.<span class="fn">detailArgs</span>()   <span class="cmt">// ← generated extension</span>
-        <span class="cls">Text</span>(args.title)
-
-        <span class="cls">Button</span>(onClick = {
-            navController.<span class="fn">backWithDetailResult</span>(success = <span class="kw">true</span>)   <span class="cmt">// ← generated</span>
-        }) { <span class="cls">Text</span>(<<span class="str">"Finish"</span>) }
-    }
-}</pre>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step-arrow">↓</div>
-
-            <div class="step-item">
-                <div class="step-marker">3</div>
-                <div class="step-body">
-                    <h3>Generated Host</h3>
-                    <p>KSP generates <code>AppScreens</code>, <code>ScreenFactory</code>, extensions, and a host. Use the generated <code>NavEaseHost</code>:</p>
-                    <div class="code-window">
-                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">App.kt</span></div>
-                        <pre class="code-block"><span class="ann">@Composable</span>
-<span class="kw">fun</span> <span class="fn">App</span>() {
-    <span class="cls">MaterialTheme</span> {
-        <span class="cls">NavEaseHost</span>(   <span class="cmt">// ← generated, bakes in AppScreens.startDestination</span>
-            onExitRequest = {},
-            navTransition = <span class="cls">NavTransition</span>.Push,
-        )
-    }
-}</pre>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step-arrow">↓</div>
-
-            <div class="step-item">
-                <div class="step-marker">4</div>
-                <div class="step-body">
-                    <h3>Navigate & Observe</h3>
-                    <p>Use the generated extensions for type-safe navigation and results:</p>
+                    <h3>Navigate & Return Results</h3>
+                    <p>Use the runtime API directly — no generated code needed:</p>
                     <div class="code-window">
                         <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">AnyScreen.kt</span></div>
-                        <pre class="code-block"><span class="cmt">// Navigate with typed args</span>
-navController.<span class="fn">navigateToDetail</span>(id = <span class="str">"42"</span>, title = <span class="str">"Settings"</span>)
-
-<span class="cmt">// Observe result</span>
-<span class="kw">val</span> result <span class="kw">by</span> navController.<span class="fn">detailResult</span>()
-result?.<<span class="fn">let</span> { <span class="cls">Text</span>(<<span class="str">"Success: ${it.success}"</span>) }</pre>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ── IMPLEMENTATION: DSL GRAPH ───────────────────────────────────────── -->
-<section class="implementation" id="impl-dsl">
-    <div class="container">
-        <div class="section-header">
-            <span class="section-tag">Implementation</span>
-            <h2>Path 3: DSL Graph (Zero Rebuild)</h2>
-            <p>No KSP. No annotations. Define everything in Kotlin and navigate immediately with full IDE support.</p>
-        </div>
-
-        <div class="step-track">
-            <div class="step-item">
-                <div class="step-marker">1</div>
-                <div class="step-body">
-                    <h3>Apply the Plugin (Optional)</h3>
-                    <p>You only need the runtime. The plugin is optional for this path:</p>
-                    <div class="code-window">
-                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">shared/build.gradle.kts</span></div>
-                        <pre class="code-block">plugins {
-    <span class="fn">kotlin</span>(<<span class="str">"multiplatform"</span>)
-    <span class="cmt">// Optional: id("io.github.alims-repo.navease") version "&lt;version&gt;"</span>
-}
-
-kotlin {
-    sourceSets {
-        commonMain {
-            dependencies {
-                <span class="fn">implementation</span>(<<span class="str">"io.github.alims-repo:navease-runtime:&lt;version&gt;"</span>)
-            }
-        }
-    }
-}</pre>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step-arrow">↓</div>
-
-            <div class="step-item">
-                <div class="step-marker">2</div>
-                <div class="step-body">
-                    <h3>Define NavKeys & Graph</h3>
-                    <p>Create a plain <code>@Serializable</code> sealed class and build the graph:</p>
-                    <div class="code-window">
-                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">AppScreen.kt + Graph.kt</span></div>
-                        <pre class="code-block"><span class="ann">@Serializable</span>
-<span class="kw">sealed class</span> <span class="cls">AppScreen</span> : <span class="cls">NavKey</span> {
-    <span class="ann">@Serializable</span> <span class="kw">data object</span> <span class="cls">Home</span>   : <span class="cls">AppScreen</span>()
-    <span class="ann">@Serializable</span> <span class="kw">data class</span>  <span class="cls">Detail</span>(<<span class="kw">val</span> id: <span class="cls">String</span>) : <span class="cls">AppScreen</span>()
-}
-
-<span class="kw">val</span> appGraph = <span class="fn">navEaseGraph</span>(start = AppScreen.Home) {
-    <span class="fn">screen</span>&lt;<span class="cls">AppScreen.Home</span>&gt;   { <span class="cls">HomeScreen</span>() }
-    <span class="fn">screen</span>&lt;<span class="cls">AppScreen.Detail</span>&gt; { key -&gt; <span class="cls">DetailScreen</span>(id = key.id) }
-}</pre>
-                    </div>
-                    <p class="step-note">The <code>screen&lt;K&gt; { }</code> lambda receives the typed key — no casting required.</p>
-                </div>
-            </div>
-
-            <div class="step-arrow">↓</div>
-
-            <div class="step-item">
-                <div class="step-marker">3</div>
-                <div class="step-body">
-                    <h3>Host the Graph</h3>
-                    <p>Pass the graph to the DSL overload of <code>NavEaseHost</code>:</p>
-                    <div class="code-window">
-                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">App.kt</span></div>
-                        <pre class="code-block"><span class="ann">@Composable</span>
-<span class="kw">fun</span> <span class="fn">App</span>() {
-    <span class="cls">MaterialTheme</span> {
-        <span class="cls">NavEaseHost</span>(graph = appGraph)   <span class="cmt">// ← DSL overload</span>
-    }
-}</pre>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step-arrow">↓</div>
-
-            <div class="step-item">
-                <div class="step-marker">4</div>
-                <div class="step-body">
-                    <h3>Navigate & Return Results</h3>
-                    <p>Use the runtime API directly. No generated code needed:</p>
-                    <div class="code-window">
-                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">Navigation & Results</span></div>
                         <pre class="code-block"><span class="cmt">// Navigate</span>
 <span class="kw">val</span> nav = <span class="cls">LocalNavEaseController</span>.current
-nav?.<<span class="fn">navigate</span>(<<span class="cls">AppScreen</span>.Detail(id = <span class="str">"abc"</span>))
+nav?.<span class="fn">navigate</span>(<span class="cls">AppScreen</span>.Detail(id = <span class="str">"abc"</span>))
 
 <span class="cmt">// Return result</span>
-<span class="kw">data class</span> <span class="cls">DetailResult</span>(<<span class="kw">val</span> ok: <span class="cls">Boolean</span>)
-nav.<span class="fn">backWithResult</span>(<<span class="cls">DetailResult</span>(ok = <span class="kw">true</span>))
+<span class="kw">data class</span> <span class="cls">DetailResult</span>(<span class="kw">val</span> ok: <span class="cls">Boolean</span>)
+nav.<span class="fn">backWithResult</span>(<span class="cls">DetailResult</span>(ok = <span class="kw">true</span>))
 
-<span class="cmt">// Observe result</span>
+<span class="cmt">// Observe result in parent screen</span>
 <span class="kw">val</span> result <span class="kw">by</span> nav.<span class="fn">resultOf</span>&lt;<span class="cls">DetailResult</span>&gt;()</pre>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ── IMPLEMENTATION: MANUAL SETUP ──────────────────────────────────────── -->
-<section class="implementation alt-bg" id="impl-manual">
-    <div class="container">
-        <div class="section-header">
-            <span class="section-tag">Implementation</span>
-            <h2>Path 4: Manual Setup</h2>
-            <p>Skip the plugin entirely. Full control, but requires manual wiring.</p>
-        </div>
-
-        <div class="step-track">
-            <div class="step-item">
-                <div class="step-marker">1</div>
-                <div class="step-body">
-                    <h3>Apply KSP Manually</h3>
-                    <div class="code-window">
-                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">shared/build.gradle.kts</span></div>
-                        <pre class="code-block">plugins {
-    <span class="fn">kotlin</span>(<<span class="str">"multiplatform"</span>)
-    id(<span class="str">"com.google.devtools.ksp"</span>) version <span class="str">"&lt;ksp-version&gt;"</span>
-}
-
-kotlin {
-    sourceSets {
-        commonMain {
-            kotlin.<span class="fn">srcDir</span>(<<span class="str">"build/generated/ksp/metadata/commonMain/kotlin"</span>)
-            dependencies {
-                <span class="fn">implementation</span>(<<span class="str">"io.github.alims-repo:navease-runtime:&lt;version&gt;"</span>)
-            }
-        }
-    }
-}
-
-dependencies {
-    <span class="fn">add</span>(<<span class="str">"kspCommonMainMetadata"</span>, <span class="str">"io.github.alims-repo:navease-ksp:&lt;version&gt;"</span>)
-}
-
-tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<<span class="fn">configureEach</span> {
-    <span class="kw">if</span> (name != <span class="str">"kspCommonMainKotlinMetadata"</span>) {
-        <span class="fn">dependsOn</span>(<<span class="str">"kspCommonMainKotlinMetadata"</span>)
-    }
-}</pre>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step-arrow">↓</div>
-
-            <div class="step-item">
-                <div class="step-marker">2</div>
-                <div class="step-body">
-                    <h3>Forward KSP Args (Optional)</h3>
-                    <div class="code-window">
-                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">KSP Configuration</span></div>
-                        <pre class="code-block">ksp {
-    arg(<span class="str">"navease.generatedPackage"</span>, <span class="str">"com.example.myapp.navigation"</span>)
-}</pre>
-                    </div>
-                </div>
-            </div>
-
-            <div class="step-arrow">↓</div>
-
-            <div class="step-item">
-                <div class="step-marker">3</div>
-                <div class="step-body">
-                    <h3>Use Any NavEase Approach</h3>
-                    <p>From here, follow <strong>Path 1</strong> (use <code>@AutoRegister</code>) or <strong>Path 2</strong> (use <code>@NavEaseScreen</code>). The runtime behavior is identical.</p>
                 </div>
             </div>
         </div>
@@ -774,8 +571,8 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
             <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">Example: Local Monorepo Setup</span></div>
             <pre class="code-block"><span class="fn">navease</span> {
     version = <span class="str">"0.0.3"</span>
-    kspProcessorDependency = <span class="fn">project</span>(<<span class="str">":navease-ksp"</span>)
-    runtimeDependency      = <span class="fn">project</span>(<<span class="str">":navease-runtime"</span>)
+    kspProcessorDependency = <span class="fn">project</span>(<span class="str">":navease-ksp"</span>)
+    runtimeDependency      = <span class="fn">project</span>(<span class="str">":navease-runtime"</span>)
     generatedPackage       = <span class="str">"com.example.myapp.navigation"</span>
 }</pre>
         </div>
@@ -793,41 +590,59 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
         <div class="faq-list">
             <div class="faq-item">
                 <button class="faq-question" onclick="toggleFaq(this)">
-                    <span>Generated code is not found by the IDE</span>
+                    <span>navEaseBootstrap() shows as unresolved in App.kt</span>
                     <span class="faq-chevron">›</span>
                 </button>
                 <div class="faq-answer">
-                    <p>Run <code>./gradlew :shared:kspCommonMainKotlinMetadata</code> once. The NavEase plugin registers the generated directory automatically, but the IDE may need a Gradle sync after the first KSP run. If using the manual setup, ensure the <code>srcDir</code> points to <code>build/generated/ksp/metadata/commonMain/kotlin</code>.</p>
+                    <p><code>navEaseBootstrap()</code> is generated by KSP and lives in <code>io.github.alimsrepo.navease.generated</code>. Run <code>./gradlew :shared:kspCommonMainKotlinMetadata</code> once, then sync the IDE. The function will resolve and the import will work. It is called with <code>remember { navEaseBootstrap() }</code> at the top of your <code>App()</code> composable — your iOS <code>MainViewController</code> stays untouched.</p>
                 </div>
             </div>
 
             <div class="faq-item">
                 <button class="faq-question" onclick="toggleFaq(this)">
-                    <span>KSP error: "Duplicate route" or "Multiple start destinations"</span>
+                    <span>KSP error: "Multiple start destinations" or duplicate NavKey</span>
                     <span class="faq-chevron">›</span>
                 </button>
                 <div class="faq-answer">
-                    <p>Each <code>@NavEaseScreen</code> must have a unique <code>route</code> string. Exactly one screen may set <code>startDestination = true</code>. For <code>@AutoRegister</code>, exactly one class may set <code>startDestination = true</code>, and each NavKey type may only be handled by one screen.</p>
+                    <p>Exactly one <code>@AutoRegister(startDestination = true)</code> is required. Each NavKey type may only be handled by one screen — using the same <code>AppScreens.Detail</code> in two different <code>ActivityScreen</code> classes will produce an error. Fix: ensure only one screen maps to each NavKey.</p>
                 </div>
             </div>
 
             <div class="faq-item">
                 <button class="faq-question" onclick="toggleFaq(this)">
-                    <span>Can I mix DSL and KSP in the same project?</span>
+                    <span>Can I mix @AutoRegister and DSL Graph in the same project?</span>
                     <span class="faq-chevron">›</span>
                 </button>
                 <div class="faq-answer">
-                    <p>Yes, but they must use <strong>separate</strong> <code>NavEaseHost</code> instances (e.g., one for a bottom-tab subgraph and one for the root). Do not mix KSP-generated <code>AppScreens</code> and DSL <code>NavEaseGraph</code> inside the same back stack.</p>
+                    <p>Yes, but they must use <strong>separate</strong> <code>NavEaseHost</code> instances (e.g., one for a nested tab subgraph using the DSL, and one for the root using @AutoRegister). Do not mix the two approaches inside the same back stack.</p>
                 </div>
             </div>
 
             <div class="faq-item">
                 <button class="faq-question" onclick="toggleFaq(this)">
-                    <span>How do I migrate from KSP to DSL (zero-rebuild)?</span>
+                    <span>NavEaseHost() crashes on iOS with "No @AutoRegister screens found"</span>
                     <span class="faq-chevron">›</span>
                 </button>
                 <div class="faq-answer">
-                    <p>1. Copy your <code>@Serializable</code> sealed class NavKeys into a new file. 2. Remove <code>@NavEaseScreen</code> annotations. 3. Build a <code>navEaseGraph { }</code> block calling <code>screen&lt;K&gt; { }</code> for each key. 4. Replace the generated <code>NavEaseHost()</code> with the DSL <code>NavEaseHost(graph = appGraph)</code> overload.</p>
+                    <p>On iOS/Native the auto-registry must be triggered before the first composition. Add <code>remember { navEaseBootstrap() }</code> at the top of <code>App()</code>, <strong>before</strong> <code>NavEaseHost</code>:</p>
+                    <pre style="background:var(--surface-2);padding:12px;border-radius:8px;overflow-x:auto;margin-top:8px"><code>import io.github.alimsrepo.navease.generated.navEaseBootstrap
+
+@Composable
+fun App() {
+    remember { navEaseBootstrap() }   // ← must be before NavEaseHost
+    NavEaseHost(onExitRequest = {})
+}</code></pre>
+                    <p style="margin-top:8px">Your <code>MainViewController.kt</code> stays clean — just <code>ComposeUIViewController { App() }</code>. If <code>navEaseBootstrap</code> is unresolved, run KSP first: <code>./gradlew :shared:kspCommonMainKotlinMetadata</code></p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" onclick="toggleFaq(this)">
+                    <span>How do I migrate from @AutoRegister to DSL Graph?</span>
+                    <span class="faq-chevron">›</span>
+                </button>
+                <div class="faq-answer">
+                    <p>1. Keep your <code>@Serializable</code> sealed NavKey class. 2. Remove <code>@AutoRegister</code> annotations and extend plain classes. 3. Build a <code>navEaseGraph { screen&lt;K&gt; { } }</code> block. 4. Replace <code>NavEaseHost(onExitRequest = {})</code> with <code>NavEaseHost(graph = appGraph)</code>. 5. Remove the <code>remember { navEaseBootstrap() }</code> line from <code>App()</code> — it is not needed for the DSL path.</p>
                 </div>
             </div>
 
@@ -837,7 +652,7 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
                     <span class="faq-chevron">›</span>
                 </button>
                 <div class="faq-answer">
-                    <p>Yes. NavEase targets the stable Navigation3 serializable API. Bump the versions in your own <code>libs.versions.toml</code>; the NavEase runtime depends on Navigation3 but does not pin a specific version aggressively.</p>
+                    <p>Yes. NavEase targets the stable Navigation3 serializable NavKey API. Bump the versions in your own <code>libs.versions.toml</code>; the NavEase runtime depends on Navigation3 but does not pin a specific version aggressively.</p>
                 </div>
             </div>
         </div>
@@ -850,7 +665,7 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
         <div class="section-header">
             <span class="section-tag">Sample App</span>
             <h2>10 screens. Every feature.<br/>All platforms.</h2>
-            <p>The bundled demo app showcases the full NavEase stack — <code>@AutoRegister</code> screen discovery, typed navKeys, shared element transitions, back-with-result, and the plugin-only setup.</p>
+            <p>The bundled demo app showcases the full NavEase @AutoRegister stack — typed navKeys, shared element transitions, back-with-result, and the plugin-only setup. App.kt calls <code>remember { navEaseBootstrap() }</code> once then <code>NavEaseHost(onExitRequest = {})</code>. The iOS entry point stays completely clean.</p>
         </div>
 
         <div class="demo-screens">
@@ -1017,60 +832,55 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
                     <span class="code-title">AutoRegisterScreens.kt — generated by KSP</span>
                 </div>
                 <pre class="code-block"><span class="cmt">// Generated from @AutoRegister annotations</span>
-<span class="kw">fun</span> <span class="cls">NavEaseScreenScope</span>&lt;<span class="cls">AppScreens</span>&gt;.<span class="fn">autoRegisterScreens</span>() {
-    <span class="fn">add</span>(<<span class="cls">SplashScreen</span>())
-    <span class="fn">add</span>(<<span class="cls">HomeScreen</span>())
-    <span class="fn">add</span>(<<span class="cls">LibraryDetailScreen</span>())
-    <span class="fn">add</span>(<<span class="cls">NavEaseDemoScreen</span>())
-    <span class="fn">add</span>(<<span class="cls">SecureVaultDemoScreen</span>())
-    <span class="fn">add</span>(<<span class="cls">FlowTabDemoScreen</span>())
-    <span class="fn">add</span>(<<span class="cls">PrayerTimesDemoScreen</span>())
-    <span class="fn">add</span>(<<span class="cls">CrashGuardDemoScreen</span>())
-    <span class="fn">add</span>(<<span class="cls">PdfDemoScreen</span>())
-    <span class="fn">add</span>(<<span class="cls">TransitionPreviewScreen</span>())
+<span class="kw">package</span> io.github.alimsrepo.navease.generated
+
+<span class="kw">private object</span> <span class="cls">NavEaseAutoInit</span> {
+    <span class="kw">init</span> {
+        <span class="cls">NavEaseAutoRegistry</span>.<span class="fn">addEntry</span>(
+            <span class="cls">SplashScreen</span>(), <span class="cls">AppScreens</span>.Splash::class,
+            serializer&lt;<span class="cls">AppScreens</span>.Splash&gt;(), <span class="cls">AppScreens</span>.Splash  <span class="cmt">// start ✅</span>
+        )
+        <span class="cls">NavEaseAutoRegistry</span>.<span class="fn">addEntry</span>(
+            <span class="cls">HomeScreen</span>(), <span class="cls">AppScreens</span>.Home::class,
+            serializer&lt;<span class="cls">AppScreens</span>.Home&gt;()
+        )
+        <span class="cmt">// … all other @AutoRegister screens …</span>
+    }
 }
 
-<span class="cmt">// Generated NavEaseHost() — bakes in autoRegisterScreens() ✅</span>
-<span class="ann">@Composable</span>
-<span class="kw">fun</span> <span class="fn">NavEaseHost</span>(
-    onExitRequest: () -> <span class="cls">Unit</span> = {},
-    enableSharedTransitions: <span class="cls">Boolean</span> = <span class="kw">false</span>,
-    navTransition: <span class="cls">NavTransition</span> = <span class="cls">NavTransition</span>.Push,
-) {
-    <span class="cls">NavEaseHost</span>&lt;<span class="cls">AppScreens</span>&gt;(
-        start = <span class="cls">AppScreens</span>.Splash,
-        onExitRequest = onExitRequest,
-        enableSharedTransitions = enableSharedTransitions,
-        navTransition = navTransition,
-    ) { <span class="fn">autoRegisterScreens</span>() }
+<span class="kw">private val</span> _navEaseAutoInit: Any = <span class="cls">NavEaseAutoInit</span>
+
+<span class="cmt">// One call in App() wires everything — Android/JVM + iOS/Native/JS</span>
+<span class="kw">fun</span> <span class="fn">navEaseBootstrap</span>() {
+    _navEaseAutoInit   <span class="cmt">// triggers NavEaseAutoInit on Native/JS</span>
 }</pre>
             </div>
             <div class="code-window generated-code">
                 <div class="code-header">
                     <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
-                    <span class="code-title">NavEaseExtensions.kt — KSP annotations approach</span>
+                    <span class="code-title">The complete integration — App.kt + iOS entry point</span>
                 </div>
-                <pre class="code-block"><span class="cmt">// Navigate with typed args — no casting needed</span>
-<span class="kw">fun</span> <span class="cls">NavController</span>.<<span class="fn">navigateToMain</span>(
-    userId: <span class="cls">String</span>, age: <span class="cls">Int</span>,
-    finish: <span class="cls">Boolean</span> = <span class="kw">false</span>
-) = <span class="fn">navigate</span>(<<span class="cls">AppScreens</span>.Main(userId, age), finish)
-
-<span class="cmt">// Access args — no Bundle, no casting</span>
-<span class="kw">fun</span> <span class="cls">NavKey</span>.<<span class="fn">mainArgs</span>(): <span class="cls">MainScreen</span>.Args {
-    <span class="kw">val</span> key = <span class="kw">this as</span> <span class="cls">AppScreens</span>.Main
-    <span class="kw">return</span> <span class="cls">MainScreen</span>.Args(key.userId, key.age)
-}
-
-<span class="cmt">// NavEaseResults.kt — typed result extensions</span>
-
-<span class="kw">fun</span> <span class="cls">NavController</span>.<<span class="fn">backWithDetailResult</span>(liked: <span class="cls">Boolean</span>) {
-    <span class="fn">backWithResult</span>(<<span class="cls">DetailResult</span>(liked))
-}
-
+                <pre class="code-block"><span class="cmt">// commonMain — App.kt</span>
+<span class="cmt">// Bootstrap once at the top of App(), then NavEaseHost. Done.</span>
 <span class="ann">@Composable</span>
-<span class="kw">fun</span> <span class="cls">NavController</span>.<<span class="fn">detailResult</span>(): State&lt;<span class="cls">DetailResult</span>?&gt; =
-    <span class="fn">resultOf</span>(<<span class="cls">DetailResult</span>::<<span class="kw">class</span>)</pre>
+<span class="kw">fun</span> <span class="fn">App</span>() {
+    <span class="cmt">// Triggers @AutoRegister on iOS/Native/JS; no-op on Android/JVM.</span>
+    <span class="cmt">// remember{} ensures it runs exactly once per session, cheaply.</span>
+    <span class="fn">remember</span> { <span class="fn">navEaseBootstrap</span>() }
+
+    <span class="cls">NavEaseHost</span>(onExitRequest = {})   <span class="cmt">// ← that's it ✅</span>
+}
+
+<span class="cmt">// iosMain — MainViewController.kt</span>
+<span class="cmt">// Stays completely clean — no imports, no extra calls.</span>
+<span class="kw">fun</span> <span class="fn">MainViewController</span>() = <span class="fn">ComposeUIViewController</span> { <span class="fn">App</span>() }
+
+<span class="cmt">// Navigation — same on every platform</span>
+<span class="kw">val</span> nav = <span class="cls">LocalNavEaseController</span>.current
+nav?.<span class="fn">navigate</span>(<span class="cls">AppScreens</span>.Detail(id = <span class="str">"abc"</span>))
+
+<span class="cmt">// Typed result — no casting</span>
+<span class="kw">val</span> result <span class="kw">by</span> nav.<span class="fn">resultOf</span>&lt;<span class="cls">DetailScreen</span>.Result&gt;()</pre>
             </div>
         </div>
     </div>
@@ -1081,7 +891,7 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
     <div class="container">
         <div class="section-header">
             <span class="section-tag">Module Structure</span>
-            <h2>Clean separation.<br/>Two artifacts.</h2>
+            <h2>Clean separation.<br/>Three artifacts.</h2>
         </div>
         <div class="modules-grid">
             <div class="module-card">
@@ -1093,12 +903,12 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
                     </div>
                 </div>
                 <ul class="module-files">
-                    <li><code>@AutoRegister</code> — auto-discovery annotation for <code>ActivityScreen</code> subclasses</li>
+                    <li><code>NavEaseHost(onExitRequest)</code> — universal auto-registry composable; pair with <code>remember { navEaseBootstrap() }</code> in App.kt</li>
+                    <li><code>NavEaseHost(graph)</code> — DSL graph variant, no bootstrap needed</li>
                     <li><code>ActivityScreen&lt;K&gt;</code> — typed abstract base; override <code>Content(navKey: K, …)</code></li>
-                    <li><code>@NavEaseScreen</code> <code>@NavEaseArgs</code> <code>@NavEaseResult</code> — KSP annotation approach</li>
-                    <li><code>NavScreen</code> — non-generic base class (KSP approach)</li>
+                    <li><code>navEaseGraph { screen&lt;K&gt; { } }</code> — zero-rebuild DSL builder</li>
+                    <li><code>NavEaseAutoRegistry</code> — global screen registry populated by KSP</li>
                     <li><code>NavController</code> — navigate / back / popUpTo / singleTop / backWithResult</li>
-                    <li><code>NavEaseNavGraph</code> — core composable host engine</li>
                     <li><code>LocalNavEaseController</code> + <code>LocalNavEaseSharedTransitionScope</code></li>
                 </ul>
             </div>
@@ -1111,11 +921,11 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
                     </div>
                 </div>
                 <ul class="module-files">
-                    <li><code>NavEaseProcessor</code> — reads both <code>@AutoRegister</code> and <code>@NavEaseScreen</code></li>
-                    <li>Generates <code>autoRegisterScreens()</code> extension from <code>@AutoRegister</code></li>
-                    <li>Generates complete <code>NavEaseHost()</code> overload with start destination baked in</li>
+                    <li><code>NavEaseProcessor</code> — reads <code>@AutoRegister</code> annotations</li>
+                    <li>Generates <code>NavEaseAutoInit</code> object with direct <code>addEntry()</code> calls</li>
+                    <li>Generates <code>fun navEaseBootstrap()</code> — called once via <code>remember { navEaseBootstrap() }</code> at the top of <code>App()</code></li>
                     <li>Validates: one NavKey → one screen · all screens same sealed root · exactly one <code>startDestination = true</code></li>
-                    <li>Also generates <code>navigateToXxx()</code>, <code>xxxArgs()</code>, <code>backWithXxxResult()</code> for <code>@NavEaseScreen</code> approach</li>
+                    <li>All generated code lives in <code>io.github.alimsrepo.navease.generated</code></li>
                 </ul>
             </div>
             <div class="module-card">
@@ -1123,7 +933,7 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
                     <span class="module-icon">🔌</span>
                     <div>
                         <h3>navease-gradle-plugin</h3>
-                        <p class="module-sub">Gradle plugin · plugin ID <code>io.github.alims-repo.navease</code></p>
+                        <p class="module-sub">Gradle plugin · ID <code>io.github.alims-repo.navease</code></p>
                     </div>
                 </div>
                 <ul class="module-files">
@@ -1133,7 +943,6 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
                     <li>Wires all KMP compilations to depend on <code>kspCommonMainKotlinMetadata</code></li>
                     <li>Optionally adds <code>navease-runtime</code> to <code>commonMain</code></li>
                     <li>Forwards <code>generatedPackage</code> KSP arg · configurable via <code>navease { }</code> extension</li>
-                    <li>Plugin version is auto-generated from <code>gradle.properties</code> at build time</li>
                 </ul>
             </div>
         </div>
@@ -1163,7 +972,7 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
 </section>
 
 <!-- ── FOOTER ────────────────────────────────────────────────────────────── -->
-<<footer class="footer">
+<footer class="footer">
     <div class="container">
         <div class="footer-inner">
             <div class="footer-brand">
@@ -1182,7 +991,7 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
 </footer>
 
 <script>
-    /* ── Theme ───────────────────────────────────────────────────── */
+    /* ── Theme ───────────────────────────────────────────────── */
     var SUN_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
     var MOON_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
 
@@ -1226,11 +1035,10 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
       }
     });
 
-    /* ── Hero tab switching ──────────────────────────────────────── */
+    /* ── Hero tab switching ──────────────────────────────────── */
     var heroLabels = [
-      'Approach 1 — KSP Annotations',
-      'Approach 2 — navEaseGraph DSL',
-      'Approach 3 — ActivityScreen\u003cK\u003e',
+      'Path 1 — Plugin + @AutoRegister',
+      'Path 2 — DSL Graph (Zero Rebuild)',
     ];
     function heroTab(idx) {
       document.querySelectorAll('.hero-snippet').forEach(function (el, i) {
@@ -1243,12 +1051,12 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
       if (lbl) lbl.textContent = heroLabels[idx];
     }
 
-    /* ── Mobile menu ─────────────────────────────────────────────── */
+    /* ── Mobile menu ─────────────────────────────────────────── */
     function toggleMenu() {
       document.querySelector('.nav-links').classList.toggle('open');
     }
 
-    /* ── Smooth active nav link on scroll ────────────────────────── */
+    /* ── Smooth active nav link on scroll ────────────────────── */
     var sections = document.querySelectorAll('section[id]');
     var navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
     window.addEventListener('scroll', function () {
@@ -1261,7 +1069,7 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
       });
     });
 
-    /* ── FAQ accordion ─────────────────────────────────────────── */
+    /* ── FAQ accordion ─────────────────────────────────────── */
     function toggleFaq(btn) {
       var item = btn.parentElement;
       var isOpen = item.classList.toggle('open');
@@ -1269,7 +1077,7 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
       if (chevron) chevron.style.transform = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
     }
 
-    /* ── Intersection observer for fade-in animations ────────────── */
+    /* ── Intersection observer for fade-in animations ────────── */
     var observer = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) { if (e.isIntersecting) e.target.classList.add('visible'); });
     }, { threshold: 0.12 });
@@ -1281,3 +1089,4 @@ tasks.<span class="fn">withType</span>&lt;KotlinCompilationTask&lt;*&gt;&gt;().<
 
 </body>
 </html>
+

@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavKey
 import androidx.savedstate.serialization.SavedStateConfiguration
-import io.github.alimsrepo.navease.runtime.navigation.NavController
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -51,7 +50,23 @@ class NavEaseScreenScope<Root : NavKey> @PublishedApi internal constructor() {
         screens  += screen
         serPairs += K::class to serializer<K>()
     }
+
+    /**
+     * Non-inline variant used internally by [NavEaseAutoRegistry] to populate the scope
+     * from pre-resolved KSP registry entries (no reified type parameter needed).
+     */
+    internal fun addUnchecked(
+        screen: ActivityScreen<*>,
+        keyClass: KClass<*>,
+        serializer: KSerializer<*>,
+    ) {
+        screen._keyClass   = keyClass
+        screen._serializer = serializer
+        screens  += screen
+        serPairs += keyClass to serializer
+    }
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NavEaseHost — DSL graph variant (existing)
@@ -177,3 +192,106 @@ fun <Root : NavKey> NavEaseHost(
         navTransition        = navTransition,
     )
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NavEaseHost — universal @AutoRegister variant (zero type-param, zero screens lambda)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * **Universal `@AutoRegister` navigation host** — the simplest entry point.
+ *
+ * Screens are discovered automatically from the global [NavEaseAutoRegistry], which is
+ * populated by KSP-generated code. No explicit type parameter, no `start` key, and no
+ * screens registration lambda are needed.
+ *
+ * ```kotlin
+ * @Composable fun App() {
+ *     NavEaseHost(onExitRequest = { finish() })
+ * }
+ * ```
+ *
+ * **Platform notes**
+ * - **Android / JVM**: auto-discovery works out of the box — the registry is populated
+ *   transparently on first composition via class loading.
+ * - **iOS / Native / JS / Wasm**: call the KSP-generated `navEaseBootstrap()` once before
+ *   the first composition from your platform entry point:
+ *   ```kotlin
+ *   // iosMain — MainViewController.kt
+ *   import io.github.alimsrepo.navease.generated.navEaseBootstrap
+ *   fun MainViewController() = ComposeUIViewController { navEaseBootstrap(); App() }
+ *   ```
+ *
+ * **Before KSP runs**: this composable always compiles without errors. The registry will be
+ * empty, producing a clear runtime message asking you to rebuild the project.
+ *
+ * @param onExitRequest           Called when back is pressed on the root screen.
+ * @param enableSharedTransitions `true` to enable shared-element transitions.
+ * @param navTransition           Default screen-to-screen animation.
+ */
+@Composable
+fun NavEaseHost(
+    onExitRequest: () -> Unit = {},
+    enableSharedTransitions: Boolean = false,
+    navTransition: NavTransition = NavTransition.Push,
+) {
+    val registry = NavEaseAutoRegistry
+
+    // Build a NavEaseScreenScope<NavKey> from the global registry entries.
+    // All operations are unchecked but type-safe via KSP generation guarantees.
+    val scope = remember {
+        registry.ensureInitialized()
+        check(registry.isInitialized) {
+            "NavEase: No @AutoRegister screens found in the registry.\n" +
+            "• Rebuild the project once: ./gradlew :shared:kspCommonMainKotlinMetadata\n" +
+            "• On iOS/Native/JS: import navEaseBootstrap from io.github.alimsrepo.navease.generated\n" +
+            "  and call it before App() in your platform entry point."
+        }
+        NavEaseScreenScope<NavKey>().also { s ->
+            registry.entries.forEach { entry ->
+                s.addUnchecked(entry.screen, entry.keyClass, entry.serializer)
+            }
+        }
+    }
+
+    val startKey: NavKey = checkNotNull(registry.startKey) {
+        "NavEase: Registry is populated but no start destination was found. " +
+        "Annotate exactly one screen with @AutoRegister(startDestination = true)."
+    }
+
+    val factory: Map<KClass<*>, ActivityScreen<*>> = remember(scope) {
+        scope.screens.associateBy { checkNotNull(it._keyClass) }
+    }
+
+    val savedStateConfig = remember(scope) {
+        SavedStateConfiguration {
+            serializersModule = SerializersModule {
+                @Suppress("UNCHECKED_CAST")
+                polymorphic(NavKey::class) {
+                    scope.serPairs.forEach { (kClass, ser) ->
+                        subclass(kClass as KClass<NavKey>, ser as KSerializer<NavKey>)
+                    }
+                }
+            }
+        }
+    }
+
+    NavEaseNavGraphCore(
+        initialScreen       = startKey,
+        savedStateConfig    = savedStateConfig,
+        contentProvider     = { key ->
+            @Suppress("UNCHECKED_CAST")
+            val screen = factory[key::class] as? ActivityScreen<NavKey>
+                ?: error(
+                    "NavEase: No screen registered for '${key::class.simpleName}'. " +
+                    "Ensure it is annotated with @AutoRegister and the project has been rebuilt."
+                )
+            val nav = LocalNavEaseController.current
+                ?: error("NavEase: LocalNavEaseController is null — called outside NavEaseNavGraph.")
+            screen.Content(key, nav)
+        },
+        onExitRequest       = onExitRequest,
+        enableSharedTransitions = enableSharedTransitions,
+        navTransition       = navTransition,
+    )
+}
+
