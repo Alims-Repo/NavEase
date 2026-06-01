@@ -32,6 +32,7 @@
             <li><a href="#paths">Paths</a></li>
             <li><a href="#impl-autoregister">AutoRegister</a></li>
             <li><a href="#impl-dsl">DSL Graph</a></li>
+            <li><a href="#impl-activityscreen">ActivityScreen</a></li>
             <li><a href="#configure">Configure</a></li>
             <li><a href="#demo">Demo</a></li>
             <li><a href="api/index.html" class="nav-api-ref">
@@ -64,9 +65,10 @@
             <span class="gradient-text">writes itself.</span>
         </h1>
         <p class="hero-subtitle">
-            NavEase is a Kotlin Multiplatform navigation library with two clean integration paths:
+            NavEase is a Kotlin Multiplatform navigation library with three clean integration paths:
             <strong>Plugin + @AutoRegister</strong> for zero-config screen discovery,
-            and a <strong>zero-rebuild DSL Graph</strong> for instant IDE resolution.
+            a <strong>zero-rebuild DSL Graph</strong> for instant IDE resolution,
+            and <strong>Explicit ActivityScreen&lt;K&gt;</strong> for typed OOP registration.
             No reflection. No string routes. No boilerplate.
         </p>
         <div class="hero-cta">
@@ -87,6 +89,7 @@
                 <span class="code-title" id="heroTabLabel" style="flex:1">Path 1 — Plugin + @AutoRegister</span>
                 <button class="hero-tab-btn active" onclick="heroTab(0)">@AutoRegister</button>
                 <button class="hero-tab-btn" onclick="heroTab(1)">DSL Graph</button>
+                <button class="hero-tab-btn" onclick="heroTab(2)">ActivityScreen</button>
             </div>
 
             <!-- Tab 0: @AutoRegister -->
@@ -101,14 +104,13 @@
     }
 }
 
-<span class="cmt">// 2. App.kt — works identically on Android, iOS, Desktop &amp; Web</span>
+<span class="cmt">// 2. App.kt — registry auto-wires on ALL platforms, no bootstrap call needed</span>
 <span class="ann">@Composable</span>
 <span class="kw">fun</span> <span class="fn">App</span>() {
-    <span class="fn">remember</span> { <span class="fn">navEaseBootstrap</span>() }   <span class="cmt">// ← auto-wires @AutoRegister on all platforms</span>
     <span class="cls">NavEaseHost</span>(onExitRequest = {})   <span class="cmt">// ← that's it ✅</span>
 }
 
-<span class="cmt">// iOS entry — stays clean, nothing extra needed</span>
+<span class="cmt">// iOS entry — completely clean, zero extra wiring needed</span>
 <span class="kw">fun</span> <span class="fn">MainViewController</span>() = <span class="fn">ComposeUIViewController</span> { <span class="fn">App</span>() }</pre>
 
             <!-- Tab 1: DSL Graph -->
@@ -128,6 +130,30 @@
 <span class="ann">@Composable</span>
 <span class="kw">fun</span> <span class="fn">App</span>() {
     <span class="cls">NavEaseHost</span>(graph = graph)   <span class="cmt">// ← that's it ✅</span>
+}</pre>
+
+            <!-- Tab 2: ActivityScreen<K> explicit -->
+            <pre class="code-block hero-snippet" id="heroSnippet2" style="display:none"><span class="cmt">// 1. Define NavKeys — same @Serializable sealed class</span>
+<span class="ann">@Serializable</span> <span class="kw">sealed class</span> <span class="cls">AppScreens</span> : <span class="cls">NavKey</span> {
+    <span class="ann">@Serializable</span> <span class="kw">data object</span> <span class="cls">Home</span>   : <span class="cls">AppScreens</span>()
+    <span class="ann">@Serializable</span> <span class="kw">data class</span>  <span class="cls">Detail</span>(<span class="kw">val</span> id: <span class="cls">String</span>) : <span class="cls">AppScreens</span>()
+}
+
+<span class="cmt">// 2. Screens extend ActivityScreen&lt;K&gt; — typed navKey in Content()</span>
+<span class="kw">class</span> <span class="cls">DetailScreen</span> : <span class="cls">ActivityScreen</span>&lt;<span class="cls">AppScreens.Detail</span>&gt;() {
+    <span class="ann">@Composable</span>
+    <span class="kw">override fun</span> <span class="fn">Content</span>(navKey: <span class="cls">AppScreens.Detail</span>, nav: <span class="cls">NavController</span>) {
+        <span class="cls">Text</span>(navKey.id)   <span class="cmt">// ← typed, no casting, no extensions ✅</span>
+    }
+}
+
+<span class="cmt">// 3. App.kt — typed host, register screens explicitly</span>
+<span class="ann">@Composable</span>
+<span class="kw">fun</span> <span class="fn">App</span>() {
+    <span class="cls">NavEaseHost</span>&lt;<span class="cls">AppScreens</span>&gt;(start = <span class="cls">AppScreens</span>.Home) {
+        <span class="fn">add</span>(<span class="cls">HomeScreen</span>())
+        <span class="fn">add</span>(<span class="cls">DetailScreen</span>())   <span class="cmt">// ← no rebuild needed ✅</span>
+    }
 }</pre>
         </div>
     </div>
@@ -159,8 +185,8 @@
 
             <div class="feature-card">
                 <div class="feature-icon">⚡</div>
-                <h3>Two Clean Paths</h3>
-                <p><strong>Plugin + @AutoRegister</strong> — one annotation, <code>remember { navEaseBootstrap() }</code> in App.kt, and a zero-arg <code>NavEaseHost()</code>. iOS entry stays clean. <strong>DSL Graph</strong> — plain Kotlin, no annotations, instant IDE resolution. Both paths share the same runtime engine.</p>
+                <h3>Three Clean Paths</h3>
+                <p><strong>Plugin + @AutoRegister</strong> — one annotation, zero-arg <code>NavEaseHost()</code>, auto-wires on all platforms. <strong>DSL Graph</strong> — plain Kotlin, no annotations, instant IDE resolution. <strong>Explicit ActivityScreen&lt;K&gt;</strong> — typed OOP registration via <code>NavEaseHost&lt;Root&gt; { add(Screen()) }</code>. All three share the same runtime engine.</p>
             </div>
 
             <div class="feature-card">
@@ -172,7 +198,7 @@
             <div class="feature-card">
                 <div class="feature-icon">🪄</div>
                 <h3>@AutoRegister</h3>
-                <p>Annotate any <code>ActivityScreen&lt;K&gt;</code> subclass with <code>@AutoRegister</code>. KSP generates the registration glue — call <code>remember { navEaseBootstrap() }</code> once at the top of <code>App()</code> and then <code>NavEaseHost(onExitRequest = {})</code>. No manual <code>add(XxxScreen())</code>, no platform-specific entry points.</p>
+                <p>Annotate any <code>ActivityScreen&lt;K&gt;</code> subclass with <code>@AutoRegister</code>. KSP generates the registration glue and the registry auto-wires on every platform — Android/JVM via class-loading, iOS via <code>@EagerInitialization</code>, JS/Wasm via module init. Your App.kt is just <code>NavEaseHost(onExitRequest = {})</code>. No <code>navEaseBootstrap()</code> call required.</p>
             </div>
 
             <div class="feature-card">
@@ -226,11 +252,11 @@
     <div class="container">
         <div class="section-header">
             <span class="section-tag">Choose Your Path</span>
-            <h2>Two ways to integrate.<br/>Pick the one that fits your workflow.</h2>
-            <p>Both paths share the same runtime engine, the same <code>NavEaseHost</code>, and the same typed navigation API. The difference is how much you want KSP to automate versus how much plain-Kotlin control you want.</p>
+            <h2>Three ways to integrate.<br/>Pick the one that fits your workflow.</h2>
+            <p>All three paths share the same runtime engine, the same <code>NavEaseHost</code>, and the same typed navigation API. The difference is how much you want KSP to automate versus how much plain-Kotlin control you want.</p>
         </div>
 
-        <div class="paths-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); max-width: 800px; margin: 0 auto;">
+        <div class="paths-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); max-width: 1100px; margin: 0 auto;">
             <div class="path-card recommended">
                 <div class="path-badge">Recommended</div>
                 <div class="path-icon">🪄</div>
@@ -239,7 +265,7 @@
                 <ul class="path-pros">
                     <li>Fastest setup — one annotation per screen</li>
                     <li>Typed <code>navKey: K</code> in every screen, no casting</li>
-                    <li>One <code>remember { navEaseBootstrap() }</code> in App.kt, zero iOS-specific wiring</li>
+                    <li>Registry auto-wires on all platforms — no bootstrap call</li>
                     <li>KSP validates: no duplicates, one start destination</li>
                 </ul>
                 <a href="#impl-autoregister" class="btn btn-primary">Start This Path →</a>
@@ -257,6 +283,19 @@
                 </ul>
                 <a href="#impl-dsl" class="btn btn-outline">Start This Path →</a>
             </div>
+
+            <div class="path-card">
+                <div class="path-icon">🏗️</div>
+                <h3>Explicit ActivityScreen&lt;K&gt;</h3>
+                <p class="path-desc">Class-based OOP registration. Extend <code>ActivityScreen&lt;K&gt;</code> and register each screen explicitly inside <code>NavEaseHost&lt;Root&gt;</code>.</p>
+                <ul class="path-pros">
+                    <li>No KSP, no annotations, no rebuild</li>
+                    <li>Typed <code>navKey: K</code> in <code>Content()</code> — no casting</li>
+                    <li>Familiar OOP structure — great for class-based codebases</li>
+                    <li>Explicit screen list = zero magic, full control</li>
+                </ul>
+                <a href="#impl-activityscreen" class="btn btn-outline">Start This Path →</a>
+            </div>
         </div>
     </div>
 </section>
@@ -267,7 +306,7 @@
         <div class="section-header">
             <span class="section-tag">Implementation</span>
             <h2>Path 1: Plugin + @AutoRegister</h2>
-            <p>The fastest way to production. One plugin line, one annotation per screen, one <code>remember { navEaseBootstrap() }</code> in App.kt, and a zero-arg <code>NavEaseHost()</code>. No platform-specific entry points needed.</p>
+            <p>The fastest way to production. One plugin line, one annotation per screen, and a zero-arg <code>NavEaseHost()</code>. The registry auto-wires on every platform — no <code>navEaseBootstrap()</code> call needed. iOS entry point stays completely clean.</p>
         </div>
 
         <div class="step-track">
@@ -350,16 +389,11 @@
                 <div class="step-marker">4</div>
                 <div class="step-body">
                     <h3>Host Your App</h3>
-                    <p>Add a single <code>remember { navEaseBootstrap() }</code> call at the top of <code>App()</code> to wire the registry on all platforms, then drop in <code>NavEaseHost</code>:</p>
+                    <p>The registry auto-wires on every platform — no <code>navEaseBootstrap()</code> call needed anywhere. Just drop <code>NavEaseHost</code> into App.kt:</p>
                     <div class="code-window">
                         <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">App.kt — commonMain</span></div>
                         <pre class="code-block"><span class="ann">@Composable</span>
 <span class="kw">fun</span> <span class="fn">App</span>() {
-    <span class="cmt">// Triggers @AutoRegister init on iOS/Native/JS.</span>
-    <span class="cmt">// On Android/JVM this is a fast no-op — screens are already discovered.</span>
-    <span class="cmt">// remember {} ensures it runs exactly once per composition, cheaply.</span>
-    <span class="fn">remember</span> { <span class="fn">navEaseBootstrap</span>() }
-
     <span class="cls">MaterialTheme</span> {
         <span class="cls">NavEaseHost</span>(   <span class="cmt">// ← no type param, no start =, no screens lambda ✅</span>
             onExitRequest = { <span class="cmt">/* show exit dialog or finish() */</span> },
@@ -369,7 +403,7 @@
     }
 }</pre>
                     </div>
-                    <p class="step-note">Your iOS <code>MainViewController</code> stays completely clean — just <code>ComposeUIViewController { App() }</code>. No imports, no bootstrap call, no platform-specific wiring needed there.</p>
+                    <p class="step-note">Registry auto-initialization by platform: Android/JVM → class-loading, iOS/Native → <code>@EagerInitialization</code>, JS/Wasm → module init. Your iOS <code>MainViewController</code> stays completely clean — just <code>ComposeUIViewController { App() }</code>.</p>
                 </div>
             </div>
 
@@ -513,6 +547,133 @@ nav.<span class="fn">backWithResult</span>(<span class="cls">DetailResult</span>
     </div>
 </section>
 
+<!-- ── IMPLEMENTATION: EXPLICIT ACTIVITYSCREEN<K> ───────────────────────── -->
+<section class="implementation" id="impl-activityscreen">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-tag">Implementation</span>
+            <h2>Path 3: Explicit ActivityScreen&lt;K&gt;</h2>
+            <p>No KSP. No annotations. No rebuild. Extend <code>ActivityScreen&lt;K&gt;</code> and register each screen explicitly inside a typed <code>NavEaseHost&lt;Root&gt;</code> block. Your IDE resolves everything immediately — plain Kotlin, full OOP control.</p>
+        </div>
+
+        <div class="step-track">
+            <div class="step-item">
+                <div class="step-marker">1</div>
+                <div class="step-body">
+                    <h3>Add the Runtime</h3>
+                    <p>Only <code>navease-runtime</code> is needed — no KSP plugin, no annotation processor:</p>
+                    <div class="code-window">
+                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">shared/build.gradle.kts</span></div>
+                        <pre class="code-block">kotlin {
+    sourceSets {
+        commonMain {
+            dependencies {
+                <span class="fn">implementation</span>(<span class="str">"io.github.alims-repo:navease-runtime:&lt;version&gt;"</span>)
+            }
+        }
+    }
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-arrow">↓</div>
+
+            <div class="step-item">
+                <div class="step-marker">2</div>
+                <div class="step-body">
+                    <h3>Define NavKeys</h3>
+                    <p>Same plain <code>@Serializable</code> sealed class used by all paths:</p>
+                    <div class="code-window">
+                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">AppScreens.kt</span></div>
+                        <pre class="code-block"><span class="ann">@Serializable</span>
+<span class="kw">sealed class</span> <span class="cls">AppScreens</span> : <span class="cls">NavKey</span> {
+    <span class="ann">@Serializable</span> <span class="kw">data object</span> <span class="cls">Home</span>   : <span class="cls">AppScreens</span>()
+    <span class="ann">@Serializable</span> <span class="kw">data class</span>  <span class="cls">Detail</span>(<span class="kw">val</span> id: <span class="cls">String</span>) : <span class="cls">AppScreens</span>()
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-arrow">↓</div>
+
+            <div class="step-item">
+                <div class="step-marker">3</div>
+                <div class="step-body">
+                    <h3>Extend ActivityScreen&lt;K&gt;</h3>
+                    <p>Each screen class receives a fully-typed <code>navKey: K</code> in <code>Content()</code> — no casting, no generated extensions:</p>
+                    <div class="code-window">
+                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">HomeScreen.kt + DetailScreen.kt</span></div>
+                        <pre class="code-block"><span class="kw">class</span> <span class="cls">HomeScreen</span> : <span class="cls">ActivityScreen</span>&lt;<span class="cls">AppScreens.Home</span>&gt;() {
+    <span class="ann">@Composable</span>
+    <span class="kw">override fun</span> <span class="fn">Content</span>(navKey: <span class="cls">AppScreens.Home</span>, navController: <span class="cls">NavController</span>) {
+        <span class="cls">Button</span>(onClick = { navController.<span class="fn">navigate</span>(<span class="cls">AppScreens</span>.Detail(id = <span class="str">"42"</span>)) }) {
+            <span class="cls">Text</span>(<span class="str">"Open Detail"</span>)
+        }
+    }
+}
+
+<span class="kw">class</span> <span class="cls">DetailScreen</span> : <span class="cls">ActivityScreen</span>&lt;<span class="cls">AppScreens.Detail</span>&gt;() {
+    <span class="kw">data class</span> <span class="cls">Result</span>(<span class="kw">val</span> confirmed: <span class="cls">Boolean</span>)
+
+    <span class="ann">@Composable</span>
+    <span class="kw">override fun</span> <span class="fn">Content</span>(navKey: <span class="cls">AppScreens.Detail</span>, navController: <span class="cls">NavController</span>) {
+        <span class="cls">Text</span>(<span class="str">"ID: ${navKey.id}"</span>)   <span class="cmt">// ← typed, no casting ✅</span>
+        <span class="cls">Button</span>(onClick = {
+            navController.<span class="fn">backWithResult</span>(<span class="cls">Result</span>(confirmed = <span class="kw">true</span>))
+        }) { <span class="cls">Text</span>(<span class="str">"Done"</span>) }
+    }
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-arrow">↓</div>
+
+            <div class="step-item">
+                <div class="step-marker">4</div>
+                <div class="step-body">
+                    <h3>Register &amp; Host</h3>
+                    <p>Use the typed <code>NavEaseHost&lt;Root&gt;</code> overload and call <code>add(Screen())</code> for each screen. <code>SavedStateConfiguration</code> is built automatically from the registered screens:</p>
+                    <div class="code-window">
+                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">App.kt</span></div>
+                        <pre class="code-block"><span class="ann">@Composable</span>
+<span class="kw">fun</span> <span class="fn">App</span>() {
+    <span class="cls">MaterialTheme</span> {
+        <span class="cls">NavEaseHost</span>&lt;<span class="cls">AppScreens</span>&gt;(   <span class="cmt">// ← typed root, explicit registration ✅</span>
+            start = <span class="cls">AppScreens</span>.Home,
+            onExitRequest = {},
+            enableSharedTransitions = <span class="kw">true</span>,
+            navTransition = <span class="cls">NavTransition</span>.Push,
+        ) {
+            <span class="fn">add</span>(<span class="cls">HomeScreen</span>())
+            <span class="fn">add</span>(<span class="cls">DetailScreen</span>())
+        }
+    }
+}</pre>
+                    </div>
+                    <p class="step-note">Adding a new screen is as simple as creating the class and calling <code>add()</code> here — no rebuild, no annotation, no plugin required.</p>
+                </div>
+            </div>
+
+            <div class="step-arrow">↓</div>
+
+            <div class="step-item">
+                <div class="step-marker">5</div>
+                <div class="step-body">
+                    <h3>Observe Results</h3>
+                    <p>Nest result classes inside the child screen for clear ownership, then observe them in the parent:</p>
+                    <div class="code-window">
+                        <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">HomeScreen.kt (result observer)</span></div>
+                        <pre class="code-block"><span class="kw">val</span> result <span class="kw">by</span> navController.<span class="fn">resultOf</span>&lt;<span class="cls">DetailScreen.Result</span>&gt;()
+result?.<span class="fn">let</span> { <span class="cls">Text</span>(<span class="str">"Confirmed: ${it.confirmed}"</span>) }</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- ── PLUGIN CONFIGURATION ──────────────────────────────────────────────── -->
 <section class="configure" id="configure">
     <div class="container">
@@ -590,11 +751,12 @@ nav.<span class="fn">backWithResult</span>(<span class="cls">DetailResult</span>
         <div class="faq-list">
             <div class="faq-item">
                 <button class="faq-question" onclick="toggleFaq(this)">
-                    <span>navEaseBootstrap() shows as unresolved in App.kt</span>
+                    <span>The @AutoRegister registry is empty at runtime — "No @AutoRegister screens found"</span>
                     <span class="faq-chevron">›</span>
                 </button>
                 <div class="faq-answer">
-                    <p><code>navEaseBootstrap()</code> is generated by KSP and lives in <code>io.github.alimsrepo.navease.generated</code>. Run <code>./gradlew :shared:kspCommonMainKotlinMetadata</code> once, then sync the IDE. The function will resolve and the import will work. It is called with <code>remember { navEaseBootstrap() }</code> at the top of your <code>App()</code> composable — your iOS <code>MainViewController</code> stays untouched.</p>
+                    <p>This means KSP hasn't generated the initializer yet. Run <code>./gradlew :shared:kspCommonMainKotlinMetadata</code> once to generate <code>AutoRegisterScreens.kt</code>, then sync the IDE. The registry bootstraps automatically after that — no <code>navEaseBootstrap()</code> call is required in your App.kt or platform entry points.</p>
+                    <p style="margin-top:8px">Auto-init by platform: <strong>Android/JVM</strong> → class-loading via <code>Class.forName</code>. <strong>iOS/Native</strong> → <code>@EagerInitialization</code> runs when the Kotlin framework loads. <strong>JS/Wasm</strong> → module-level property init.</p>
                 </div>
             </div>
 
@@ -624,15 +786,10 @@ nav.<span class="fn">backWithResult</span>(<span class="cls">DetailResult</span>
                     <span class="faq-chevron">›</span>
                 </button>
                 <div class="faq-answer">
-                    <p>On iOS/Native the auto-registry must be triggered before the first composition. Add <code>remember { navEaseBootstrap() }</code> at the top of <code>App()</code>, <strong>before</strong> <code>NavEaseHost</code>:</p>
-                    <pre style="background:var(--surface-2);padding:12px;border-radius:8px;overflow-x:auto;margin-top:8px"><code>import io.github.alimsrepo.navease.generated.navEaseBootstrap
-
-@Composable
-fun App() {
-    remember { navEaseBootstrap() }   // ← must be before NavEaseHost
-    NavEaseHost(onExitRequest = {})
-}</code></pre>
-                    <p style="margin-top:8px">Your <code>MainViewController.kt</code> stays clean — just <code>ComposeUIViewController { App() }</code>. If <code>navEaseBootstrap</code> is unresolved, run KSP first: <code>./gradlew :shared:kspCommonMainKotlinMetadata</code></p>
+                    <p>On iOS/Native the registry is populated automatically via <code>@EagerInitialization</code> on the KSP-generated <code>_navEaseAutoInit</code> property — this runs when the Kotlin framework is loaded, before any composition starts. No manual call is needed.</p>
+                    <p style="margin-top:8px">If you still see this error, the most likely cause is that KSP has not run yet. Run:</p>
+                    <pre style="background:var(--surface-2);padding:12px;border-radius:8px;overflow-x:auto;margin-top:8px"><code>./gradlew :shared:kspCommonMainKotlinMetadata</code></pre>
+                    <p style="margin-top:8px">Then rebuild the iOS framework. Your <code>MainViewController.kt</code> stays completely clean — just <code>ComposeUIViewController { App() }</code>. No imports, no extra calls.</p>
                 </div>
             </div>
 
@@ -642,7 +799,7 @@ fun App() {
                     <span class="faq-chevron">›</span>
                 </button>
                 <div class="faq-answer">
-                    <p>1. Keep your <code>@Serializable</code> sealed NavKey class. 2. Remove <code>@AutoRegister</code> annotations and extend plain classes. 3. Build a <code>navEaseGraph { screen&lt;K&gt; { } }</code> block. 4. Replace <code>NavEaseHost(onExitRequest = {})</code> with <code>NavEaseHost(graph = appGraph)</code>. 5. Remove the <code>remember { navEaseBootstrap() }</code> line from <code>App()</code> — it is not needed for the DSL path.</p>
+                    <p>1. Keep your <code>@Serializable</code> sealed NavKey class. 2. Remove <code>@AutoRegister</code> annotations and extend plain classes. 3. Build a <code>navEaseGraph { screen&lt;K&gt; { } }</code> block. 4. Replace the zero-arg <code>NavEaseHost(onExitRequest = {})</code> with <code>NavEaseHost(graph = appGraph)</code>. 5. Remove the NavEase plugin if you no longer need KSP — only <code>navease-runtime</code> is required for the DSL path.</p>
                 </div>
             </div>
 
@@ -665,7 +822,7 @@ fun App() {
         <div class="section-header">
             <span class="section-tag">Sample App</span>
             <h2>10 screens. Every feature.<br/>All platforms.</h2>
-            <p>The bundled demo app showcases the full NavEase @AutoRegister stack — typed navKeys, shared element transitions, back-with-result, and the plugin-only setup. App.kt calls <code>remember { navEaseBootstrap() }</code> once then <code>NavEaseHost(onExitRequest = {})</code>. The iOS entry point stays completely clean.</p>
+            <p>The bundled demo app showcases the full NavEase @AutoRegister stack — typed navKeys, shared element transitions, back-with-result, and the plugin-only setup. App.kt calls <code>NavEaseHost(onExitRequest = {})</code> — the registry auto-wires on all platforms, iOS entry point stays completely clean.</p>
         </div>
 
         <div class="demo-screens">
@@ -861,18 +1018,14 @@ fun App() {
                     <span class="code-title">The complete integration — App.kt + iOS entry point</span>
                 </div>
                 <pre class="code-block"><span class="cmt">// commonMain — App.kt</span>
-<span class="cmt">// Bootstrap once at the top of App(), then NavEaseHost. Done.</span>
+<span class="cmt">// The registry bootstraps automatically on every platform. Just use NavEaseHost.</span>
 <span class="ann">@Composable</span>
 <span class="kw">fun</span> <span class="fn">App</span>() {
-    <span class="cmt">// Triggers @AutoRegister on iOS/Native/JS; no-op on Android/JVM.</span>
-    <span class="cmt">// remember{} ensures it runs exactly once per session, cheaply.</span>
-    <span class="fn">remember</span> { <span class="fn">navEaseBootstrap</span>() }
-
     <span class="cls">NavEaseHost</span>(onExitRequest = {})   <span class="cmt">// ← that's it ✅</span>
 }
 
 <span class="cmt">// iosMain — MainViewController.kt</span>
-<span class="cmt">// Stays completely clean — no imports, no extra calls.</span>
+<span class="cmt">// Completely clean — @EagerInitialization handles the registry before composition.</span>
 <span class="kw">fun</span> <span class="fn">MainViewController</span>() = <span class="fn">ComposeUIViewController</span> { <span class="fn">App</span>() }
 
 <span class="cmt">// Navigation — same on every platform</span>
@@ -903,11 +1056,12 @@ nav?.<span class="fn">navigate</span>(<span class="cls">AppScreens</span>.Detail
                     </div>
                 </div>
                 <ul class="module-files">
-                    <li><code>NavEaseHost(onExitRequest)</code> — universal auto-registry composable; pair with <code>remember { navEaseBootstrap() }</code> in App.kt</li>
-                    <li><code>NavEaseHost(graph)</code> — DSL graph variant, no bootstrap needed</li>
+                    <li><code>NavEaseHost(onExitRequest)</code> — universal auto-registry composable; registry auto-wires on all platforms</li>
+                    <li><code>NavEaseHost(graph)</code> — DSL graph variant, no KSP needed</li>
+                    <li><code>NavEaseHost&lt;Root&gt;(start) { add(Screen()) }</code> — explicit typed ActivityScreen registration</li>
                     <li><code>ActivityScreen&lt;K&gt;</code> — typed abstract base; override <code>Content(navKey: K, …)</code></li>
                     <li><code>navEaseGraph { screen&lt;K&gt; { } }</code> — zero-rebuild DSL builder</li>
-                    <li><code>NavEaseAutoRegistry</code> — global screen registry populated by KSP</li>
+                    <li><code>NavEaseAutoRegistry</code> — global screen registry populated by KSP; auto-initialized on all platforms</li>
                     <li><code>NavController</code> — navigate / back / popUpTo / singleTop / backWithResult</li>
                     <li><code>LocalNavEaseController</code> + <code>LocalNavEaseSharedTransitionScope</code></li>
                 </ul>
@@ -923,7 +1077,9 @@ nav?.<span class="fn">navigate</span>(<span class="cls">AppScreens</span>.Detail
                 <ul class="module-files">
                     <li><code>NavEaseProcessor</code> — reads <code>@AutoRegister</code> annotations</li>
                     <li>Generates <code>NavEaseAutoInit</code> object with direct <code>addEntry()</code> calls</li>
-                    <li>Generates <code>fun navEaseBootstrap()</code> — called once via <code>remember { navEaseBootstrap() }</code> at the top of <code>App()</code></li>
+                    <li>iOS/Native: generated property annotated with <code>@EagerInitialization</code> — runs when the Kotlin framework loads, before composition</li>
+                    <li>Android/JVM: registry triggered via <code>Class.forName</code> class-loading inside <code>NavEaseHost</code></li>
+                    <li>JS/Wasm: module-level property initialized when the JS module loads</li>
                     <li>Validates: one NavKey → one screen · all screens same sealed root · exactly one <code>startDestination = true</code></li>
                     <li>All generated code lives in <code>io.github.alimsrepo.navease.generated</code></li>
                 </ul>
@@ -1039,6 +1195,7 @@ nav?.<span class="fn">navigate</span>(<span class="cls">AppScreens</span>.Detail
     var heroLabels = [
       'Path 1 — Plugin + @AutoRegister',
       'Path 2 — DSL Graph (Zero Rebuild)',
+      'Path 3 — Explicit ActivityScreen&lt;K&gt;',
     ];
     function heroTab(idx) {
       document.querySelectorAll('.hero-snippet').forEach(function (el, i) {
