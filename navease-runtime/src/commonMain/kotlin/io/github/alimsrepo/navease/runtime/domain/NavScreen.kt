@@ -2,7 +2,7 @@ package io.github.alimsrepo.navease.runtime.domain
 
 import androidx.compose.runtime.Composable
 import androidx.navigation3.runtime.NavKey
-import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 
 /**
  * Base class for every screen in a NavEase navigation graph.
@@ -20,7 +20,7 @@ abstract class NavScreen {
      * @param navKey        The key instance currently on top of the back stack for this screen.
      *                      Use the KSP-generated `navKey.xxxArgs()` extension to access typed
      *                      route arguments without referencing generated types directly.
-     * @param navController The [NavController] scoped to the current navigation host.
+     * @param navEaseController The [NavEaseController] scoped to the current navigation host.
      *                      Use [io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController]
      *                      if you need the controller from a deeply nested composable.
      */
@@ -28,6 +28,6 @@ abstract class NavScreen {
     @Suppress("unused") // Called by NavEaseNavGraph via screenFactory(route).Content(route, navController)
     abstract fun Content(
         navKey: NavKey,
-        navController: NavController
+        navEaseController: NavEaseController
     )
 }

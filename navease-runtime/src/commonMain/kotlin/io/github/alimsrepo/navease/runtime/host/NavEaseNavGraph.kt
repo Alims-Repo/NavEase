@@ -21,7 +21,7 @@ import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController
 import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseSharedTransitionScope
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
-import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import io.github.alimsrepo.navease.runtime.transition.Animations
 import io.github.alimsrepo.navease.runtime.transition.NavTransition
 
@@ -52,8 +52,8 @@ internal fun NavEaseNavGraphCore(
 
     val currentOnExitRequest by rememberUpdatedState(onExitRequest)
 
-    val navController = remember(applicationStack) {
-        NavController(
+    val navEaseController = remember(applicationStack) {
+        NavEaseController(
             backStack = applicationStack,
             showExitDialog = { currentOnExitRequest() },
             defaultTransition = navTransition,
@@ -61,22 +61,22 @@ internal fun NavEaseNavGraphCore(
     }
 
     SideEffect {
-        navController.defaultTransition = navTransition
+        navEaseController.defaultTransition = navTransition
     }
 
     @Composable
     fun Display(sharedScope: SharedTransitionScope?) {
-        CompositionLocalProvider(LocalNavEaseController provides navController) {
+        CompositionLocalProvider(LocalNavEaseController provides navEaseController) {
             NavDisplay(
                 modifier = Modifier.fillMaxSize(),
                 backStack = applicationStack,
                 sharedTransitionScope = sharedScope,
                 transitionSpec = {
-                    val transition = navController.transitionStore[targetState.key] ?: navTransition
+                    val transition = navEaseController.transitionStore[targetState.key] ?: navTransition
                     Animations.forward(transition)
                 },
                 popTransitionSpec = {
-                    val transition = navController.transitionStore[initialState.key] ?: navTransition
+                    val transition = navEaseController.transitionStore[initialState.key] ?: navTransition
                     Animations.back(transition)
                 },
             ) { route ->
@@ -130,7 +130,7 @@ fun NavEaseNavGraph(
     contentProvider = { key ->
         val nav = LocalNavEaseController.current
             ?: error("NavEase: LocalNavEaseController is null — Content called outside NavEaseNavGraph.")
-        screenFactory(key).Content(navKey = key, navController = nav)
+        screenFactory(key).Content(navKey = key, navEaseController = nav)
     },
     onExitRequest = onExitRequest,
     enableSharedTransitions = enableSharedTransitions,

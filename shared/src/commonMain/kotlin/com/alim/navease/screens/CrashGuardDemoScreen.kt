@@ -32,7 +32,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
-import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 
 @AutoRegister
@@ -40,7 +40,7 @@ class CrashGuardDemoScreen : ActivityScreen<AppScreens.CrashGuardDemo>() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(navKey: AppScreens.CrashGuardDemo, navController: NavController) {
+    override fun Content(navKey: AppScreens.CrashGuardDemo, navEaseController: NavEaseController) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -55,7 +55,7 @@ class CrashGuardDemoScreen : ActivityScreen<AppScreens.CrashGuardDemo>() {
                         }
                     },
                     navigationIcon = {
-                        NavBackButton(onClick = { navController.back() })
+                        NavBackButton(onClick = { navEaseController.back() })
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface

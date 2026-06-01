@@ -1,9 +1,6 @@
 package com.alim.navease.screens
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,12 +36,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
-import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 
 private enum class IndicatorStyle(val label: String, val description: String) {
@@ -67,7 +63,7 @@ class FlowTabDemoScreen : ActivityScreen<AppScreens.FlowTabDemo>() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(navKey: AppScreens.FlowTabDemo, navController: NavController) {
+    override fun Content(navKey: AppScreens.FlowTabDemo, navEaseController: NavEaseController) {
         var selectedTab by remember { mutableStateOf("home") }
         var selectedStyle by remember { mutableStateOf(IndicatorStyle.Ripple) }
 
@@ -85,7 +81,7 @@ class FlowTabDemoScreen : ActivityScreen<AppScreens.FlowTabDemo>() {
                         }
                     },
                     navigationIcon = {
-                        NavBackButton(onClick = { navController.back() })
+                        NavBackButton(onClick = { navEaseController.back() })
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface

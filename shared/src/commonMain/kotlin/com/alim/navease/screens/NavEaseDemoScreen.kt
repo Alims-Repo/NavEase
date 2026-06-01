@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
-import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import io.github.alimsrepo.navease.runtime.screen.ActivityScreen
 import io.github.alimsrepo.navease.runtime.transition.NavTransition
 
@@ -88,7 +88,7 @@ class NavEaseDemoScreen : ActivityScreen<AppScreens.NavEaseDemo>() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(navKey: AppScreens.NavEaseDemo, navController: NavController) {
+    override fun Content(navKey: AppScreens.NavEaseDemo, navEaseController: NavEaseController) {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -103,7 +103,7 @@ class NavEaseDemoScreen : ActivityScreen<AppScreens.NavEaseDemo>() {
                         }
                     },
                     navigationIcon = {
-                        NavBackButton(onClick = { navController.back() })
+                        NavBackButton(onClick = { navEaseController.back() })
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface
@@ -215,7 +215,7 @@ class NavEaseDemoScreen : ActivityScreen<AppScreens.NavEaseDemo>() {
                             Spacer(Modifier.height(14.dp))
                             Button(
                                 onClick = {
-                                    navController.navigate(
+                                    navEaseController.navigate(
                                         AppScreens.TransitionPreview(
                                             transitionName = t.name,
                                             tagline = t.tagline

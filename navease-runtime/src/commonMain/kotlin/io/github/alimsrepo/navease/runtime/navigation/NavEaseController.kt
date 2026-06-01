@@ -21,19 +21,19 @@ import io.github.alimsrepo.navease.runtime.transition.NavTransition
  *                          from the `navTransition` parameter of `NavEaseHost`.
  */
 @Stable
-class NavController(
+class NavEaseController(
     private val backStack: NavBackStack<NavKey>,
     private val showExitDialog: () -> Unit = {},
     internal var defaultTransition: NavTransition = NavTransition.Push,
 ) {
 
     /**
-     * Result store scoped to this [NavController] instance.
+     * Result store scoped to this [NavEaseController] instance.
      *
      * A [androidx.compose.runtime.snapshots.SnapshotStateMap] is used so that writing a result
      * triggers Compose recomposition in any composable that reads it (via [resultOf]).
      * Keeping it here — rather than in a global singleton — ensures that multiple independent
-     * [NavController] instances (nested nav, bottom tabs, multi-window on Desktop) never
+     * [NavEaseController] instances (nested nav, bottom tabs, multi-window on Desktop) never
      * cross-contaminate each other.
      */
     internal val results = mutableStateMapOf<String, Any?>()

@@ -1,7 +1,6 @@
 package com.alim.navease.screens
 
 import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionDefaults
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,7 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
-import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import io.github.alimsrepo.navease.runtime.navigation.resultOf
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 import io.github.alimsrepo.navease.runtime.presentation.LocalNavEaseSharedTransitionScope
@@ -57,10 +56,10 @@ class HomeScreen : ActivityScreen<AppScreens.Home>() {
 
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
     @Composable
-    override fun Content(navKey: AppScreens.Home, navController: NavController) {
+    override fun Content(navKey: AppScreens.Home, navEaseController: NavEaseController) {
 
         // Observe the result posted by LibraryDetailScreen (one-shot — stays until leaves composition)
-        val detailResult by navController.resultOf<LibraryDetailScreen.Result>()
+        val detailResult by navEaseController.resultOf<LibraryDetailScreen.Result>()
 
         val sharedScope   = LocalNavEaseSharedTransitionScope.current
         val animatedScope = LocalNavAnimatedContentScope.current
@@ -145,7 +144,7 @@ class HomeScreen : ActivityScreen<AppScreens.Home>() {
                         modifier = sharedModifier
                             .fillMaxWidth()
                             .clickable {
-                                navController.navigate(
+                                navEaseController.navigate(
                                     AppScreens.LibraryDetail(libId = lib.id, libName = lib.name),
                                     navTransition = lib.navTransition,
                                 )

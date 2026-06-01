@@ -3,7 +3,6 @@ package com.alim.navease.screens
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,7 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
-import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import io.github.alimsrepo.navease.runtime.navigation.backWithResult
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 import io.github.alimsrepo.navease.runtime.presentation.LocalNavEaseSharedTransitionScope
@@ -51,7 +50,7 @@ class LibraryDetailScreen : ActivityScreen<AppScreens.LibraryDetail>() {
 
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
     @Composable
-    override fun Content(navKey: AppScreens.LibraryDetail, navController: NavController) {
+    override fun Content(navKey: AppScreens.LibraryDetail, navEaseController: NavEaseController) {
         val lib = libraryById(navKey.libId) ?: run {
             // Fallback — should never happen
             Text("Library not found: ${navKey.libId}")
@@ -96,7 +95,7 @@ class LibraryDetailScreen : ActivityScreen<AppScreens.LibraryDetail>() {
                         }
                     },
                     navigationIcon = {
-                        NavBackButton(onClick = { navController.back() })
+                        NavBackButton(onClick = { navEaseController.back() })
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface
@@ -323,12 +322,12 @@ class LibraryDetailScreen : ActivityScreen<AppScreens.LibraryDetail>() {
                     Button(
                         onClick = {
                             when (lib.id) {
-                                "navease"      -> navController.navigate(AppScreens.NavEaseDemo)
-                                "securevault"  -> navController.navigate(AppScreens.SecureVaultDemo)
-                                "flowtab"      -> navController.navigate(AppScreens.FlowTabDemo)
-                                "prayertimes"  -> navController.navigate(AppScreens.PrayerTimesDemo)
-                                "crashguard"   -> navController.navigate(AppScreens.CrashGuardDemo)
-                                "pdfgenerator" -> navController.navigate(AppScreens.PdfDemo)
+                                "navease"      -> navEaseController.navigate(AppScreens.NavEaseDemo)
+                                "securevault"  -> navEaseController.navigate(AppScreens.SecureVaultDemo)
+                                "flowtab"      -> navEaseController.navigate(AppScreens.FlowTabDemo)
+                                "prayertimes"  -> navEaseController.navigate(AppScreens.PrayerTimesDemo)
+                                "crashguard"   -> navEaseController.navigate(AppScreens.CrashGuardDemo)
+                                "pdfgenerator" -> navEaseController.navigate(AppScreens.PdfDemo)
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -374,7 +373,7 @@ class LibraryDetailScreen : ActivityScreen<AppScreens.LibraryDetail>() {
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Button(
-                                    onClick = { navController.backWithResult(Result(starred = true)) },
+                                    onClick = { navEaseController.backWithResult(Result(starred = true)) },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(
@@ -382,7 +381,7 @@ class LibraryDetailScreen : ActivityScreen<AppScreens.LibraryDetail>() {
                                     )
                                 ) { Text("⭐  Star") }
                                 OutlinedButton(
-                                    onClick = { navController.backWithResult(Result(starred = false)) },
+                                    onClick = { navEaseController.backWithResult(Result(starred = false)) },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp)
                                 ) { Text("Skip") }

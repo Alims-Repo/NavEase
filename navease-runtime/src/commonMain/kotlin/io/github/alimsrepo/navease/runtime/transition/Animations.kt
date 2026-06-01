@@ -138,21 +138,21 @@ internal object Animations {
 
     /** Returns the [ContentTransform] used when *navigating forward* to a new screen. */
     fun forward(navTransition: NavTransition): ContentTransform = when (navTransition) {
-        NavTransition.Push    -> pushForward
-        NavTransition.Fade    -> symmetricFade
-        NavTransition.Rise    -> riseForward
-        NavTransition.Zoom    -> zoomForward
-        NavTransition.Depth   -> depthForward
+        NavTransition.Push -> pushForward
+        NavTransition.Fade -> symmetricFade
+        NavTransition.Rise -> riseForward
+        NavTransition.Zoom -> zoomForward
+        NavTransition.Depth -> depthForward
         NavTransition.Instant -> instantTransform
     }
 
     /** Returns the [ContentTransform] used when *popping back* to the previous screen. */
     fun back(navTransition: NavTransition): ContentTransform = when (navTransition) {
-        NavTransition.Push    -> pushBack
-        NavTransition.Fade    -> symmetricFade
-        NavTransition.Rise    -> riseBack
-        NavTransition.Zoom    -> zoomBack
-        NavTransition.Depth   -> depthBack
+        NavTransition.Push -> pushBack
+        NavTransition.Fade -> symmetricFade
+        NavTransition.Rise -> riseBack
+        NavTransition.Zoom -> zoomBack
+        NavTransition.Depth -> depthBack
         NavTransition.Instant -> instantTransform
     }
 }

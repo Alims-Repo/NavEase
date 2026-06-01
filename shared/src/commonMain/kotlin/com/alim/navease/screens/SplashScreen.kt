@@ -41,7 +41,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
-import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 import kotlinx.coroutines.delay
 
@@ -49,14 +49,14 @@ import kotlinx.coroutines.delay
 class SplashScreen : ActivityScreen<AppScreens.Splash>() {
 
     @Composable
-    override fun Content(navKey: AppScreens.Splash, navController: NavController) {
+    override fun Content(navKey: AppScreens.Splash, navEaseController: NavEaseController) {
 
         var hasNavigated by rememberSaveable { mutableStateOf(false) }
         LaunchedEffect(hasNavigated) {
             if (!hasNavigated) {
                 delay(2_600L)
                 hasNavigated = true
-                navController.navigate(AppScreens.Home, finish = true)
+                navEaseController.navigate(AppScreens.Home, finish = true)
             }
         }
 

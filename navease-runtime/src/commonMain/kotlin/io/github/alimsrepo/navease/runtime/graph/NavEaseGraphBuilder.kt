@@ -8,7 +8,6 @@ import androidx.savedstate.serialization.SavedStateConfiguration
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
-import kotlinx.serialization.modules.subclass
 import kotlinx.serialization.serializer
 import kotlin.reflect.KClass
 
@@ -33,7 +32,7 @@ class NavEaseGraphBuilder @PublishedApi internal constructor() {
      * ```
      *
      * Inside [content], use [io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController]
-     * to access the [io.github.alimsrepo.navease.runtime.navigation.NavController]:
+     * to access the [io.github.alimsrepo.navease.runtime.navigation.NavEaseController]:
      * ```kotlin
      * val nav = LocalNavEaseController.current
      * nav.navigate(AppScreen.Detail(id = "xyz"))

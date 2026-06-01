@@ -11,7 +11,7 @@ import kotlin.reflect.KClass
 /**
  * Posts [result] back to the previous screen and immediately pops the current screen.
  *
- * The result is stored in the [NavController] instance that owns this back stack, so multiple
+ * The result is stored in the [NavEaseController] instance that owns this back stack, so multiple
  * independent navigation hosts never cross-contaminate each other's results.
  *
  * The map key is [KClass.simpleName] — supported on all KMP targets including JS and WASM
@@ -21,7 +21,7 @@ import kotlin.reflect.KClass
  *
  * @throws IllegalStateException if [result] is an anonymous or local class (simpleName is null).
  */
-fun NavController.backWithResult(result: Any) {
+fun NavEaseController.backWithResult(result: Any) {
     val key = result::class.simpleName
         ?: error(
             "NavEase: Cannot use an anonymous or local class as a result. " +
@@ -56,7 +56,7 @@ fun NavController.backWithResult(result: Any) {
  * @param clazz The [KClass] of the expected result type.
  */
 @Composable
-fun <T : Any> NavController.resultOf(clazz: KClass<T>): State<T?> {
+fun <T : Any> NavEaseController.resultOf(clazz: KClass<T>): State<T?> {
     val key = clazz.simpleName
         ?: error(
             "NavEase: Cannot observe results for an anonymous or local class. " +
@@ -134,4 +134,4 @@ fun <T : Any> NavController.resultOf(clazz: KClass<T>): State<T?> {
  * @param T The expected result type. Typically a nested `data class` inside the child screen.
  */
 @Composable
-inline fun <reified T : Any> NavController.resultOf(): State<T?> = resultOf(T::class)
+inline fun <reified T : Any> NavEaseController.resultOf(): State<T?> = resultOf(T::class)

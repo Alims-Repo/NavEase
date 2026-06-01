@@ -2,7 +2,7 @@ package io.github.alimsrepo.navease.runtime.screen
 
 import androidx.compose.runtime.Composable
 import androidx.navigation3.runtime.NavKey
-import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import kotlinx.serialization.KSerializer
 import kotlin.reflect.KClass
 
@@ -79,11 +79,11 @@ abstract class ActivityScreen<K : NavKey> {
      *
      * @param navKey        The typed nav-key currently on top of the back stack.
      *                      Route arguments are accessible directly — e.g. `navKey.id`.
-     * @param navController The [NavController] scoped to the current nav host.
+     * @param navEaseController The [NavEaseController] scoped to the current nav host.
      *                      Also available deeper in the tree via
      *                      [LocalNavEaseController.current][io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController].
      */
     @Composable
-    abstract fun Content(navKey: K, navController: NavController)
+    abstract fun Content(navKey: K, navEaseController: NavEaseController)
 }
 

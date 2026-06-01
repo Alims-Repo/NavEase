@@ -44,7 +44,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
-import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 
 private sealed interface VaultOp {
@@ -60,7 +60,7 @@ class SecureVaultDemoScreen : ActivityScreen<AppScreens.SecureVaultDemo>() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(navKey: AppScreens.SecureVaultDemo, navController: NavController) {
+    override fun Content(navKey: AppScreens.SecureVaultDemo, navEaseController: NavEaseController) {
         // Simulated in-memory vault
         val vault = remember { mutableMapOf<String, String>() }
 
@@ -82,7 +82,7 @@ class SecureVaultDemoScreen : ActivityScreen<AppScreens.SecureVaultDemo>() {
                         }
                     },
                     navigationIcon = {
-                        NavBackButton(onClick = { navController.back() })
+                        NavBackButton(onClick = { navEaseController.back() })
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface

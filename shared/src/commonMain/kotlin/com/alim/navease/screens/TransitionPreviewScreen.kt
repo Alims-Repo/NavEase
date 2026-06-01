@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,7 +28,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
-import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
 
 /**
@@ -41,13 +40,13 @@ class TransitionPreviewScreen : ActivityScreen<AppScreens.TransitionPreview>() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(navKey: AppScreens.TransitionPreview, navController: NavController) {
+    override fun Content(navKey: AppScreens.TransitionPreview, navEaseController: NavEaseController) {
         Scaffold(
             topBar = {
                 TopAppBar(
                     title = { Text("Transition Preview", fontWeight = FontWeight.SemiBold) },
                     navigationIcon = {
-                        NavBackButton(onClick = { navController.back() })
+                        NavBackButton(onClick = { navEaseController.back() })
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface
@@ -145,7 +144,7 @@ class TransitionPreviewScreen : ActivityScreen<AppScreens.TransitionPreview>() {
                     }
 
                     Button(
-                        onClick = { navController.back() },
+                        onClick = { navEaseController.back() },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
