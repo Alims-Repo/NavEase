@@ -9,10 +9,21 @@ import io.github.alimsrepo.navease.runtime.transition.NavTransition
 fun App() {
 
     MaterialTheme {
-        NavEaseHost(
+        NavEaseHost<AppScreens>(
             onExitRequest = {},
             enableSharedTransitions = true,
             navTransition = NavTransition.Push
-        )
+        ) {
+            add(SplashScreen(), startWith = AppScreens.Splash)
+            add(HomeScreen())
+            add(LibraryDetailScreen())
+            add(NavEaseDemoScreen())
+            add(TransitionPreviewScreen())
+            add(SecureVaultDemoScreen())
+            add(FlowTabDemoScreen())
+            add(PrayerTimesDemoScreen())
+            add(CrashGuardDemoScreen())
+            add(PdfDemoScreen())
+        }
     }
 }

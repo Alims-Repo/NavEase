@@ -22,3 +22,21 @@ import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
  */
 val LocalNavEaseController: ProvidableCompositionLocal<NavEaseController?> = compositionLocalOf { null }
 
+/**
+ * Provides access to the **parent** [NavEaseController] when inside a nested [NavEaseHost].
+ *
+ * In a nested navigation setup where one [NavEaseHost] is composed inside a screen of another,
+ * the inner host overrides [LocalNavEaseController] with its own controller. Use this local
+ * to reach the outer (parent) controller — for example, to navigate back in the parent flow
+ * from within a nested sub-flow:
+ *
+ * ```kotlin
+ * // Inside a nested screen:
+ * val parentNav = LocalNavEaseParentController.current
+ * parentNav?.navigate(AppScreens.Home)  // navigates in the outer host
+ * ```
+ *
+ * `null` if there is no parent host (i.e. the current host is the top-level one).
+ */
+val LocalNavEaseParentController: ProvidableCompositionLocal<NavEaseController?> = compositionLocalOf { null }
+

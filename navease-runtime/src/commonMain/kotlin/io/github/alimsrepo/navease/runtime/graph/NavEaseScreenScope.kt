@@ -27,6 +27,12 @@ class NavEaseScreenScope<Root : NavKey> @PublishedApi internal constructor() {
     @PublishedApi internal val serPairs = mutableListOf<Pair<KClass<*>, KSerializer<*>>>()
 
     /**
+     * The first screen added with [startWith] = `true`, or the first [add]-ed screen
+     * if none is explicitly marked. Used by the start-inferring [NavEaseHost] overload.
+     */
+    @PublishedApi internal var inferredStart: NavKey? = null
+
+    /**
      * Registers an [ActivityScreen] for the [NavKey] subclass [K].
      *
      * [K] is inferred from the screen's generic parameter — no explicit type argument needed:
@@ -34,13 +40,19 @@ class NavEaseScreenScope<Root : NavKey> @PublishedApi internal constructor() {
      * add(DetailScreen())   // K = AppScreens.Detail, inferred automatically
      * ```
      *
-     * @param screen An instance of your [ActivityScreen] subclass.
+     * @param screen    An instance of your [ActivityScreen] subclass.
+     * @param startWith When non-null, marks this key as the start destination for this host.
+     *                  Only one screen per [NavEaseHost] should be marked as start.
+     *                  If none is marked, use the explicit-start overload of [NavEaseHost].
      */
-    inline fun <reified K : Root> add(screen: ActivityScreen<K>) {
+    inline fun <reified K : Root> add(screen: ActivityScreen<K>, startWith: K? = null) {
         screen._keyClass   = K::class
         screen._serializer = serializer<K>()
         screens  += screen
         serPairs += K::class to serializer<K>()
+        if (startWith != null) {
+            inferredStart = startWith
+        }
     }
 
     /**

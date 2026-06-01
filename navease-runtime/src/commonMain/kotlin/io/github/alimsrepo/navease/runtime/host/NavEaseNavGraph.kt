@@ -19,6 +19,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController
+import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseParentController
 import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseSharedTransitionScope
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
@@ -66,7 +67,10 @@ internal fun NavEaseNavGraphCore(
 
     @Composable
     fun Display(sharedScope: SharedTransitionScope?) {
-        CompositionLocalProvider(LocalNavEaseController provides navEaseController) {
+        CompositionLocalProvider(
+            LocalNavEaseParentController provides LocalNavEaseController.current,
+            LocalNavEaseController provides navEaseController,
+        ) {
             NavDisplay(
                 modifier = Modifier.fillMaxSize(),
                 backStack = applicationStack,
