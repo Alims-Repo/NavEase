@@ -32,6 +32,10 @@ import androidx.navigation3.runtime.NavKey
  * - Constructor parameters of subclasses must be serializable types
  *   (Kotlin primitives, `String`, or classes annotated with `@Serializable`).
  * - Every `@AutoRegister` screen must reference a subtype of [NavEaseRoot].
+ *
+ * **Note:** The NavEase Gradle plugin automatically adds the required navigation3
+ * dependency to your project, so [NavKey] is available at compile time without
+ * being exposed in the public API of published artifacts.
  */
 interface NavEaseRoot : NavKey
 

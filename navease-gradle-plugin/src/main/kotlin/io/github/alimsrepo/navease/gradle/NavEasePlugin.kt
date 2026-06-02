@@ -45,16 +45,33 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
  *     kotlin("multiplatform")
  *     id("io.github.alims-repo.navease") version "<version>"
  * }
- * // Done — KSP and the Kotlin Serialization compiler plugin are applied automatically,
- * // navease-runtime (with kotlinx-serialization-core as api), navease-ksp, srcDir,
- * // and task wiring are all handled. Zero boilerplate — @Serializable just works.
+ * // Done — KSP, Kotlin Serialization, navease-runtime, navigation3-ui, and all KSP task
+ * // wiring are handled automatically. Zero boilerplate — @Serializable just works.
+ * //
+ * // Note: navigation3-ui is auto-added to avoid compiler warnings about NavKey
+ * // (NavEaseRoot's supertype) being inaccessible. If you already have navigation3-ui
+ * // declared, auto-injection is skipped and Gradle uses your version.
  * ```
+ *
+ * **Handling Navigation3 Version Conflicts:**
+ *
+ * NavEase is smart about navigation3 dependencies:
+ * - If you already have `navigation3-ui` declared, NavEase **skips auto-injection**
+ * - Gradle's standard resolution applies (typically highest version wins)
+ * - You can force a specific version using `forceNavigation3Version = true`
  *
  * For local monorepo development, override dependencies via the `navease {}` extension:
  * ```kotlin
  * navease {
  *     kspProcessorDependency = project(":navease-ksp")
  *     runtimeDependency      = project(":navease-runtime")
+ *
+ *     // If you have version conflicts with navigation3:
+ *     navigation3Dependency = "org.jetbrains.androidx.navigation3:navigation3-ui:1.2.0"
+ *     forceNavigation3Version = true  // Optional: force this version everywhere
+ *
+ *     // Or manage it yourself:
+ *     addNavigation3Dependency = false
  * }
  * ```
  */
@@ -146,6 +163,60 @@ class NavEasePlugin : Plugin<Project> {
                     implementation(runtimeDep)
                 }
                 project.logger.info("[NavEase] Added runtime: $runtimeDep")
+            }
+
+            // ── Step 5b: Optionally add navigation3-ui to commonMain ──────────────
+            // This is required to avoid compiler warnings about NavKey (NavEaseRoot's supertype)
+            // being inaccessible when nav3 is declared as implementation (not api) in navease-runtime.
+            if (extension.addNavigation3Dependency) {
+                val commonMain = kmp.sourceSets.findByName("commonMain")
+
+                // Check if navigation3-ui is already declared in commonMain
+                val hasExistingNav3 = try {
+                    val configName = "commonMainImplementation"
+                    val config = project.configurations.findByName(configName)
+                    val hasIt = config?.dependencies?.any { dep ->
+                        dep.group == "org.jetbrains.androidx.navigation3" &&
+                        dep.name == "navigation3-ui"
+                    } ?: false
+                    hasIt
+                } catch (e: Exception) {
+                    // If we can't determine, assume it's not present and proceed
+                    false
+                }
+
+                if (hasExistingNav3) {
+                    project.logger.info(
+                        "[NavEase] Skipping navigation3-ui auto-injection — already declared in commonMain. " +
+                        "Make sure the version is compatible with NavEase (recommended: 1.1.1+)."
+                    )
+                } else {
+                    val nav3Dep = extension.effectiveNavigation3Dependency()
+                    commonMain?.dependencies {
+                        implementation(nav3Dep)
+                    }
+                    project.logger.info("[NavEase] Added navigation3-ui: $nav3Dep")
+                }
+
+                // Apply force resolution strategy if requested
+                if (extension.forceNavigation3Version) {
+                    val nav3Version = when (val dep = extension.effectiveNavigation3Dependency()) {
+                        is String -> dep.substringAfterLast(":")
+                        else -> "1.1.1" // fallback to default
+                    }
+
+                    project.configurations.configureEach { config ->
+                        if (config.name.contains("Implementation") || config.name.contains("Api")) {
+                            config.resolutionStrategy { strategy ->
+                                strategy.force("org.jetbrains.androidx.navigation3:navigation3-ui:$nav3Version")
+                            }
+                        }
+                    }
+                    project.logger.info(
+                        "[NavEase] Forcing navigation3-ui version to $nav3Version " +
+                        "(forceNavigation3Version = true)"
+                    )
+                }
             }
 
             // ── Step 6: Forward generatedPackage to the KSP processor arg ────────
