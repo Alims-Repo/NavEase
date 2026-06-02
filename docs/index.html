@@ -319,7 +319,7 @@
                         <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">shared/build.gradle.kts</span></div>
                         <pre class="code-block">plugins {
     <span class="fn">kotlin</span>(<span class="str">"multiplatform"</span>)
-    id(<span class="str">"io.github.alims-repo.navease"</span>) version <span class="str">"&lt;version&gt;"</span>
+    id(<span class="str">"io.github.alims-repo.navease"</span>) version <span class="str">"0.1.2"</span>
 }</pre>
                     </div>
                     <p class="step-note">The plugin automatically applies KSP, adds <code>navease-runtime</code>, registers the generated source directory, and wires all compilation tasks to depend on KSP.</p>
@@ -332,15 +332,12 @@
                 <div class="step-marker">2</div>
                 <div class="step-body">
                     <h3>Define Your NavKeys</h3>
-                    <p>Create a <code>@Serializable</code> sealed class in <code>commonMain</code>:</p>
+                    <p>Create a sealed class in <code>commonMain</code> that extends <code>NavEaseRoot</code> (no <code>@Serializable</code> needed):</p>
                     <div class="code-window">
                         <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">AppScreens.kt</span></div>
-                        <pre class="code-block"><span class="ann">@Serializable</span>
-<span class="kw">sealed class</span> <span class="cls">AppScreens</span> : <span class="cls">NavKey</span> {
-    <span class="ann">@Serializable</span>
+                        <pre class="code-block"><span class="kw">sealed class</span> <span class="cls">AppScreens</span> : <span class="cls">NavEaseRoot</span> {
     <span class="kw">data object</span> <span class="cls">Home</span> : <span class="cls">AppScreens</span>()
 
-    <span class="ann">@Serializable</span>
     <span class="kw">data class</span> <span class="cls">Detail</span>(<span class="kw">val</span> id: <span class="cls">String</span>) : <span class="cls">AppScreens</span>()
 }</pre>
                     </div>
@@ -452,7 +449,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                <span class="fn">implementation</span>(<span class="str">"io.github.alims-repo:navease-runtime:&lt;version&gt;"</span>)
+                <span class="fn">implementation</span>(<span class="str">"io.github.alims-repo:navease-runtime:0.1.2"</span>)
             }
         }
     }
@@ -568,7 +565,7 @@ nav.<span class="fn">backWithResult</span>(<span class="cls">DetailResult</span>
     sourceSets {
         commonMain {
             dependencies {
-                <span class="fn">implementation</span>(<span class="str">"io.github.alims-repo:navease-runtime:&lt;version&gt;"</span>)
+                <span class="fn">implementation</span>(<span class="str">"io.github.alims-repo:navease-runtime:0.1.2"</span>)
             }
         }
     }
@@ -731,7 +728,7 @@ result?.<span class="fn">let</span> { <span class="cls">Text</span>(<span class=
         <div class="code-window" style="margin-top:32px">
             <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">Example: Local Monorepo Setup</span></div>
             <pre class="code-block"><span class="fn">navease</span> {
-    version = <span class="str">"0.0.3"</span>
+    version = <span class="str">"0.1.2"</span>
     kspProcessorDependency = <span class="fn">project</span>(<span class="str">":navease-ksp"</span>)
     runtimeDependency      = <span class="fn">project</span>(<span class="str">":navease-runtime"</span>)
     generatedPackage       = <span class="str">"com.example.myapp.navigation"</span>
@@ -995,11 +992,11 @@ result?.<span class="fn">let</span> { <span class="cls">Text</span>(<span class=
     <span class="kw">init</span> {
         <span class="cls">NavEaseAutoRegistry</span>.<span class="fn">addEntry</span>(
             <span class="cls">SplashScreen</span>(), <span class="cls">AppScreens</span>.Splash::class,
-            serializer&lt;<span class="cls">AppScreens</span>.Splash&gt;(), <span class="cls">AppScreens</span>.Splash  <span class="cmt">// start ✅</span>
+            <span class="cls">AppScreens</span>::class, <span class="cls">NavEase_Splash_Ser</span>  <span class="cmt">// start ✅</span>
         )
         <span class="cls">NavEaseAutoRegistry</span>.<span class="fn">addEntry</span>(
             <span class="cls">HomeScreen</span>(), <span class="cls">AppScreens</span>.Home::class,
-            serializer&lt;<span class="cls">AppScreens</span>.Home&gt;()
+            <span class="cls">AppScreens</span>::class, <span class="cls">NavEase_Home_Ser</span>
         )
         <span class="cmt">// … all other @AutoRegister screens …</span>
     }
@@ -1062,6 +1059,7 @@ nav?.<span class="fn">navigate</span>(<span class="cls">AppScreens</span>.Detail
                     <li><code>ActivityScreen&lt;K&gt;</code> — typed abstract base; override <code>Content(navKey: K, …)</code></li>
                     <li><code>navEaseGraph { screen&lt;K&gt; { } }</code> — zero-rebuild DSL builder</li>
                     <li><code>NavEaseAutoRegistry</code> — global screen registry populated by KSP; auto-initialized on all platforms</li>
+                    <li><code>NavEaseRoot</code> — NavKey alias that removes <code>@Serializable</code> requirements for @AutoRegister keys</li>
                     <li><code>NavController</code> — navigate / back / popUpTo / singleTop / backWithResult</li>
                     <li><code>LocalNavEaseController</code> + <code>LocalNavEaseSharedTransitionScope</code></li>
                 </ul>

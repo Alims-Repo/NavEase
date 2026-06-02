@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.navigation3.runtime.NavKey
 import androidx.savedstate.serialization.SavedStateConfiguration
+import io.github.alimsrepo.navease.runtime.NavEaseRoot
 import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController
 import io.github.alimsrepo.navease.runtime.graph.NavEaseGraph
 import io.github.alimsrepo.navease.runtime.graph.NavEaseScreenScope
@@ -83,8 +84,8 @@ fun NavEaseHost(
  * @param screens                 Registration block — call [NavEaseScreenScope.add] for each screen.
  */
 @Composable
-fun <Root : NavKey> NavEaseHost(
-    start: Root,
+fun <Root : NavEaseRoot> NavEaseHost(                   // ← NavKey → NavEaseRoot
+    start: NavEaseRoot,                                  // ← Root → NavEaseRoot
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
     navTransition: NavTransition = NavTransition.Push,
@@ -166,18 +167,21 @@ fun <Root : NavKey> NavEaseHost(
  * @param navTransition           Default screen-to-screen animation.
  */
 @Composable
-inline fun <reified Root : NavKey> NavEaseHost(
-    start: Root,
+inline fun <reified Root : NavEaseRoot> NavEaseHost(
+    start: NavEaseRoot,
     noinline onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
     navTransition: NavTransition = NavTransition.Push,
 ) {
+    require(start is Root) {
+        "NavEase: start destination ${start::class.simpleName} is not a subtype of ${Root::class.simpleName}"
+    }
     NavEaseHostForRoot(
         rootClass = Root::class,
-        start                  = start,
-        onExitRequest          = onExitRequest,
+        start = start,
+        onExitRequest = onExitRequest,
         enableSharedTransitions = enableSharedTransitions,
-        navTransition          = navTransition,
+        navTransition = navTransition,
     )
 }
 

@@ -4,6 +4,7 @@ package io.github.alimsrepo.navease.runtime.presentation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation3.runtime.NavKey
+import io.github.alimsrepo.navease.runtime.NavEaseRoot
 import io.github.alimsrepo.navease.runtime.transition.NavTransition
 
 // ── Backward-compatibility shims — moved to io.github.alimsrepo.navease.runtime.host ──
@@ -40,7 +41,7 @@ fun NavEaseHost(
     level = DeprecationLevel.WARNING,
 )
 @Composable
-fun <Root : NavKey> NavEaseHost(
+fun <Root : NavEaseRoot> NavEaseHost(
     start: Root,
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
