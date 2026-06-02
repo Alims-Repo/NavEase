@@ -173,7 +173,7 @@ inline fun <reified Root : NavKey> NavEaseHost(
     navTransition: NavTransition = NavTransition.Push,
 ) {
     NavEaseHostForRoot(
-        rootClass              = Root::class,
+        rootClass = Root::class,
         start                  = start,
         onExitRequest          = onExitRequest,
         enableSharedTransitions = enableSharedTransitions,
@@ -234,7 +234,7 @@ fun NavEaseHostForRoot(
     }
 
     NavEaseNavGraphCore(
-        initialScreen        = start,
+        initialScreen = start,
         savedStateConfig     = savedStateConfig,
         contentProvider      = { key ->
             @Suppress("UNCHECKED_CAST")

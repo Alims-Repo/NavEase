@@ -290,6 +290,94 @@ class NavEaseProcessor(
             .toSortedSet()
             .joinToString("\n") { "import $it" }
 
+    // ── NavKey serializer code-gen ──────────────────────────────────────────
+    //
+    // Generates a private KSerializer<Root.Sub> object for each @AutoRegister
+    // key class.  This replaces the previous `serializer<Root.Sub>()` call that
+    // required `@Serializable` on the user's sealed hierarchy.
+    //
+    // • data object  → empty structure (no fields)
+    // • data class   → encodes/decodes every constructor parameter in order
+    //
+    // All field serializers are resolved at object-initialisation time via
+    // `serializer(typeOf<T>())`, so the field types still need to be
+    // serializable (Kotlin primitives, String, or @Serializable custom types).
+
+    private fun generateNavKeySerializer(
+        keySimpleName: String,
+        rootSimpleName: String,
+        keyParams: List<ArgParam>,
+    ): String = buildString {
+        val serName = "NavEase_${keySimpleName}_Ser"
+        val qualKey = "$rootSimpleName.$keySimpleName"
+
+        if (keyParams.isEmpty()) {
+            // ── data object ──────────────────────────────────────────────────
+            appendLine("private object $serName : KSerializer<$qualKey> {")
+            appendLine("    override val descriptor = buildClassSerialDescriptor(\"$qualKey\")")
+            appendLine("    override fun serialize(encoder: Encoder, value: $qualKey) {")
+            appendLine("        encoder.beginStructure(descriptor).endStructure(descriptor)")
+            appendLine("    }")
+            appendLine("    override fun deserialize(decoder: Decoder): $qualKey {")
+            appendLine("        decoder.beginStructure(descriptor).endStructure(descriptor)")
+            appendLine("        return $qualKey")
+            appendLine("    }")
+            append("}")
+        } else {
+            // ── data class with constructor params ───────────────────────────
+            appendLine("@Suppress(\"UNCHECKED_CAST\")")
+            appendLine("private object $serName : KSerializer<$qualKey> {")
+            // One field serializer per parameter, resolved once at init time.
+            keyParams.forEachIndexed { i, p ->
+                appendLine(
+                    "    private val _f${i}_ser = " +
+                    "serializer(typeOf<${p.typeInfo.shortName}>()) as KSerializer<${p.typeInfo.shortName}>"
+                )
+            }
+            appendLine("    override val descriptor = buildClassSerialDescriptor(\"$qualKey\") {")
+            keyParams.forEachIndexed { i, p ->
+                appendLine("        element(\"${p.name}\", _f${i}_ser.descriptor)")
+            }
+            appendLine("    }")
+            // serialize
+            appendLine("    override fun serialize(encoder: Encoder, value: $qualKey) {")
+            appendLine("        val c = encoder.beginStructure(descriptor)")
+            keyParams.forEachIndexed { i, p ->
+                appendLine(
+                    "        c.encodeSerializableElement(descriptor, $i, _f${i}_ser, value.${p.name})"
+                )
+            }
+            appendLine("        c.endStructure(descriptor)")
+            appendLine("    }")
+            // deserialize — use Any? intermediaries and cast at the end to avoid
+            // needing a per-type default value.
+            appendLine("    override fun deserialize(decoder: Decoder): $qualKey {")
+            keyParams.forEachIndexed { i, _ -> appendLine("        var _f$i: Any? = null") }
+            appendLine("        val c = decoder.beginStructure(descriptor)")
+            appendLine("        loop@ while (true) {")
+            appendLine("            when (val idx = c.decodeElementIndex(descriptor)) {")
+            keyParams.forEachIndexed { i, _ ->
+                appendLine(
+                    "                $i -> _f$i = c.decodeSerializableElement(descriptor, $i, _f${i}_ser)"
+                )
+            }
+            appendLine("                CompositeDecoder.DECODE_DONE -> break@loop")
+            appendLine(
+                "                else -> throw SerializationException(" +
+                "\"NavEase: unexpected index \$idx in $qualKey\")"
+            )
+            appendLine("            }")
+            appendLine("        }")
+            appendLine("        c.endStructure(descriptor)")
+            val ctorArgs = keyParams.mapIndexed { i, p ->
+                "${p.name} = _f$i as ${p.typeInfo.shortName}"
+            }.joinToString(", ")
+            appendLine("        return $qualKey($ctorArgs)")
+            appendLine("    }")
+            append("}")
+        }
+    }
+
     private fun generateAppScreens(
         entries: List<ScreenEntry>,
         startRoute: String,
@@ -521,6 +609,8 @@ class NavEaseProcessor(
             val screenSimpleName: String,
             val keyFqn: String,
             val keySimpleName: String,
+            /** Constructor parameters of the NavKey subclass (empty for data objects). */
+            val keyParams: List<ArgParam>,
             val rootFqn: String,
             val rootSimpleName: String,
             val isStart: Boolean,
@@ -573,9 +663,21 @@ class NavEaseProcessor(
             }
 
             val rootFqn = rootDecl.qualifiedName?.asString() ?: return@mapNotNull null
+
+            // Read constructor parameters of the key class so we can generate a
+            // KSerializer for it without requiring @Serializable on the user's class.
+            val keyParams: List<ArgParam> = keyDecl.primaryConstructor
+                ?.parameters
+                ?.map { param ->
+                    val resolved = param.type.resolve()
+                    ArgParam(param.name!!.asString(), resolveTypeInfo(resolved), resolved)
+                }
+                ?: emptyList()
+
             AutoEntry(
                 screenFqn, screenSimpleName,
                 keyFqn, keyDecl.simpleName.asString(),
+                keyParams,
                 rootFqn, rootDecl.simpleName.asString(),
                 isStart,
             )
@@ -611,24 +713,50 @@ class NavEaseProcessor(
         val screenImports = entries.joinToString("\n") { "import ${it.screenFqn}" }
         // All unique root FQNs — may span multiple sealed classes (e.g. AppScreens + WizardStep)
         val rootImports = entries.map { it.rootFqn }.distinct().joinToString("\n") { "import $it" }
-        val rootFqn = entries.first().rootFqn   // kept for legacy; use rootImports above
+
+        // ── Generate KSerializer objects for every key class ───────────────
+        // These replace the previous `serializer<Root.Sub>()` calls, removing
+        // the @Serializable requirement from the user's sealed hierarchy.
+        val serializersBlock = entries.joinToString("\n\n") { entry ->
+            generateNavKeySerializer(entry.keySimpleName, entry.rootSimpleName, entry.keyParams)
+        }
+
+        // Imports needed by field-type serializers (e.g. data class args)
+        val keyParamImports = importsFrom(entries.flatMap { it.keyParams })
+        val hasParamsEntries = entries.any { it.keyParams.isNotEmpty() }
 
         val addEntryCalls = entries.joinToString("\n") { entry ->
             val cls  = entry.keySimpleName
             val root = entry.rootSimpleName
-            // New signature: addEntry(screen, keyClass, rootKeyClass, serializer)
-            "        NavEaseAutoRegistry.addEntry(${entry.screenSimpleName}(), $root.$cls::class, $root::class, serializer<$root.$cls>())"
+            // Use the generated serializer — no serializer<T>() call needed.
+            "        NavEaseAutoRegistry.addEntry(${entry.screenSimpleName}(), $root.$cls::class, $root::class, NavEase_${cls}_Ser)"
         }
 
         val content = buildString {
             appendLine("package $generatedPackage")
             appendLine()
-            appendLine(rootImports)   // all unique root sealed classes
+            appendLine(rootImports)
             appendLine("import $registryFqn")
-            appendLine("import kotlinx.serialization.serializer")
+            // kotlinx.serialization — core serialization API
+            appendLine("import kotlinx.serialization.KSerializer")
+            appendLine("import kotlinx.serialization.SerializationException")
+            appendLine("import kotlinx.serialization.descriptors.buildClassSerialDescriptor")
+            appendLine("import kotlinx.serialization.encoding.CompositeDecoder")
+            appendLine("import kotlinx.serialization.encoding.Decoder")
+            appendLine("import kotlinx.serialization.encoding.Encoder")
+            if (hasParamsEntries) {
+                // typeOf and serializer(KType) are only needed when key classes have fields.
+                appendLine("import kotlin.reflect.typeOf")
+                appendLine("import kotlinx.serialization.serializer")
+            }
+            if (keyParamImports.isNotEmpty()) appendLine(keyParamImports)
             appendLine(screenImports)
             appendLine()
             appendLine("// Auto-generated by NavEase KSP — do not edit.")
+            appendLine()
+            appendLine("// ── NavKey serializers (replaces @Serializable on sealed hierarchy) ────────")
+            appendLine()
+            appendLine(serializersBlock)
             appendLine()
             appendLine("private object NavEaseAutoInit {")
             appendLine("    init {")
