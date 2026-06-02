@@ -321,7 +321,7 @@
                         <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">shared/build.gradle.kts</span></div>
                         <pre class="code-block">plugins {
     <span class="fn">kotlin</span>(<span class="str">"multiplatform"</span>)
-    id(<span class="str">"io.github.alims-repo.navease"</span>) version <span class="str">"0.1.2"</span>
+    id(<span class="str">"io.github.alims-repo.navease"</span>) version <span class="str">"0.1.3"</span>
 }</pre>
                     </div>
                     <p class="step-note">The plugin automatically applies KSP, adds <code>navease-runtime</code>, registers the generated source directory, and wires all compilation tasks to depend on KSP.</p>
@@ -451,7 +451,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                <span class="fn">implementation</span>(<span class="str">"io.github.alims-repo:navease-runtime:0.1.2"</span>)
+                <span class="fn">implementation</span>(<span class="str">"io.github.alims-repo:navease-runtime:0.1.3"</span>)
             }
         }
     }
@@ -567,7 +567,7 @@ nav.<span class="fn">backWithResult</span>(<span class="cls">DetailResult</span>
     sourceSets {
         commonMain {
             dependencies {
-                <span class="fn">implementation</span>(<span class="str">"io.github.alims-repo:navease-runtime:0.1.2"</span>)
+                <span class="fn">implementation</span>(<span class="str">"io.github.alims-repo:navease-runtime:0.1.3"</span>)
             }
         }
     }
@@ -730,7 +730,7 @@ result?.<span class="fn">let</span> { <span class="cls">Text</span>(<span class=
         <div class="code-window" style="margin-top:32px">
             <div class="code-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="code-title">Example: Local Monorepo Setup</span></div>
             <pre class="code-block"><span class="fn">navease</span> {
-    version = <span class="str">"0.1.2"</span>
+    version = <span class="str">"0.1.3"</span>
     kspProcessorDependency = <span class="fn">project</span>(<span class="str">":navease-ksp"</span>)
     runtimeDependency      = <span class="fn">project</span>(<span class="str">":navease-runtime"</span>)
     generatedPackage       = <span class="str">"com.example.myapp.navigation"</span>

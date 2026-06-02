@@ -4,7 +4,7 @@
 
 No reflection. No string routes. No red underlines while writing.
 
-> ✅ **Status:** published to Maven Central — latest version: **0.1.2**
+> ✅ **Status:** published to Maven Central — latest version: **0.1.3**
 
 ---
 
@@ -98,7 +98,7 @@ plugins {
     id("com.android.kotlin.multiplatform.library")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("io.github.alims-repo.navease") version "0.1.2"  // ← all wiring done ✅
+    id("io.github.alims-repo.navease") version "0.1.3"  // ← all wiring done ✅
 }
 ```
 
@@ -112,7 +112,7 @@ The `navease` plugin automatically:
 Optional configuration via the `navease { }` extension:
 ```kotlin
 navease {
-    version = "0.1.2"                        // pin a specific version (default: same as plugin)
+    version = "0.1.3"                        // pin a specific version (default: same as plugin)
     addRuntimeDependency = true              // set false to manage navease-runtime yourself
     generatedPackage = "com.myapp.nav"       // custom package for generated files
 }
@@ -148,7 +148,7 @@ kotlin {
             kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
 
             dependencies {
-                implementation("io.github.alims-repo:navease-runtime:0.1.2")
+                implementation("io.github.alims-repo:navease-runtime:0.1.3")
             }
         }
     }
@@ -156,7 +156,7 @@ kotlin {
 
 // Only required for Approach 1:
 dependencies {
-    add("kspCommonMainMetadata", "io.github.alims-repo:navease-ksp:0.1.2")
+    add("kspCommonMainMetadata", "io.github.alims-repo:navease-ksp:0.1.3")
 }
 
 // Only required for Approach 1:
