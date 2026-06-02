@@ -1,7 +1,6 @@
 package com.alim.navease.screens
 
 import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionDefaults
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,41 +28,69 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation3.ui.LocalNavAnimatedContentScope
+import io.github.alimsrepo.navease.internal.navigation.ui.LocalNavAnimatedContentScope
 import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
-import io.github.alimsrepo.navease.runtime.navigation.NavController
-import io.github.alimsrepo.navease.runtime.navigation.resultOf
-import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
-import io.github.alimsrepo.navease.runtime.presentation.LocalNavEaseSharedTransitionScope
+import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseSharedTransitionScope
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
+import io.github.alimsrepo.navease.runtime.screen.ActivityScreen
 
-/**
- * Main hub screen — shows all libraries in the alims-repo catalogue.
- *
- * Demonstrates:
- * - [resultOf] — observes the starred result returned by [LibraryDetailScreen]
- * - Shared element transitions — each library card morphs into the hero card on [LibraryDetailScreen]
- * - Per-navigate [io.github.alimsrepo.navease.runtime.presentation.NavTransition] — each library
- *   carries its own preferred transition which is passed through [navController.navigate]
- */
+private data class NavOption(
+    val emoji: String,
+    val title: String,
+    val description: String,
+    val colorIndex: Int,
+    val action: (NavEaseController) -> Unit
+)
+
 @AutoRegister
 class HomeScreen : ActivityScreen<AppScreens.Home>() {
 
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
     @Composable
-    override fun Content(navKey: AppScreens.Home, navController: NavController) {
-
-        // Observe the result posted by LibraryDetailScreen (one-shot — stays until leaves composition)
-        val detailResult by navController.resultOf<LibraryDetailScreen.Result>()
-
-        val sharedScope   = LocalNavEaseSharedTransitionScope.current
+    override fun Content(navKey: AppScreens.Home, navEaseController: NavEaseController) {
+        val sharedScope = LocalNavEaseSharedTransitionScope.current
         val animatedScope = LocalNavAnimatedContentScope.current
+
+        val options = listOf(
+            NavOption(
+                emoji = "👤",
+                title = "Profile",
+                description = "View and edit user profile with typed arguments",
+                colorIndex = 0
+            ) { nav ->
+                nav.navigate(AppScreens.Profile(userId = "user_123", isEditable = true))
+            },
+            NavOption(
+                emoji = "⚙️",
+                title = "Settings",
+                description = "App configuration and preferences",
+                colorIndex = 1
+            ) { nav ->
+                nav.navigate(AppScreens.Settings)
+            },
+            NavOption(
+                emoji = "🖼️",
+                title = "Gallery",
+                description = "Image gallery with grid layout",
+                colorIndex = 2
+            ) { nav ->
+                nav.navigate(AppScreens.Gallery)
+            },
+            NavOption(
+                emoji = "📄",
+                title = "Detail View",
+                description = "Generic detail screen demonstration",
+                colorIndex = 3
+            ) { nav ->
+                nav.navigate(AppScreens.Detail(itemId = "item_001", title = "Sample Detail"))
+            }
+        )
 
         Scaffold(
             topBar = {
@@ -71,182 +98,147 @@ class HomeScreen : ActivityScreen<AppScreens.Home>() {
                     title = {
                         Column {
                             Text(
-                                text = "alims-repo",
+                                "NavEase Demo",
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace
                             )
                             Text(
-                                text = "${allLibraries.size} open-source libraries · KMP · CMP · Android",
+                                "Kotlin Multiplatform Navigation",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 )
-            },
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            }
         ) { padding ->
-
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-
-                // ── Result banner ──────────────────────────────────────────────
-                detailResult?.let { result ->
-                    item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (result.starred)
-                                MaterialTheme.colorScheme.secondaryContainer
-                            else
-                                MaterialTheme.colorScheme.surfaceVariant
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = if (result.starred) "⭐  Library starred — thanks!" else "  Skipped",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (result.starred)
-                                    MaterialTheme.colorScheme.onSecondaryContainer
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp)
+                                "🧭",
+                                style = MaterialTheme.typography.displayMedium
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "Navigation Options",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Explore different screen types",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
                         }
                     }
                 }
 
-                // ── Library catalogue ──────────────────────────────────────────
-                items(allLibraries, key = { it.id }) { lib ->
-                    val accent = accentColorAt(lib.colorIndex)
-                    val container = containerColorAt(lib.colorIndex)
-                    val onContainer = onContainerColorAt(lib.colorIndex)
-
-                    // Shared-bounds modifier — morphs into the hero card on LibraryDetailScreen
-                    val sharedModifier = if (sharedScope != null && animatedScope != null) {
-                        with(sharedScope) {
-                            Modifier.sharedBounds(
-                                sharedContentState = rememberSharedContentState(key = "lib_card_${lib.id}"),
-                                animatedVisibilityScope = animatedScope,
-                                resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
-                                placeholderSize = SharedTransitionScope.PlaceholderSize.AnimatedSize,
-                            )
-                        }
-                    } else Modifier
-
-                    Card(
-                        modifier = sharedModifier
-                            .fillMaxWidth()
-                            .clickable {
-                                navController.navigate(
-                                    AppScreens.LibraryDetail(libId = lib.id, libName = lib.name),
-                                    navTransition = lib.navTransition,
-                                )
-                            },
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = container),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(14.dp)
-                            ) {
-                                // Emoji icon
-                                Box(
-                                    modifier = Modifier
-                                        .size(60.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(accent.copy(alpha = 0.18f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = lib.emoji,
-                                        style = MaterialTheme.typography.headlineMedium
-                                    )
-                                }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    // Category chip
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = accent.copy(alpha = 0.16f)
-                                    ) {
-                                        Text(
-                                            text = lib.category.label.uppercase(),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = accent,
-                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                    Spacer(Modifier.height(3.dp))
-                                    Text(
-                                        text = lib.name,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = onContainer
-                                    )
-                                    Text(
-                                        text = lib.tagline,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = onContainer.copy(alpha = 0.70f)
-                                    )
-                                }
-                                // Right-arrow indicator
-                                Text(
-                                    text = "›",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Light,
-                                    color = accent.copy(alpha = 0.60f)
-                                )
-                            }
-                            Spacer(Modifier.height(10.dp))
-                            // Platform chips
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                lib.platforms.forEach { platform ->
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = onContainer.copy(alpha = 0.08f)
-                                    ) {
-                                        Text(
-                                            text = platform,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = onContainer.copy(alpha = 0.70f),
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                        )
-                                    }
-                                }
-                                Spacer(Modifier.weight(1f))
-                                // Version badge
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = accent.copy(alpha = 0.12f)
-                                ) {
-                                    Text(
-                                        text = "v${lib.version}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontFamily = FontFamily.Monospace,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = accent,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
+                items(options) { option ->
+                    NavOptionCard(
+                        option = option,
+                        sharedScope = sharedScope,
+                        animatedScope = animatedScope,
+                        onClick = { option.action(navEaseController) }
+                    )
                 }
-
-                item { Spacer(Modifier.height(8.dp)) }
             }
         }
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun NavOptionCard(
+    option: NavOption,
+    sharedScope: SharedTransitionScope?,
+    animatedScope: androidx.compose.animation.AnimatedVisibilityScope?,
+    onClick: () -> Unit
+) {
+    val colors = listOf(
+        MaterialTheme.colorScheme.primaryContainer,
+        MaterialTheme.colorScheme.secondaryContainer,
+        MaterialTheme.colorScheme.tertiaryContainer,
+        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+    )
+
+    val sharedModifier = if (sharedScope != null && animatedScope != null) {
+        with(sharedScope) {
+            Modifier.sharedBounds(
+                sharedContentState = rememberSharedContentState(key = "nav_card_${option.title}"),
+                animatedVisibilityScope = animatedScope,
+                resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds
+            )
+        }
+    } else Modifier
+
+    Card(
+        modifier = sharedModifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(colors[option.colorIndex % colors.size]),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = option.emoji,
+                    style = MaterialTheme.typography.headlineMedium
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = option.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = option.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+
+            Text(
+                text = "→",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
 

@@ -41,22 +41,22 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
-import io.github.alimsrepo.navease.runtime.navigation.NavController
-import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
+import io.github.alimsrepo.navease.runtime.screen.ActivityScreen
 import kotlinx.coroutines.delay
 
-@AutoRegister(startDestination = true)
+@AutoRegister
 class SplashScreen : ActivityScreen<AppScreens.Splash>() {
 
     @Composable
-    override fun Content(navKey: AppScreens.Splash, navController: NavController) {
+    override fun Content(navKey: AppScreens.Splash, navEaseController: NavEaseController) {
 
         var hasNavigated by rememberSaveable { mutableStateOf(false) }
         LaunchedEffect(hasNavigated) {
             if (!hasNavigated) {
-                delay(2_600L)
+                delay(2_400L)
                 hasNavigated = true
-                navController.navigate(AppScreens.Home, finish = true)
+                navEaseController.navigate(AppScreens.Home, finish = true)
             }
         }
 
@@ -70,7 +70,7 @@ class SplashScreen : ActivityScreen<AppScreens.Splash>() {
         )
         val alpha by animateFloatAsState(
             targetValue = if (visible) 1f else 0f,
-            animationSpec = tween(480),
+            animationSpec = tween(450),
             label = "splash_alpha"
         )
 
@@ -95,18 +95,15 @@ class SplashScreen : ActivityScreen<AppScreens.Splash>() {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "AS",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Black,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        text = "🧭",
+                        style = MaterialTheme.typography.displaySmall
                     )
                 }
 
                 Spacer(Modifier.height(28.dp))
 
                 Text(
-                    text = "alims-repo",
+                    text = "NavEase",
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
@@ -116,64 +113,47 @@ class SplashScreen : ActivityScreen<AppScreens.Splash>() {
                 Spacer(Modifier.height(6.dp))
 
                 Text(
-                    text = "Open Source Libraries",
+                    text = "Kotlin Multiplatform Navigation",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.80f)
                 )
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    listOf("KMP", "CMP", "Android").forEach { tag ->
+                    listOf("@AutoRegister", "TypedArgs", "TypedResults").forEach { tag ->
                         Surface(
                             shape = RoundedCornerShape(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f)
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
                         ) {
                             Text(
                                 text = tag,
-                                style = MaterialTheme.typography.labelMedium,
+                                style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
+                                fontFamily = FontFamily.Monospace,
                                 color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                             )
                         }
                     }
                 }
 
-                Spacer(Modifier.height(10.dp))
-
-                Text(
-                    text = "${allLibraries.size} libraries on Maven Central",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.55f)
-                )
-
                 Spacer(Modifier.height(48.dp))
                 BouncingDots(color = MaterialTheme.colorScheme.onPrimary)
             }
 
-            Column(
+            Text(
+                text = "Powered by NavEase  ·  KMP  ·  CMP",
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.40f),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 36.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = "github.com/Alims-Repo",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.50f)
-                )
-                Text(
-                    text = "Powered by NavEase",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.30f)
-                )
-            }
+                    .padding(bottom = 36.dp)
+            )
         }
     }
 }

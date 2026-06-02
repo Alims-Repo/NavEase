@@ -1,117 +1,24 @@
-@file:OptIn(ExperimentalSharedTransitionApi::class)
+@file:Suppress("DEPRECATION")
 
 package io.github.alimsrepo.navease.runtime.presentation
 
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.Modifier
-import androidx.navigation3.runtime.NavEntry
-import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.rememberNavBackStack
-import androidx.navigation3.ui.NavDisplay
+import io.github.alimsrepo.navease.internal.runtime.NavKey
 import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
-import io.github.alimsrepo.navease.runtime.navigation.NavController
+import io.github.alimsrepo.navease.runtime.transition.NavTransition
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Private core — shared by both public overloads
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Backward-compatibility shims — moved to io.github.alimsrepo.navease.runtime.host ──
 
-/**
- * Internal engine. Both public [NavEaseNavGraph] overloads delegate here so all
- * animation, controller, and shared-transition logic lives in exactly one place.
- *
- * @param contentProvider   Called inside each [NavEntry] to render the current route.
- *                          [LocalNavEaseController] is already provided at that point.
- */
-@Composable
-internal fun NavEaseNavGraphCore(
-    initialScreen: NavKey,
-    savedStateConfig: SavedStateConfiguration,
-    contentProvider: @Composable (NavKey) -> Unit,
-    onExitRequest: () -> Unit,
-    enableSharedTransitions: Boolean,
-    navTransition: NavTransition,
-) {
-    val applicationStack = rememberNavBackStack(
-        configuration = savedStateConfig,
-        initialScreen,
-    )
-
-    val currentOnExitRequest by rememberUpdatedState(onExitRequest)
-
-    val navController = remember(applicationStack) {
-        NavController(
-            backStack = applicationStack,
-            showExitDialog = { currentOnExitRequest() },
-            defaultTransition = navTransition,
-        )
-    }
-
-    SideEffect {
-        navController.defaultTransition = navTransition
-    }
-
-    @Composable
-    fun Display(sharedScope: SharedTransitionScope?) {
-        CompositionLocalProvider(LocalNavEaseController provides navController) {
-            NavDisplay(
-                modifier = Modifier.fillMaxSize(),
-                backStack = applicationStack,
-                sharedTransitionScope = sharedScope,
-                transitionSpec = {
-                    val transition = navController.transitionStore[targetState.key] ?: navTransition
-                    Animations.forward(transition)
-                },
-                popTransitionSpec = {
-                    val transition = navController.transitionStore[initialState.key] ?: navTransition
-                    Animations.back(transition)
-                },
-            ) { route ->
-                NavEntry(route) {
-                    contentProvider(route)
-                }
-            }
-        }
-    }
-
-    if (enableSharedTransitions) {
-        SharedTransitionLayout {
-            CompositionLocalProvider(LocalNavEaseSharedTransitionScope provides this) {
-                Display(sharedScope = this)
-            }
-        }
-    } else {
-        Display(sharedScope = null)
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Public API — KSP / legacy variant
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Core navigation host composable — **KSP / legacy variant**.
- *
- * Accepts the classic `(NavKey) -> NavScreen` factory produced by KSP or written by hand.
- * Prefer the [NavEaseGraph] overload for new projects — it requires no code generation and
- * has zero rebuild friction.
- *
- * @param initialScreen         The first screen placed on the back stack.
- * @param savedStateConfig      Serialization config for back-stack state restoration.
- * @param screenFactory         Maps a [NavKey] to its [NavScreen]. Typically KSP-generated.
- * @param onExitRequest         Called when back is pressed at the root screen. No-op by default.
- * @param enableSharedTransitions When `true`, wraps in [SharedTransitionLayout].
- * @param navTransition         Default screen-transition animation. Defaults to [NavTransition.Push].
- */
+/** @suppress */
+@Deprecated(
+    message = "NavEaseNavGraph has moved to io.github.alimsrepo.navease.runtime.host.",
+    replaceWith = ReplaceWith(
+        "NavEaseNavGraph(initialScreen, savedStateConfig, screenFactory, onExitRequest, enableSharedTransitions, navTransition)",
+        "io.github.alimsrepo.navease.runtime.host.NavEaseNavGraph"
+    ),
+    level = DeprecationLevel.WARNING,
+)
 @Composable
 fun NavEaseNavGraph(
     initialScreen: NavKey,
@@ -120,62 +27,38 @@ fun NavEaseNavGraph(
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
     navTransition: NavTransition = NavTransition.Push,
-) = NavEaseNavGraphCore(
+) = io.github.alimsrepo.navease.runtime.host.NavEaseNavGraph(
     initialScreen = initialScreen,
     savedStateConfig = savedStateConfig,
-    contentProvider = { key ->
-        val nav = LocalNavEaseController.current
-            ?: error("NavEase: LocalNavEaseController is null — Content called outside NavEaseNavGraph.")
-        screenFactory(key).Content(navKey = key, navController = nav)
-    },
+    screenFactory = screenFactory,
     onExitRequest = onExitRequest,
     enableSharedTransitions = enableSharedTransitions,
-    navTransition = navTransition,
+    navTransition = navTransition.toNew(),
 )
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Public API — zero-rebuild DSL variant
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Core navigation host composable — **zero-rebuild DSL variant**.
- *
- * Accepts a [NavEaseGraph] built with [navEaseGraph]. No code generation, no KSP, no rebuild
- * required after adding a new screen — just register it in the DSL and navigate immediately.
- *
- * ```kotlin
- * val appGraph = navEaseGraph(start = AppScreen.Home) {
- *     screen<AppScreen.Home> { HomeScreen() }
- *     screen<AppScreen.Detail> { key -> DetailScreen(id = key.id) }
- * }
- *
- * // In your root composable:
- * NavEaseNavGraph(appGraph)
- * ```
- *
- * @param graph                 The navigation graph built via [navEaseGraph].
- * @param onExitRequest         Called when back is pressed at the root screen. No-op by default.
- * @param enableSharedTransitions When `true`, wraps in [SharedTransitionLayout].
- * @param navTransition         Default screen-transition animation. Defaults to [NavTransition.Push].
- */
+/** @suppress */
+@Deprecated(
+    message = "NavEaseNavGraph has moved to io.github.alimsrepo.navease.runtime.host.",
+    replaceWith = ReplaceWith(
+        "NavEaseNavGraph(graph, onExitRequest, enableSharedTransitions, navTransition)",
+        "io.github.alimsrepo.navease.runtime.host.NavEaseNavGraph"
+    ),
+    level = DeprecationLevel.WARNING,
+)
 @Composable
 fun NavEaseNavGraph(
     graph: NavEaseGraph,
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
     navTransition: NavTransition = NavTransition.Push,
-) = NavEaseNavGraphCore(
-    initialScreen = graph.start,
-    savedStateConfig = graph.savedStateConfig,
-    contentProvider = { key ->
-        graph.contentFor(key)?.invoke()
-            ?: error(
-                "NavEase: No screen registered for '${key::class.simpleName}'. " +
-                    "Did you forget to add screen<${key::class.simpleName}> { } " +
-                    "inside your navEaseGraph { } block?"
-            )
-    },
+) = io.github.alimsrepo.navease.runtime.host.NavEaseNavGraph(
+    graph = graph,
     onExitRequest = onExitRequest,
     enableSharedTransitions = enableSharedTransitions,
-    navTransition = navTransition,
+    navTransition = navTransition.toNew(),
 )
+
+// NavTransition typealias means NavTransition here == io.github.alimsrepo.navease.runtime.transition.NavTransition
+// so no conversion needed — this helper is just for clarity
+@Suppress("NOTHING_TO_INLINE")
+private inline fun NavTransition.toNew() = this

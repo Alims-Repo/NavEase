@@ -1,0 +1,72 @@
+package io.github.alimsrepo.navease.internal.navigation.scene
+
+import androidx.compose.runtime.Composable
+import io.github.alimsrepo.navease.internal.runtime.NavEntry
+
+internal data class SinglePaneScene<T : Any>(
+    override val key: Any,
+    val entry: NavEntry<T>,
+    override val previousEntries: List<NavEntry<T>>,
+) : Scene<T> {
+    override val entries: List<NavEntry<T>> = listOf(entry)
+
+    override val content: @Composable () -> Unit = { entry.Content() }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as SinglePaneScene<*>
+
+        return key == other.key &&
+            entry == other.entry &&
+            previousEntries == other.previousEntries &&
+            entries == other.entries
+    }
+
+    override fun hashCode(): Int {
+        return key.hashCode() * 31 +
+            entry.hashCode() * 31 +
+            previousEntries.hashCode() * 31 +
+            entries.hashCode() * 31
+    }
+
+    override fun toString(): String {
+        return "SinglePaneScene(key=$key, entry=$entry, previousEntries=$previousEntries, entries=$entries)"
+    }
+}
+
+/**
+ * A [SceneStrategy] that always creates a 1-entry [Scene] simply displaying the last entry in the
+ * list.
+ */
+public class SinglePaneSceneStrategy<T : Any> : SceneStrategy<T> {
+
+    override fun SceneStrategyScope<T>.calculateScene(entries: List<NavEntry<T>>): Scene<T> {
+        return SinglePaneScene(
+            key = entries.last().contentKey,
+            entry = entries.last(),
+            previousEntries = entries.dropLast(1),
+        )
+    }
+}
+
+internal fun <T : Any> calculateSceneWithSinglePaneFallback(
+    sceneStrategies: List<SceneStrategy<T>>,
+    scope: SceneStrategyScope<T>,
+    entries: List<NavEntry<T>>,
+): Scene<T> {
+    var scene: Scene<T>? = null
+    for (index in sceneStrategies.indices) {
+        scene = with(sceneStrategies[index]) { scope.calculateScene(entries) }
+        if (scene != null) break
+    }
+    return scene ?: with(SinglePaneSceneStrategy<T>()) { scope.calculateScene(entries) }
+}
+
+internal fun <T : Any> SceneDecoratorStrategy<T>.decorateScene(
+    scope: SceneDecoratorStrategyScope<T>,
+    scene: Scene<T>,
+): Scene<T> {
+    return scope.decorateScene(scene)
+}

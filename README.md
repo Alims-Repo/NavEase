@@ -4,7 +4,7 @@
 
 No reflection. No string routes. No red underlines while writing.
 
-> ⚠️ **Status:** pre-release — not yet published to Maven Central.
+> ✅ **Status:** published to Maven Central — latest version: **0.1.2**
 
 ---
 
@@ -98,12 +98,12 @@ plugins {
     id("com.android.kotlin.multiplatform.library")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.devtools.ksp")                          // required for Approach 1
-    id("io.github.alims-repo.navease") version "<version>"  // ← all wiring done ✅
+    id("io.github.alims-repo.navease") version "0.1.2"  // ← all wiring done ✅
 }
 ```
 
 The `navease` plugin automatically:
+- applies the KSP and Kotlin Serialization compiler plugins
 - adds `navease-ksp` to `kspCommonMainMetadata`
 - registers `build/generated/ksp/metadata/commonMain/kotlin` as a `commonMain` srcDir
 - makes every KMP compilation depend on `kspCommonMainKotlinMetadata`
@@ -112,9 +112,9 @@ The `navease` plugin automatically:
 Optional configuration via the `navease { }` extension:
 ```kotlin
 navease {
-    version = "<version>"                   // pin a specific version (default: same as plugin)
-    addRuntimeDependency = true             // set false to manage navease-runtime yourself
-    generatedPackage = "com.myapp.nav"      // custom package for generated files
+    version = "0.1.2"                        // pin a specific version (default: same as plugin)
+    addRuntimeDependency = true              // set false to manage navease-runtime yourself
+    generatedPackage = "com.myapp.nav"       // custom package for generated files
 }
 ```
 
@@ -148,7 +148,7 @@ kotlin {
             kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
 
             dependencies {
-                implementation("io.github.alims-repo:navease-runtime:<version>")
+                implementation("io.github.alims-repo:navease-runtime:0.1.2")
             }
         }
     }
@@ -156,7 +156,7 @@ kotlin {
 
 // Only required for Approach 1:
 dependencies {
-    add("kspCommonMainMetadata", "io.github.alims-repo:navease-ksp:<version>")
+    add("kspCommonMainMetadata", "io.github.alims-repo:navease-ksp:0.1.2")
 }
 
 // Only required for Approach 1:
@@ -355,6 +355,21 @@ sealed class AppScreens : NavKey {
     @Serializable data object Home   : AppScreens()
     @Serializable data object About  : AppScreens()
     @Serializable data class  Detail(val id: String) : AppScreens()
+}
+```
+
+**Optional @AutoRegister path (no @Serializable needed):**
+
+If you annotate screens with `@AutoRegister`, NavEase generates serializers internally.
+You can skip `@Serializable` and extend `NavEaseRoot` instead of `NavKey`:
+
+```kotlin
+import io.github.alimsrepo.navease.runtime.NavEaseRoot
+
+sealed class AppScreens : NavEaseRoot {
+    data object Home   : AppScreens()
+    data object About  : AppScreens()
+    data class  Detail(val id: String) : AppScreens()
 }
 ```
 
@@ -681,7 +696,9 @@ NavEase/
 │       ├── annotations/
 │       │   ├── NavEaseScreen.kt        ← @NavEaseScreen annotation (Approach 1)
 │       │   ├── NavEaseArgs.kt          ← @NavEaseArgs annotation (Approach 1)
-│       │   └── NavEaseResult.kt        ← @NavEaseResult annotation (Approach 1)
+│       │   ├── NavEaseResult.kt        ← @NavEaseResult annotation (Approach 1)
+│       │   └── AutoRegister.kt         ← @AutoRegister annotation (Approach 3 auto-discover)
+│       ├── NavEaseRoot.kt              ← hides NavKey + @Serializable for @AutoRegister keys
 │       ├── domain/
 │       │   └── NavScreen.kt            ← abstract class NavScreen — Approach 1 base
 │       ├── navigation/

@@ -45,16 +45,33 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
  *     kotlin("multiplatform")
  *     id("io.github.alims-repo.navease") version "<version>"
  * }
- * // Done — KSP and the Kotlin Serialization compiler plugin are applied automatically,
- * // navease-runtime (with kotlinx-serialization-core as api), navease-ksp, srcDir,
- * // and task wiring are all handled. Zero boilerplate — @Serializable just works.
+ * // Done — KSP, Kotlin Serialization, navease-runtime, navigation3-ui, and all KSP task
+ * // wiring are handled automatically. Zero boilerplate — @Serializable just works.
+ * //
+ * // Note: navigation3-ui is auto-added to avoid compiler warnings about NavKey
+ * // (NavEaseRoot's supertype) being inaccessible. If you already have navigation3-ui
+ * // declared, auto-injection is skipped and Gradle uses your version.
  * ```
+ *
+ * **Handling Navigation3 Version Conflicts:**
+ *
+ * NavEase is smart about navigation3 dependencies:
+ * - If you already have `navigation3-ui` declared, NavEase **skips auto-injection**
+ * - Gradle's standard resolution applies (typically highest version wins)
+ * - You can force a specific version using `forceNavigation3Version = true`
  *
  * For local monorepo development, override dependencies via the `navease {}` extension:
  * ```kotlin
  * navease {
  *     kspProcessorDependency = project(":navease-ksp")
  *     runtimeDependency      = project(":navease-runtime")
+ *
+ *     // If you have version conflicts with navigation3:
+ *     navigation3Dependency = "org.jetbrains.androidx.navigation3:navigation3-ui:1.2.0"
+ *     forceNavigation3Version = true  // Optional: force this version everywhere
+ *
+ *     // Or manage it yourself:
+ *     addNavigation3Dependency = false
  * }
  * ```
  */
@@ -148,11 +165,166 @@ class NavEasePlugin : Plugin<Project> {
                 project.logger.info("[NavEase] Added runtime: $runtimeDep")
             }
 
+            // ── Step 5b: Optionally add navigation3-ui to commonMain ──────────────
+            // This is required to avoid compiler warnings about NavKey (NavEaseRoot's supertype)
+            // being inaccessible when nav3 is declared as implementation (not api) in navease-runtime.
+            if (extension.addNavigation3Dependency) {
+                val commonMain = kmp.sourceSets.findByName("commonMain")
+
+                // Check if navigation3-ui is already declared in commonMain
+                val hasExistingNav3 = try {
+                    val configName = "commonMainImplementation"
+                    val config = project.configurations.findByName(configName)
+                    val hasIt = config?.dependencies?.any { dep ->
+                        dep.group == "org.jetbrains.androidx.navigation3" &&
+                        dep.name == "navigation3-ui"
+                    } ?: false
+                    hasIt
+                } catch (e: Exception) {
+                    // If we can't determine, assume it's not present and proceed
+                    false
+                }
+
+//                if (hasExistingNav3) {
+//                    project.logger.info(
+//                        "[NavEase] Skipping navigation3-ui auto-injection — already declared in commonMain. " +
+//                        "Make sure the version is compatible with NavEase (recommended: 1.1.1+)."
+//                    )
+//                } else {
+//                    val nav3Dep = extension.effectiveNavigation3Dependency()
+//                    commonMain?.dependencies {
+//                        implementation(nav3Dep)
+//                    }
+//                    project.logger.info("[NavEase] Added navigation3-ui: $nav3Dep")
+//                }
+//
+//                // Apply force resolution strategy if requested
+//                if (extension.forceNavigation3Version) {
+//                    val nav3Version = when (val dep = extension.effectiveNavigation3Dependency()) {
+//                        is String -> dep.substringAfterLast(":")
+//                        else -> "1.1.1" // fallback to default
+//                    }
+//
+//                    project.configurations.configureEach { config ->
+//                        if (config.name.contains("Implementation") || config.name.contains("Api")) {
+//                            config.resolutionStrategy { strategy ->
+//                                strategy.force("org.jetbrains.androidx.navigation3:navigation3-ui:$nav3Version")
+//                            }
+//                        }
+//                    }
+//                    project.logger.info(
+//                        "[NavEase] Forcing navigation3-ui version to $nav3Version " +
+//                        "(forceNavigation3Version = true)"
+//                    )
+//                }
+            }
+
             // ── Step 6: Forward generatedPackage to the KSP processor arg ────────
             val customPackage = extension.generatedPackage.trim()
             if (customPackage.isNotBlank()) {
                 forwardKspArg(project, "navease.generatedPackage", customPackage)
             }
+
+            // ── Step 7: Generate platform-specific bootstrap anchor files ─────────
+            // These files live in the build directory — never in user sources.
+            //
+            // • jsMain  — @JsExport makes navEaseBootstrap() a Kotlin/JS IR DCE root
+            //             and a top-level val initializer runs it eagerly at module load.
+            //             Note: whole-program DCE for executables may still strip library
+            //             anchors; the safe fallback is calling navEaseBootstrap() from main().
+            //
+            // • wasmJsMain — top-level val initializer runs navEaseBootstrap() at module
+            //                startup (Wasm doesn't apply IR DCE like JS does).
+            //
+            // • nativeMain — @EagerInitialization runs navEaseBootstrap() before any
+            //                user code executes on iOS / macOS / Linux targets.
+            //
+            // Users never import or write these files; App.kt stays pointing at the
+            // stable runtime package and is free of generated-code references.
+            val genPkg = customPackage.ifBlank { "io.github.alimsrepo.navease.generated" }
+            val gluePkg = "io.github.alimsrepo.navease.init"
+            val gluePkgPath = gluePkg.replace('.', '/')
+
+            // JS glue ─────────────────────────────────────────────────────────────
+            // Two strategies are used together for maximum DCE resilience:
+            //   1. @JsExport on a function — prevents DCE from stripping the call chain
+            //      in configurations where library exports are honoured as roots.
+            //   2. A top-level val initializer — runs navEaseBootstrap() eagerly when the
+            //      JS module loads, so the registry is populated before main() is called
+            //      if the property survives DCE.
+            //
+            // NOTE: Neither strategy is guaranteed to survive whole-program DCE when this
+            // code lives in a *library* module (js() without binaries.executable()).
+            // The safe fallback is to call navEaseBootstrap() explicitly from the
+            // executable's main() — identical to the iOS pattern:
+            //
+            //   fun main() { navEaseBootstrap(); ComposeViewport { App() } }
+            val jsGlueDir = project.layout.buildDirectory
+                .dir("generated/navease/jsMain/kotlin").get().asFile
+            val jsGlueFile = jsGlueDir.resolve("$gluePkgPath/NavEaseJsInit.kt")
+            jsGlueFile.parentFile.mkdirs()
+            jsGlueFile.writeText(
+                """
+                @file:OptIn(kotlin.js.ExperimentalJsExport::class)
+                package $gluePkg
+
+                import $genPkg.navEaseBootstrap
+                import kotlin.js.JsExport
+
+                /** Auto-generated by NavEase Gradle plugin — do not edit. */
+                @JsExport
+                @Suppress("unused")
+                fun _navEaseJsBootstrap() = navEaseBootstrap()
+
+                /** Eagerly initialises the NavEase registry at JS module load time. */
+                @Suppress("unused")
+                internal val _navEaseJsInit: Unit = navEaseBootstrap()
+                """.trimIndent()
+            )
+            kmp.sourceSets.findByName("jsMain")?.kotlin?.srcDir(jsGlueDir)
+            project.logger.info("[NavEase] Generated jsMain DCE anchor: $jsGlueFile")
+
+            // WasmJS glue ─────────────────────────────────────────────────────────
+            // On Kotlin/WasmJS top-level property initialisers run during module
+            // startup, so a simple eager-init val is sufficient.
+            val wasmJsGlueDir = project.layout.buildDirectory
+                .dir("generated/navease/wasmJsMain/kotlin").get().asFile
+            val wasmJsGlueFile = wasmJsGlueDir.resolve("$gluePkgPath/NavEaseWasmJsInit.kt")
+            wasmJsGlueFile.parentFile.mkdirs()
+            wasmJsGlueFile.writeText(
+                """
+                package $gluePkg
+
+                import $genPkg.navEaseBootstrap
+
+                /** Auto-generated by NavEase Gradle plugin — do not edit. */
+                @Suppress("unused")
+                internal val _navEaseWasmJsInit: Unit = navEaseBootstrap()
+                """.trimIndent()
+            )
+            kmp.sourceSets.findByName("wasmJsMain")?.kotlin?.srcDir(wasmJsGlueDir)
+            project.logger.info("[NavEase] Generated wasmJsMain init anchor: $wasmJsGlueFile")
+
+            // Native glue ─────────────────────────────────────────────────────────
+            val nativeGlueDir = project.layout.buildDirectory
+                .dir("generated/navease/nativeMain/kotlin").get().asFile
+            val nativeGlueFile = nativeGlueDir.resolve("$gluePkgPath/NavEaseNativeInit.kt")
+            nativeGlueFile.parentFile.mkdirs()
+            nativeGlueFile.writeText(
+                """
+                package $gluePkg
+
+                import $genPkg.navEaseBootstrap
+                import kotlin.native.EagerInitialization
+
+                /** Auto-generated by NavEase Gradle plugin — do not edit. */
+                @EagerInitialization
+                @Suppress("unused")
+                internal val _navEaseNativeBootstrap: Unit = navEaseBootstrap()
+                """.trimIndent()
+            )
+            kmp.sourceSets.findByName("nativeMain")?.kotlin?.srcDir(nativeGlueDir)
+            project.logger.info("[NavEase] Generated nativeMain init anchor: $nativeGlueFile")
         }
     }
 

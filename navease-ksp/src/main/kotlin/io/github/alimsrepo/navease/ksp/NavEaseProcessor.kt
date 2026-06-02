@@ -290,6 +290,94 @@ class NavEaseProcessor(
             .toSortedSet()
             .joinToString("\n") { "import $it" }
 
+    // ── NavKey serializer code-gen ──────────────────────────────────────────
+    //
+    // Generates a private KSerializer<Root.Sub> object for each @AutoRegister
+    // key class.  This replaces the previous `serializer<Root.Sub>()` call that
+    // required `@Serializable` on the user's sealed hierarchy.
+    //
+    // • data object  → empty structure (no fields)
+    // • data class   → encodes/decodes every constructor parameter in order
+    //
+    // All field serializers are resolved at object-initialisation time via
+    // `serializer(typeOf<T>())`, so the field types still need to be
+    // serializable (Kotlin primitives, String, or @Serializable custom types).
+
+    private fun generateNavKeySerializer(
+        keySimpleName: String,
+        rootSimpleName: String,
+        keyParams: List<ArgParam>,
+    ): String = buildString {
+        val serName = "NavEase_${keySimpleName}_Ser"
+        val qualKey = "$rootSimpleName.$keySimpleName"
+
+        if (keyParams.isEmpty()) {
+            // ── data object ──────────────────────────────────────────────────
+            appendLine("private object $serName : KSerializer<$qualKey> {")
+            appendLine("    override val descriptor = buildClassSerialDescriptor(\"$qualKey\")")
+            appendLine("    override fun serialize(encoder: Encoder, value: $qualKey) {")
+            appendLine("        encoder.beginStructure(descriptor).endStructure(descriptor)")
+            appendLine("    }")
+            appendLine("    override fun deserialize(decoder: Decoder): $qualKey {")
+            appendLine("        decoder.beginStructure(descriptor).endStructure(descriptor)")
+            appendLine("        return $qualKey")
+            appendLine("    }")
+            append("}")
+        } else {
+            // ── data class with constructor params ───────────────────────────
+            appendLine("@Suppress(\"UNCHECKED_CAST\")")
+            appendLine("private object $serName : KSerializer<$qualKey> {")
+            // One field serializer per parameter, resolved once at init time.
+            keyParams.forEachIndexed { i, p ->
+                appendLine(
+                    "    private val _f${i}_ser = " +
+                    "serializer(typeOf<${p.typeInfo.shortName}>()) as KSerializer<${p.typeInfo.shortName}>"
+                )
+            }
+            appendLine("    override val descriptor = buildClassSerialDescriptor(\"$qualKey\") {")
+            keyParams.forEachIndexed { i, p ->
+                appendLine("        element(\"${p.name}\", _f${i}_ser.descriptor)")
+            }
+            appendLine("    }")
+            // serialize
+            appendLine("    override fun serialize(encoder: Encoder, value: $qualKey) {")
+            appendLine("        val c = encoder.beginStructure(descriptor)")
+            keyParams.forEachIndexed { i, p ->
+                appendLine(
+                    "        c.encodeSerializableElement(descriptor, $i, _f${i}_ser, value.${p.name})"
+                )
+            }
+            appendLine("        c.endStructure(descriptor)")
+            appendLine("    }")
+            // deserialize — use Any? intermediaries and cast at the end to avoid
+            // needing a per-type default value.
+            appendLine("    override fun deserialize(decoder: Decoder): $qualKey {")
+            keyParams.forEachIndexed { i, _ -> appendLine("        var _f$i: Any? = null") }
+            appendLine("        val c = decoder.beginStructure(descriptor)")
+            appendLine("        loop@ while (true) {")
+            appendLine("            when (val idx = c.decodeElementIndex(descriptor)) {")
+            keyParams.forEachIndexed { i, _ ->
+                appendLine(
+                    "                $i -> _f$i = c.decodeSerializableElement(descriptor, $i, _f${i}_ser)"
+                )
+            }
+            appendLine("                CompositeDecoder.DECODE_DONE -> break@loop")
+            appendLine(
+                "                else -> throw SerializationException(" +
+                "\"NavEase: unexpected index \$idx in $qualKey\")"
+            )
+            appendLine("            }")
+            appendLine("        }")
+            appendLine("        c.endStructure(descriptor)")
+            val ctorArgs = keyParams.mapIndexed { i, p ->
+                "${p.name} = _f$i as ${p.typeInfo.shortName}"
+            }.joinToString(", ")
+            appendLine("        return $qualKey($ctorArgs)")
+            appendLine("    }")
+            append("}")
+        }
+    }
+
     private fun generateAppScreens(
         entries: List<ScreenEntry>,
         startRoute: String,
@@ -485,7 +573,7 @@ class NavEaseProcessor(
             appendLine()
             appendLine("import androidx.navigation3.runtime.NavKey")
             appendLine("import io.github.alimsrepo.navease.runtime.navigation.NavController")
-            appendLine("import io.github.alimsrepo.navease.runtime.presentation.NavTransition")
+            appendLine("import io.github.alimsrepo.navease.runtime.transition.NavTransition")
             if (screenImports.isNotEmpty()) appendLine(screenImports)
             if (customImports.isNotEmpty()) appendLine(customImports)
             appendLine()
@@ -508,14 +596,21 @@ class NavEaseProcessor(
         symbols: List<KSClassDeclaration>,
         deps: Dependencies,
     ) {
-        val activityScreenFqn = "io.github.alimsrepo.navease.runtime.presentation.ActivityScreen"
-        val registryFqn      = "io.github.alimsrepo.navease.runtime.presentation.NavEaseAutoRegistry"
+        // Accept both the canonical new package and the old presentation typealias so that
+        // users who still import from presentation.ActivityScreen are not broken.
+        val activityScreenFqns = setOf(
+            "io.github.alimsrepo.navease.runtime.screen.ActivityScreen",
+            "io.github.alimsrepo.navease.runtime.presentation.ActivityScreen",
+        )
+        val registryFqn = "io.github.alimsrepo.navease.runtime.registry.NavEaseAutoRegistry"
 
         data class AutoEntry(
             val screenFqn: String,
             val screenSimpleName: String,
             val keyFqn: String,
             val keySimpleName: String,
+            /** Constructor parameters of the NavKey subclass (empty for data objects). */
+            val keyParams: List<ArgParam>,
             val rootFqn: String,
             val rootSimpleName: String,
             val isStart: Boolean,
@@ -532,11 +627,12 @@ class NavEaseProcessor(
 
             val superType = cls.superTypes
                 .map { it.resolve() }
-                .firstOrNull { it.declaration.qualifiedName?.asString() == activityScreenFqn }
+                .firstOrNull { it.declaration.qualifiedName?.asString() in activityScreenFqns }
 
             if (superType == null) {
                 logger.error(
-                    "NavEase: @AutoRegister class '$screenSimpleName' must extend ActivityScreen<K>."
+                    "NavEase: @AutoRegister class '$screenSimpleName' must extend " +
+                    "ActivityScreen<K> (import from io.github.alimsrepo.navease.runtime.screen)."
                 )
                 return@mapNotNull null
             }
@@ -567,9 +663,21 @@ class NavEaseProcessor(
             }
 
             val rootFqn = rootDecl.qualifiedName?.asString() ?: return@mapNotNull null
+
+            // Read constructor parameters of the key class so we can generate a
+            // KSerializer for it without requiring @Serializable on the user's class.
+            val keyParams: List<ArgParam> = keyDecl.primaryConstructor
+                ?.parameters
+                ?.map { param ->
+                    val resolved = param.type.resolve()
+                    ArgParam(param.name!!.asString(), resolveTypeInfo(resolved), resolved)
+                }
+                ?: emptyList()
+
             AutoEntry(
                 screenFqn, screenSimpleName,
                 keyFqn, keyDecl.simpleName.asString(),
+                keyParams,
                 rootFqn, rootDecl.simpleName.asString(),
                 isStart,
             )
@@ -589,16 +697,6 @@ class NavEaseProcessor(
         }
         if (keyGroups.any { it.value.size > 1 }) return
 
-        // ── Validate: all screens share the same Root ──────────────────────────
-        val rootTypes = entries.map { it.rootFqn }.toSet()
-        if (rootTypes.size > 1) {
-            logger.error(
-                "NavEase: @AutoRegister screens belong to multiple root NavKey types: " +
-                "${rootTypes.joinToString { "'${it.substringAfterLast('.')}'" }}. " +
-                "All screens must share the same sealed root class."
-            )
-            return
-        }
 
         // ── Validate: exactly one startDestination ─────────────────────────────
         val startEntries = entries.filter { it.isStart }
@@ -613,82 +711,72 @@ class NavEaseProcessor(
 
         val startEntry = startEntries.firstOrNull()
         val screenImports = entries.joinToString("\n") { "import ${it.screenFqn}" }
-        val rootFqn = entries.first().rootFqn
+        // All unique root FQNs — may span multiple sealed classes (e.g. AppScreens + WizardStep)
+        val rootImports = entries.map { it.rootFqn }.distinct().joinToString("\n") { "import $it" }
 
-        // ── Direct addEntry() calls inside NavEaseAutoInit.init {} ─────────────
-        // Entries are registered immediately when the object is initialised, with no
-        // secondary "registrar" lambda — simpler and works on all platforms.
+        // ── Generate KSerializer objects for every key class ───────────────
+        // These replace the previous `serializer<Root.Sub>()` calls, removing
+        // the @Serializable requirement from the user's sealed hierarchy.
+        val serializersBlock = entries.joinToString("\n\n") { entry ->
+            generateNavKeySerializer(entry.keySimpleName, entry.rootSimpleName, entry.keyParams)
+        }
+
+        // Imports needed by field-type serializers (e.g. data class args)
+        val keyParamImports = importsFrom(entries.flatMap { it.keyParams })
+        val hasParamsEntries = entries.any { it.keyParams.isNotEmpty() }
+
         val addEntryCalls = entries.joinToString("\n") { entry ->
             val cls  = entry.keySimpleName
             val root = entry.rootSimpleName
-            if (entry.isStart) {
-                "        NavEaseAutoRegistry.addEntry(${entry.screenSimpleName}(), $root.$cls::class, serializer<$root.$cls>(), $root.$cls)"
-            } else {
-                "        NavEaseAutoRegistry.addEntry(${entry.screenSimpleName}(), $root.$cls::class, serializer<$root.$cls>())"
-            }
+            // Use the generated serializer — no serializer<T>() call needed.
+            "        NavEaseAutoRegistry.addEntry(${entry.screenSimpleName}(), $root.$cls::class, $root::class, NavEase_${cls}_Ser)"
         }
 
         val content = buildString {
             appendLine("package $generatedPackage")
             appendLine()
-            appendLine("import $rootFqn")
+            appendLine(rootImports)
             appendLine("import $registryFqn")
-            appendLine("import kotlinx.serialization.serializer")
+            // kotlinx.serialization — core serialization API
+            appendLine("import kotlinx.serialization.KSerializer")
+            appendLine("import kotlinx.serialization.SerializationException")
+            appendLine("import kotlinx.serialization.descriptors.buildClassSerialDescriptor")
+            appendLine("import kotlinx.serialization.encoding.CompositeDecoder")
+            appendLine("import kotlinx.serialization.encoding.Decoder")
+            appendLine("import kotlinx.serialization.encoding.Encoder")
+            if (hasParamsEntries) {
+                // typeOf and serializer(KType) are only needed when key classes have fields.
+                appendLine("import kotlin.reflect.typeOf")
+                appendLine("import kotlinx.serialization.serializer")
+            }
+            if (keyParamImports.isNotEmpty()) appendLine(keyParamImports)
             appendLine(screenImports)
             appendLine()
-            appendLine("// ── NavEaseAutoInit — registers all @AutoRegister screens ─────────────────")
+            appendLine("// Auto-generated by NavEase KSP — do not edit.")
             appendLine()
-            appendLine("/**")
-            appendLine(" * Auto-generated by NavEase KSP — do not edit.")
-            appendLine(" *")
-            appendLine(" * Registers all `@AutoRegister` screens into [NavEaseAutoRegistry] when")
-            appendLine(" * this object is first initialised.")
-            appendLine(" *")
-            appendLine(" * - **JVM/Android**: initialised automatically via `Class.forName` triggered")
-            appendLine(" *   inside the runtime when [NavEaseHost] first composes.")
-            appendLine(" * - **iOS/Native/JS**: initialised when [navEaseBootstrap] is called from")
-            appendLine(" *   the platform entry point (e.g. MainViewController.kt on iOS).")
-            appendLine(" */")
+            appendLine("// ── NavKey serializers (replaces @Serializable on sealed hierarchy) ────────")
+            appendLine()
+            appendLine(serializersBlock)
+            appendLine()
             appendLine("private object NavEaseAutoInit {")
             appendLine("    init {")
             appendLine(addEntryCalls)
+            appendLine("        NavEaseAutoRegistry.registerBootstrapHook {")
+            appendLine("            @Suppress(\"UNUSED_EXPRESSION\")")
+            appendLine("            _navEaseAutoInit")
+            appendLine("        }")
             appendLine("    }")
             appendLine("}")
             appendLine()
             appendLine("@Suppress(\"unused\")")
-            appendLine("private val _navEaseAutoInit: Any = NavEaseAutoInit")
+            appendLine("internal val _navEaseAutoInit: Any = NavEaseAutoInit")
             appendLine()
-            appendLine("// ── navEaseBootstrap() ───────────────────────────────────────────────────")
-            appendLine()
-            appendLine("/**")
-            appendLine(" * Auto-generated by NavEase KSP — do not edit.")
-            appendLine(" *")
-            appendLine(" * Triggers the `@AutoRegister` screen initialiser on iOS, Desktop, and Web.")
-            appendLine(" *")
-            appendLine(" * Call this **once** from your platform entry point before the first")
-            appendLine(" * [NavEaseHost] composition:")
-            appendLine(" *")
-            appendLine(" * ```kotlin")
-            appendLine(" * // iosMain — MainViewController.kt")
-            appendLine(" * import $generatedPackage.navEaseBootstrap")
-            appendLine(" *")
-            appendLine(" * fun MainViewController() = ComposeUIViewController {")
-            appendLine(" *     navEaseBootstrap()")
-            appendLine(" *     App()")
-            appendLine(" * }")
-            appendLine(" * ```")
-            appendLine(" *")
-            appendLine(" * On **Android/JVM** this call is optional — screens are discovered")
-            appendLine(" * automatically via class-loading when [NavEaseHost] first composes.")
-            if (startEntry != null) {
-                appendLine(" *")
-                appendLine(" * Start destination: [${startEntry.rootSimpleName}.${startEntry.keySimpleName}]")
-                appendLine(" * (set via `@AutoRegister(startDestination = true)` on [${startEntry.screenSimpleName}]).")
-            }
-            appendLine(" */")
+            appendLine("/** Triggers NavEase screen registry initialisation.")
+            appendLine(" * Called automatically by the NavEase Gradle plugin on all platforms.")
+            appendLine(" * Safe to call multiple times (idempotent). */")
             appendLine("fun navEaseBootstrap() {")
             appendLine("    @Suppress(\"UNUSED_EXPRESSION\")")
-            appendLine("    _navEaseAutoInit   // triggers NavEaseAutoInit.init {} on Native/JS")
+            appendLine("    _navEaseAutoInit")
             append("}")
         }
 
@@ -701,8 +789,8 @@ class NavEaseProcessor(
             appendLine("package $generatedPackage")
             appendLine()
             appendLine("import androidx.compose.runtime.Composable")
-            appendLine("import io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph")
-            appendLine("import io.github.alimsrepo.navease.runtime.presentation.NavTransition")
+            appendLine("import io.github.alimsrepo.navease.runtime.host.NavEaseNavGraph")
+            appendLine("import io.github.alimsrepo.navease.runtime.transition.NavTransition")
             appendLine()
             appendLine("/**")
             appendLine(" * Generated navigation host. Place this once in your root composable.")

@@ -1,63 +1,32 @@
 package com.alim.navease.screens
 
-import androidx.navigation3.runtime.NavKey
-import kotlinx.serialization.Serializable
+import io.github.alimsrepo.navease.runtime.NavEaseRoot
 
 /**
- * Sealed nav-key hierarchy for the demo app.
+ * Root nav-key hierarchy for the NavEase sample app.
+ * Every entry demonstrates one NavEase feature.
  *
- * Each subclass is a [NavKey] that identifies one screen.
- * Args are plain constructor properties — no @NavEaseArgs annotation needed.
+ * No `@Serializable` annotation needed — NavEase KSP generates
+ * [KSerializer][kotlinx.serialization.KSerializer] implementations internally.
+ * No `: NavKey` needed — [NavEaseRoot] satisfies that contract transparently.
  */
-@Serializable
-sealed class AppScreens : NavKey {
+sealed class AppScreens : NavEaseRoot {
 
-    /** Animated splash / loading screen — start destination. */
-    @Serializable
+    /** Animated splash — auto-navigates to [Home]. */
     data object Splash : AppScreens()
 
-    /** Main hub — shows all libraries. */
-    @Serializable
+    /** Main hub screen with navigation options. */
     data object Home : AppScreens()
 
-    /**
-     * Library detail screen.
-     * @param libId   Unique library identifier used to look up [LibraryData].
-     * @param libName Display name (passed along to avoid a second lookup).
-     */
-    @Serializable
-    data class LibraryDetail(val libId: String, val libName: String) : AppScreens()
+    /** User profile screen with edit capabilities. */
+    data class Profile(val userId: String, val isEditable: Boolean = false) : AppScreens()
 
-    /** NavEase transition-styles demo. */
-    @Serializable
-    data object NavEaseDemo : AppScreens()
+    /** Settings screen with various configuration options. */
+    data object Settings : AppScreens()
 
-    /** SecureVault interactive API simulation. */
-    @Serializable
-    data object SecureVaultDemo : AppScreens()
+    /** Gallery screen demonstrating list navigation. */
+    data object Gallery : AppScreens()
 
-    /** FlowTab live bottom-navigation demo. */
-    @Serializable
-    data object FlowTabDemo : AppScreens()
-
-    /** PrayerTimes calculation demo. */
-    @Serializable
-    data object PrayerTimesDemo : AppScreens()
-
-    /** CrashGuard crash-screen preview. */
-    @Serializable
-    data object CrashGuardDemo : AppScreens()
-
-    /** Pdf Generator DSL demo. */
-    @Serializable
-    data object PdfDemo : AppScreens()
-
-    /**
-     * Minimal screen opened from [NavEaseDemo] to showcase a single [NavTransition].
-     * @param transitionName  Human-readable name (e.g. "Push").
-     * @param tagline         One-line description shown on screen.
-     */
-    @Serializable
-    data class TransitionPreview(val transitionName: String, val tagline: String) : AppScreens()
+    /** Generic detail screen with typed arguments. */
+    data class Detail(val itemId: String, val title: String) : AppScreens()
 }
-

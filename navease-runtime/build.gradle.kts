@@ -60,15 +60,24 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(libs.kotlin.stdlib)
+                api("androidx.navigationevent:navigationevent:1.1.1")
+                api("androidx.navigationevent:navigationevent-compose:1.1.1")
 
-                implementation(compose.runtime)
-                implementation(compose.animation)
-                // Navigation — exposed as api so consumers (e.g. :shared) can use NavKey directly
-                api(libs.androidx.navigation3.ui)
+                implementation("androidx.collection:collection:1.6.0")
+
+                implementation("androidx.lifecycle:lifecycle-runtime:2.10.0")
+                implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
+
+                implementation("org.jetbrains.compose.runtime:runtime:1.11.0")
+                implementation("org.jetbrains.compose.animation:animation:1.11.0")
+
                 // Serialization — needed for KSerializer in NavEaseGraph DSL
-                api(libs.kotlinx.serializationCore)
+                implementation(libs.kotlinx.serializationCore)
             }
+        }
+
+        androidMain.dependencies {
+            implementation("androidx.core:core-ktx:1.1.0")
         }
     }
 }
