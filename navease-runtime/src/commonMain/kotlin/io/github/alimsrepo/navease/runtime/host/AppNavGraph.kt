@@ -1,7 +1,7 @@
 package io.github.alimsrepo.navease.runtime.host
 
 import androidx.compose.runtime.Composable
-import androidx.navigation3.runtime.NavKey
+import io.github.alimsrepo.navease.internal.runtime.NavKey
 import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import io.github.alimsrepo.navease.runtime.transition.NavTransition

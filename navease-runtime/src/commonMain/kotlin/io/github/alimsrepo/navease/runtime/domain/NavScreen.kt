@@ -1,7 +1,7 @@
 package io.github.alimsrepo.navease.runtime.domain
 
 import androidx.compose.runtime.Composable
-import androidx.navigation3.runtime.NavKey
+import io.github.alimsrepo.navease.internal.runtime.NavKey
 import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 
 /**

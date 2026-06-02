@@ -13,10 +13,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.navigation3.runtime.NavEntry
-import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.rememberNavBackStack
-import androidx.navigation3.ui.NavDisplay
+import io.github.alimsrepo.navease.internal.runtime.NavEntry
+import io.github.alimsrepo.navease.internal.runtime.NavKey
+import io.github.alimsrepo.navease.internal.runtime.rememberNavBackStack
+import io.github.alimsrepo.navease.internal.navigation.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController
 import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseSharedTransitionScope
@@ -76,6 +76,13 @@ internal fun NavEaseNavGraphCore(
                     Animations.forward(transition)
                 },
                 popTransitionSpec = {
+                    val transition = navEaseController.transitionStore[initialState.key] ?: navTransition
+                    Animations.back(transition)
+                },
+                predictivePopTransitionSpec = { _ ->
+                    // Use the same animation spec as regular back navigation for gesture-based back
+                    // This ensures shared element transitions work consistently with both
+                    // back button and iOS swipe-back gesture
                     val transition = navEaseController.transitionStore[initialState.key] ?: navTransition
                     Animations.back(transition)
                 },

@@ -1,6 +1,6 @@
 package io.github.alimsrepo.navease.runtime.registry
 
-import androidx.navigation3.runtime.NavKey
+import io.github.alimsrepo.navease.internal.runtime.NavKey
 import io.github.alimsrepo.navease.runtime.screen.ActivityScreen
 import kotlinx.serialization.KSerializer
 import kotlin.reflect.KClass

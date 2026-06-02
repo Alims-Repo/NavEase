@@ -35,7 +35,7 @@ import androidx.compose.runtime.compositionLocalOf
  * }
  * ```
  *
- * @see androidx.navigation3.ui.LocalNavAnimatedContentScope
+ * @see io.github.alimsrepo.navease.internal.navigation.ui.LocalNavAnimatedContentScope
  */
 public val LocalNavEaseSharedTransitionScope: ProvidableCompositionLocal<SharedTransitionScope?> =
     compositionLocalOf { null }

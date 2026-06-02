@@ -2,7 +2,7 @@ package io.github.alimsrepo.navease.runtime.host
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.navigation3.runtime.NavKey
+import io.github.alimsrepo.navease.internal.runtime.NavKey
 import androidx.savedstate.serialization.SavedStateConfiguration
 import io.github.alimsrepo.navease.runtime.NavEaseRoot
 import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController
@@ -14,7 +14,6 @@ import io.github.alimsrepo.navease.runtime.transition.NavTransition
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
-import kotlinx.serialization.modules.subclass
 import kotlin.reflect.KClass
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -254,7 +253,7 @@ fun NavEaseHostForRoot(
         },
         onExitRequest        = onExitRequest,
         enableSharedTransitions = enableSharedTransitions,
-        navTransition        = navTransition,
+        navTransition = navTransition,
     )
 }
 

@@ -14,4 +14,19 @@ sealed class AppScreens : NavEaseRoot {
 
     /** Animated splash — auto-navigates to [Home]. */
     data object Splash : AppScreens()
+
+    /** Main hub screen with navigation options. */
+    data object Home : AppScreens()
+
+    /** User profile screen with edit capabilities. */
+    data class Profile(val userId: String, val isEditable: Boolean = false) : AppScreens()
+
+    /** Settings screen with various configuration options. */
+    data object Settings : AppScreens()
+
+    /** Gallery screen demonstrating list navigation. */
+    data object Gallery : AppScreens()
+
+    /** Generic detail screen with typed arguments. */
+    data class Detail(val itemId: String, val title: String) : AppScreens()
 }

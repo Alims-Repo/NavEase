@@ -3,7 +3,7 @@
 package io.github.alimsrepo.navease.runtime.graph
 
 import androidx.compose.runtime.Composable
-import androidx.navigation3.runtime.NavKey
+import io.github.alimsrepo.navease.internal.runtime.NavKey
 import androidx.savedstate.serialization.SavedStateConfiguration
 import kotlin.reflect.KClass
 

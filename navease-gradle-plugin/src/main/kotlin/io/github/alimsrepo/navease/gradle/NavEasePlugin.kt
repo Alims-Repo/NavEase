@@ -185,38 +185,38 @@ class NavEasePlugin : Plugin<Project> {
                     false
                 }
 
-                if (hasExistingNav3) {
-                    project.logger.info(
-                        "[NavEase] Skipping navigation3-ui auto-injection — already declared in commonMain. " +
-                        "Make sure the version is compatible with NavEase (recommended: 1.1.1+)."
-                    )
-                } else {
-                    val nav3Dep = extension.effectiveNavigation3Dependency()
-                    commonMain?.dependencies {
-                        implementation(nav3Dep)
-                    }
-                    project.logger.info("[NavEase] Added navigation3-ui: $nav3Dep")
-                }
-
-                // Apply force resolution strategy if requested
-                if (extension.forceNavigation3Version) {
-                    val nav3Version = when (val dep = extension.effectiveNavigation3Dependency()) {
-                        is String -> dep.substringAfterLast(":")
-                        else -> "1.1.1" // fallback to default
-                    }
-
-                    project.configurations.configureEach { config ->
-                        if (config.name.contains("Implementation") || config.name.contains("Api")) {
-                            config.resolutionStrategy { strategy ->
-                                strategy.force("org.jetbrains.androidx.navigation3:navigation3-ui:$nav3Version")
-                            }
-                        }
-                    }
-                    project.logger.info(
-                        "[NavEase] Forcing navigation3-ui version to $nav3Version " +
-                        "(forceNavigation3Version = true)"
-                    )
-                }
+//                if (hasExistingNav3) {
+//                    project.logger.info(
+//                        "[NavEase] Skipping navigation3-ui auto-injection — already declared in commonMain. " +
+//                        "Make sure the version is compatible with NavEase (recommended: 1.1.1+)."
+//                    )
+//                } else {
+//                    val nav3Dep = extension.effectiveNavigation3Dependency()
+//                    commonMain?.dependencies {
+//                        implementation(nav3Dep)
+//                    }
+//                    project.logger.info("[NavEase] Added navigation3-ui: $nav3Dep")
+//                }
+//
+//                // Apply force resolution strategy if requested
+//                if (extension.forceNavigation3Version) {
+//                    val nav3Version = when (val dep = extension.effectiveNavigation3Dependency()) {
+//                        is String -> dep.substringAfterLast(":")
+//                        else -> "1.1.1" // fallback to default
+//                    }
+//
+//                    project.configurations.configureEach { config ->
+//                        if (config.name.contains("Implementation") || config.name.contains("Api")) {
+//                            config.resolutionStrategy { strategy ->
+//                                strategy.force("org.jetbrains.androidx.navigation3:navigation3-ui:$nav3Version")
+//                            }
+//                        }
+//                    }
+//                    project.logger.info(
+//                        "[NavEase] Forcing navigation3-ui version to $nav3Version " +
+//                        "(forceNavigation3Version = true)"
+//                    )
+//                }
             }
 
             // ── Step 6: Forward generatedPackage to the KSP processor arg ────────

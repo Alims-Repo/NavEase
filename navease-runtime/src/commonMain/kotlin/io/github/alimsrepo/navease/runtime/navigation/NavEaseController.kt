@@ -2,8 +2,8 @@ package io.github.alimsrepo.navease.runtime.navigation
 
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.navigation3.runtime.NavBackStack
-import androidx.navigation3.runtime.NavKey
+import io.github.alimsrepo.navease.internal.runtime.NavBackStack
+import io.github.alimsrepo.navease.internal.runtime.NavKey
 import io.github.alimsrepo.navease.runtime.transition.NavTransition
 
 /**
@@ -13,7 +13,7 @@ import io.github.alimsrepo.navease.runtime.transition.NavTransition
  * call and is never shared between independent nav graphs — this prevents back-stack or result
  * cross-contamination in nested / multi-window setups.
  *
- * @param backStack         The [NavBackStack] that drives the [androidx.navigation3.ui.NavDisplay].
+ * @param backStack         The [NavBackStack] that drives the [io.github.alimsrepo.navease.internal.navigation.ui.NavDisplay].
  * @param showExitDialog    Called when [back] is invoked at the root (back-stack size == 1).
  * @param defaultTransition The app-level fallback transition used when [navigate] is called
  *                          without an explicit [NavTransition] override. Supplied by
@@ -52,7 +52,7 @@ class NavEaseController(
      * is needed.
      *
      * Keys are the string representation of each [NavKey] (i.e. `navKey.toString()`), which
-     * matches the `contentKey` that Navigation3 assigns to each [androidx.navigation3.runtime.NavEntry]
+     * matches the `contentKey` that Navigation3 assigns to each [io.github.alimsrepo.navease.internal.runtime.NavEntry]
      * and therefore matches `Scene.key` inside the `transitionSpec` / `popTransitionSpec` lambdas.
      */
     internal val transitionStore = mutableMapOf<Any, NavTransition>()
@@ -62,7 +62,7 @@ class NavEaseController(
      * [showExitDialog] is invoked instead.
      *
      * **Do not** remove the transition entry from [transitionStore] here.
-     * [androidx.navigation3.ui.NavDisplay] reads `popTransitionSpec` **after** the backstack
+     * [io.github.alimsrepo.navease.internal.navigation.ui.NavDisplay] reads `popTransitionSpec` **after** the backstack
      * mutation, so the entry must still be present when the pop animation starts.
      * Stale entries are evicted lazily on the next [navigate] call.
      */

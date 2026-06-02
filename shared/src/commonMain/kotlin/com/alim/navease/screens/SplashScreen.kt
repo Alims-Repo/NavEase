@@ -56,7 +56,7 @@ class SplashScreen : ActivityScreen<AppScreens.Splash>() {
             if (!hasNavigated) {
                 delay(2_400L)
                 hasNavigated = true
-//                navEaseController.navigate(AppScreens.Home, finish = true)
+                navEaseController.navigate(AppScreens.Home, finish = true)
             }
         }
 

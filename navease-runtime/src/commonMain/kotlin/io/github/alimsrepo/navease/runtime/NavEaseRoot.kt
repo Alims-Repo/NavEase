@@ -1,6 +1,6 @@
 package io.github.alimsrepo.navease.runtime
 
-import androidx.navigation3.runtime.NavKey
+import io.github.alimsrepo.navease.internal.runtime.NavKey
 
 /**
  * Marker interface for NavEase sealed key hierarchies.
