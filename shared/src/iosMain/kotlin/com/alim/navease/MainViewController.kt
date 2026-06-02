@@ -7,9 +7,8 @@ import io.github.alimsrepo.navease.generated.navEaseBootstrap
 /**
  * iOS entry point for the NavEase sample app.
  *
- * [App] internally calls `navEaseBootstrap()` via `remember`, so no explicit
- * bootstrap call is needed here. The platform entry point stays clean and
- * framework-agnostic.
+ * The navEaseBootstrap() call initializes the @AutoRegister screen registry.
+ * This is required on iOS because automatic initialization is not reliable.
  */
 fun MainViewController() = ComposeUIViewController {
     navEaseBootstrap()
