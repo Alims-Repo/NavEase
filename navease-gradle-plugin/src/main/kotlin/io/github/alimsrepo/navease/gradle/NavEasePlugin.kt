@@ -220,10 +220,13 @@ class NavEasePlugin : Plugin<Project> {
             }
 
             // ── Step 6: Forward generatedPackage to the KSP processor arg ────────
-            val customPackage = extension.generatedPackage.trim()
-            if (customPackage.isNotBlank()) {
-                forwardKspArg(project, "navease.generatedPackage", customPackage)
+            val customPackage = if (extension.generatedPackage.trim().isBlank()) {
+                // Default to a module-unique package to avoid multi-module collisions
+                "io.github.alimsrepo.navease.generated.${project.name.replace("-", "_")}"
+            } else {
+                extension.generatedPackage.trim()
             }
+            forwardKspArg(project, "navease.generatedPackage", customPackage)
 
             // ── Step 7: Generate platform-specific bootstrap anchor files ─────────
             // These files live in the build directory — never in user sources.
