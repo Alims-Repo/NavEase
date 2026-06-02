@@ -104,10 +104,10 @@
     }
 }
 
-<span class="cmt">// 2. App.kt — registry auto-wires on ALL platforms, no bootstrap call needed</span>
-<span class="ann">@Composable</span>
-<span class="kw">fun</span> <span class="fn">App</span>() {
     <span class="cls">NavEaseHost</span>(onExitRequest = {})   <span class="cmt">// ← that's it ✅</span>
+        start = <span class="cls">AppScreens</span>.Home,
+        onExitRequest = {}
+    )
 }
 
 <span class="cmt">// iOS entry — completely clean, zero extra wiring needed</span>
@@ -376,11 +376,10 @@
     }
 }</pre>
                     </div>
-                    <p class="step-note">KSP validates at compile time: exactly one start destination, no duplicate NavKeys, and all screens must share the same sealed root.</p>
+                    <p class="step-note">KSP validates at compile time: no duplicate NavKeys, and all screens must share the same sealed root. You specify the start destination when calling NavEaseHost.</p>
                 </div>
             </div>
 
-            <div class="step-arrow">↓</div>
 
             <div class="step-item">
                 <div class="step-marker">4</div>
@@ -392,7 +391,8 @@
                         <pre class="code-block"><span class="ann">@Composable</span>
 <span class="kw">fun</span> <span class="fn">App</span>() {
     <span class="cls">MaterialTheme</span> {
-        <span class="cls">NavEaseHost</span>(   <span class="cmt">// ← no type param, no start =, no screens lambda ✅</span>
+        <span class="cls">NavEaseHost</span>&lt;<span class="cls">AppScreens</span>&gt;(   <span class="cmt">// ← type param + start destination ✅</span>
+            start = <span class="cls">AppScreens</span>.Home,
             onExitRequest = { <span class="cmt">/* show exit dialog or finish() */</span> },
             enableSharedTransitions = <span class="kw">true</span>,
             navTransition = <span class="cls">NavTransition</span>.Push,
@@ -759,11 +759,11 @@ result?.<span class="fn">let</span> { <span class="cls">Text</span>(<span class=
 
             <div class="faq-item">
                 <button class="faq-question" onclick="toggleFaq(this)">
-                    <span>KSP error: "Multiple start destinations" or duplicate NavKey</span>
+                    <span>KSP error: duplicate NavKey or wrong root type</span>
                     <span class="faq-chevron">›</span>
                 </button>
                 <div class="faq-answer">
-                    <p>Exactly one <code>@AutoRegister(startDestination = true)</code> is required. Each NavKey type may only be handled by one screen — using the same <code>AppScreens.Detail</code> in two different <code>ActivityScreen</code> classes will produce an error. Fix: ensure only one screen maps to each NavKey.</p>
+                    <p>Each NavKey type may only be handled by one screen — using the same <code>AppScreens.Detail</code> in two different <code>ActivityScreen</code> classes will produce an error. Fix: ensure only one screen maps to each NavKey. Also ensure all screens share the same sealed root class.</p>
                 </div>
             </div>
 
@@ -827,9 +827,9 @@ result?.<span class="fn">let</span> { <span class="cls">Text</span>(<span class=
                 <div class="demo-screen-icon">🚀</div>
                 <h3>SplashScreen</h3>
                 <p class="demo-route"><code>AppScreens.Splash</code> · start destination</p>
-                <p>Animated branding with spring scale-in and auto-navigation to Home. Annotated with <code>@AutoRegister(startDestination = true)</code>.</p>
+                <p>Animated branding with spring scale-in and auto-navigation to Home. Used as the start destination in <code>NavEaseHost&lt;AppScreens&gt;(start = AppScreens.Splash)</code>.</p>
                 <div class="demo-tags">
-                    <span class="demo-tag">@AutoRegister(startDestination)</span>
+                    <span class="demo-tag">@AutoRegister</span>
                     <span class="demo-tag">ActivityScreen</span>
                 </div>
             </div>
@@ -1053,7 +1053,7 @@ nav?.<span class="fn">navigate</span>(<span class="cls">AppScreens</span>.Detail
                     </div>
                 </div>
                 <ul class="module-files">
-                    <li><code>NavEaseHost(onExitRequest)</code> — universal auto-registry composable; registry auto-wires on all platforms</li>
+                    <li><code>NavEaseHost&lt;Root&gt;(start)</code> — auto-discovers @AutoRegister screens; registry auto-wires on all platforms</li>
                     <li><code>NavEaseHost(graph)</code> — DSL graph variant, no KSP needed</li>
                     <li><code>NavEaseHost&lt;Root&gt;(start) { add(Screen()) }</code> — explicit typed ActivityScreen registration</li>
                     <li><code>ActivityScreen&lt;K&gt;</code> — typed abstract base; override <code>Content(navKey: K, …)</code></li>
@@ -1078,7 +1078,7 @@ nav?.<span class="fn">navigate</span>(<span class="cls">AppScreens</span>.Detail
                     <li>iOS/Native: generated property annotated with <code>@EagerInitialization</code> — runs when the Kotlin framework loads, before composition</li>
                     <li>Android/JVM: registry triggered via <code>Class.forName</code> class-loading inside <code>NavEaseHost</code></li>
                     <li>JS/Wasm: module-level property initialized when the JS module loads</li>
-                    <li>Validates: one NavKey → one screen · all screens same sealed root · exactly one <code>startDestination = true</code></li>
+                    <li>Validates: one NavKey → one screen · all screens same sealed root</li>
                     <li>All generated code lives in <code>io.github.alimsrepo.navease.generated</code></li>
                 </ul>
             </div>

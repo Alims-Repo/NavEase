@@ -67,7 +67,7 @@ class ProfileScreen : ActivityScreen<AppScreens.Profile>() {
         var hasChanges by remember { mutableStateOf(false) }
         var changesCount by remember { mutableStateOf(0) }
 
-        val sharedModifier = if (sharedScope != null && animatedScope != null) {
+        val sharedModifier = if (sharedScope != null) {
             with(sharedScope) {
                 Modifier.sharedBounds(
                     sharedContentState = rememberSharedContentState(key = "nav_card_Profile"),

@@ -115,8 +115,25 @@ object NavEaseAutoRegistry {
      */
     internal fun ensureInitialized() {
         if (isInitialized) return
-        bootstrapHook?.invoke()      // fast path if hook already registered
-        if (!isInitialized) navEaseAutoTriggerInit()  // JVM Class.forName fallback
+
+        // Try the bootstrap hook first (fast path for all platforms)
+        bootstrapHook?.invoke()
+
+        // JVM Class.forName fallback
+        if (!isInitialized) {
+            navEaseAutoTriggerInit()
+        }
+
+        // Final check with helpful error message
+        if (!isInitialized) {
+            error(
+                "NavEase: Registry initialization failed. This usually means:\n" +
+                "  • The project needs to be rebuilt (./gradlew build)\n" +
+                "  • KSP hasn't generated the screen registry yet\n" +
+                "  • No @AutoRegister screens were found\n" +
+                "Ensure you have at least one screen annotated with @AutoRegister and rebuild."
+            )
+        }
     }
 }
 

@@ -6,12 +6,13 @@ package io.github.alimsrepo.navease.runtime.registry
 // entry point before the first NavEaseHost() composition:
 //
 //   fun MainViewController() = ComposeUIViewController {
-//       navEaseBootstrap()
+//       // navEaseBootstrap()  ← no longer needed!
 //       App()
 //   }
 //
 // On JVM / Android / Desktop, initialization is automatic via Class.forName.
 // On JS / WasmJS, initialization is automatic via module-level init.
+//       navEaseBootstrap()
 
 
 

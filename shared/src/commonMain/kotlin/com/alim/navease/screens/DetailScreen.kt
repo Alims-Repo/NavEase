@@ -68,7 +68,7 @@ class DetailScreen : ActivityScreen<AppScreens.Detail>() {
         var isFavorited by remember { mutableStateOf(false) }
         var isExpanded by remember { mutableStateOf(false) }
 
-        val sharedModifier = if (sharedScope != null && animatedScope != null) {
+        val sharedModifier = if (sharedScope != null) {
             with(sharedScope) {
                 Modifier.sharedBounds(
                     sharedContentState = rememberSharedContentState(key = "gallery_item_${navKey.itemId}"),
