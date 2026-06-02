@@ -110,8 +110,8 @@ object NavEaseAutoRegistry {
      *
      * - On **JVM/Android/Desktop**: triggers `Class.forName` via [navEaseAutoTriggerInit],
      *   which loads the generated class and runs `NavEaseAutoInit.init {}`.
-     * - On **iOS/Native**: no-op — `@EagerInitialization` in the glue file handles this.
-     * - On **JS/WasmJS**: module-level init already ran; this is a safety check.
+     * - On **iOS/Native/Web**: No manual call is required. The generated `NavEaseHost`
+     *   automatically calls `navEaseBootstrap()` on first composition.
      */
     internal fun ensureInitialized() {
         if (isInitialized) return

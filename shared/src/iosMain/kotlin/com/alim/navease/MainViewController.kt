@@ -2,7 +2,6 @@ package com.alim.navease
 
 import androidx.compose.ui.window.ComposeUIViewController
 import com.alim.navease.screens.App
-import io.github.alimsrepo.navease.generated.navEaseBootstrap
 
 /**
  * iOS entry point for the NavEase sample app.
@@ -11,6 +10,5 @@ import io.github.alimsrepo.navease.generated.navEaseBootstrap
  * This is required on iOS because automatic initialization is not reliable.
  */
 fun MainViewController() = ComposeUIViewController {
-    navEaseBootstrap()
     App()
 }
