@@ -13,9 +13,7 @@ kotlin {
     jvmToolchain(21)
 }
 
-// Tests are currently commented out while the compilation-testing dependency
-// is being aligned with KSP2. Suppress the "no tests found" build error so
-// the module still builds cleanly.
+
 tasks.withType<Test>().configureEach {
     failOnNoDiscoveredTests = false
 }
@@ -23,9 +21,6 @@ tasks.withType<Test>().configureEach {
 dependencies {
     implementation(libs.ksp.api)
 
-    // KSP compilation testing — allows feeding synthetic source to the processor
-    // and asserting on generated file content without a full Gradle build.
-    testImplementation(libs.kotlin.compile.testing.ksp)
     testImplementation(libs.kotlin.testJunit)
     testImplementation(libs.junit)
 }
