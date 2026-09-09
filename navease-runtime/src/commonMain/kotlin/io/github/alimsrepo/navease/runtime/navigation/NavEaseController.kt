@@ -9,7 +9,7 @@ import io.github.alimsrepo.navease.runtime.transition.NavTransition
 /**
  * Orchestrates navigation across the back stack.
  *
- * One instance is created per [io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph]
+ * One instance is created per [io.github.alimsrepo.navease.runtime.host.NavEaseHost]
  * call and is never shared between independent nav graphs — this prevents back-stack or result
  * cross-contamination in nested / multi-window setups.
  *
@@ -17,7 +17,7 @@ import io.github.alimsrepo.navease.runtime.transition.NavTransition
  * @param showExitDialog    Called when [back] is invoked at the root (back-stack size == 1).
  * @param defaultTransition The app-level fallback transition used when [navigate] is called
  *                          without an explicit [NavTransition] override. Supplied by
- *                          [io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph]
+ *                          [io.github.alimsrepo.navease.runtime.host.NavEaseHost]
  *                          from the `navTransition` parameter of `NavEaseHost`.
  */
 @Stable
@@ -42,7 +42,7 @@ class NavEaseController(
      * Per-push transition store.
      *
      * Every call to [navigate] records the resolved [NavTransition] against the pushed [NavKey].
-     * [io.github.alimsrepo.navease.runtime.presentation.NavEaseNavGraph] reads this map inside its
+     * [io.github.alimsrepo.navease.runtime.host.NavEaseHost] reads this map inside its
      * `transitionSpec` / `popTransitionSpec` lambdas to animate each screen change with the
      * transition that was chosen *at call time*, falling back to [defaultTransition] when no
      * per-navigate override was given.

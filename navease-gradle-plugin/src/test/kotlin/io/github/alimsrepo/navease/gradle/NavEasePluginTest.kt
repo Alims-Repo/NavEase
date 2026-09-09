@@ -1,146 +1,73 @@
 package io.github.alimsrepo.navease.gradle
 
 import org.gradle.testkit.runner.GradleRunner
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
 
+/**
+ * Configures a real build with the plugin applied.
+ *
+ * TestKit injects the plugin into a classloader that is a parent of the build script's, so a
+ * Kotlin Gradle plugin declared by the test project is not visible to it. That rules out
+ * functional coverage of the multiplatform wiring here; the repository's own `:shared` module
+ * applies this plugin through a composite build and covers that end to end.
+ *
+ * What is worth asserting at this level is that the plugin can be instantiated and reports a
+ * usable message when the build is not a Kotlin Multiplatform one.
+ */
 class NavEasePluginTest {
 
     @get:Rule
     val tmpDir = TemporaryFolder()
 
-    // ── helpers ───────────────────────────────────────────────────────────
-
-    private fun writeSettingsFile(projectDir: File) {
-        File(projectDir, "settings.gradle.kts").writeText(
+    private fun project(buildScript: String): File {
+        val dir = tmpDir.root
+        File(dir, "settings.gradle.kts").writeText(
             """
             rootProject.name = "test-project"
             dependencyResolutionManagement {
                 repositories {
-                    mavenCentral()
                     google()
+                    mavenCentral()
                 }
             }
-            """.trimIndent()
+            """.trimIndent(),
         )
+        File(dir, "build.gradle.kts").writeText(buildScript)
+        return dir
     }
 
-    private fun runner(projectDir: File, vararg args: String) =
+    private fun run(dir: File, vararg args: String) =
         GradleRunner.create()
-            .withProjectDir(projectDir)
+            .withProjectDir(dir)
             .withPluginClasspath()
             .withArguments(*args)
             .forwardOutput()
 
-    // ── unit tests (no Gradle invocation needed) ──────────────────────────
-
     @Test
-    fun `NavEaseVersion constants are not blank`() {
-        assertTrue(NavEaseVersion.VERSION.isNotBlank())
-        assertTrue(NavEaseVersion.GROUP.isNotBlank())
-        assertTrue(NavEaseVersion.RUNTIME_ARTIFACT.isNotBlank())
-        assertTrue(NavEaseVersion.KSP_ARTIFACT.isNotBlank())
-    }
-
-    @Test
-    fun `NavEaseExtension resolves default version from NavEaseVersion`() {
-        val ext = NavEaseExtension()
-        assertEquals(NavEaseVersion.VERSION, ext.resolvedVersion())
-    }
-
-    @Test
-    fun `NavEaseExtension resolves custom version`() {
-        val ext = NavEaseExtension().apply { version = "1.2.3" }
-        assertEquals("1.2.3", ext.resolvedVersion())
-    }
-
-    @Test
-    fun `NavEaseExtension resolves blank version to bundled default`() {
-        val ext = NavEaseExtension().apply { version = "   " }
-        assertEquals(NavEaseVersion.VERSION, ext.resolvedVersion())
-    }
-
-    @Test
-    fun `NavEaseExtension runtime coordinate contains group and artifact`() {
-        val ext = NavEaseExtension()
-        val coord = ext.resolvedRuntimeCoordinate()
-        assertTrue(coord.contains(NavEaseVersion.GROUP))
-        assertTrue(coord.contains(NavEaseVersion.RUNTIME_ARTIFACT))
-        assertTrue(coord.contains(NavEaseVersion.VERSION))
-    }
-
-    @Test
-    fun `NavEaseExtension ksp coordinate contains group and artifact`() {
-        val ext = NavEaseExtension()
-        val coord = ext.resolvedKspCoordinate()
-        assertTrue(coord.contains(NavEaseVersion.GROUP))
-        assertTrue(coord.contains(NavEaseVersion.KSP_ARTIFACT))
-        assertTrue(coord.contains(NavEaseVersion.VERSION))
-    }
-
-    @Test
-    fun `addRuntimeDependency defaults to true`() {
-        val ext = NavEaseExtension()
-        assertTrue(ext.addRuntimeDependency)
-    }
-
-    @Test
-    fun `generatedPackage defaults to blank`() {
-        val ext = NavEaseExtension()
-        assertTrue(ext.generatedPackage.isBlank())
-    }
-
-    // ── functional tests (lightweight — no network, no full KMP compile) ──
-    // Note: these spin up a child Gradle process via TestKit and require a
-    // compatible JDK on the PATH. Skipped automatically if that's not available.
-
-    @Ignore("Requires a full JDK on PATH — run manually in CI environments")
-    @Test
-    fun `plugin registers navease extension and tasks on a minimal project`() {
-        val projectDir = tmpDir.root
-        writeSettingsFile(projectDir)
-
-        File(projectDir, "build.gradle.kts").writeText(
+    fun `the plugin can be instantiated without the Kotlin Gradle plugin present`() {
+        // Gradle resolves the types named in a plugin class's method signatures when it
+        // decorates the class. When those included KotlinMultiplatformExtension, applying the
+        // plugin died with NoClassDefFoundError before any NavEase code ran.
+        val dir = project(
             """
-            plugins {
-                id("io.github.alims-repo.navease")
-            }
-            """.trimIndent()
+            plugins { id("io.github.alims-repo.navease") }
+            """.trimIndent(),
         )
 
-        // `help` is always present — just checks that configuration doesn't crash
-        val result = runner(projectDir, "help").build()
-        assertTrue("Expected BUILD SUCCESSFUL", result.output.contains("BUILD SUCCESSFUL"))
-    }
+        val result = run(dir, "help").buildAndFail()
 
-    @Ignore("Requires a full JDK on PATH — run manually in CI environments")
-    @Test
-    fun `navease extension block is accepted without errors`() {
-        val projectDir = tmpDir.root
-        writeSettingsFile(projectDir)
-
-        File(projectDir, "build.gradle.kts").writeText(
-            """
-            plugins {
-                id("io.github.alims-repo.navease")
-            }
-            navease {
-                version = "0.0.3"
-                addRuntimeDependency = false
-                generatedPackage = "com.example.nav"
-            }
-            """.trimIndent()
+        assertTrue(
+            "expected a NavEase message, got:\n${result.output}",
+            result.output.contains("[NavEase]"),
         )
-
-        val result = runner(projectDir, "help").build()
-        assertTrue("Expected BUILD SUCCESSFUL", result.output.contains("BUILD SUCCESSFUL"))
+        assertTrue(
+            "expected the failure to name the missing plugin, got:\n${result.output}",
+            result.output.contains("Kotlin Multiplatform") ||
+                result.output.contains("com.google.devtools.ksp"),
+        )
     }
 }
-
-
-

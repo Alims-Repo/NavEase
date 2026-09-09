@@ -1,15 +1,429 @@
+public final class io/github/alimsrepo/navease/internal/navigation/scene/ComposableSingletons$SceneSetupNavEntryDecoratorKt {
+	public static final field INSTANCE Lio/github/alimsrepo/navease/internal/navigation/scene/ComposableSingletons$SceneSetupNavEntryDecoratorKt;
+	public fun <init> ()V
+	public final fun getLambda$-1544812572$navease_runtime ()Lkotlin/jvm/functions/Function3;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/scene/DialogSceneStrategy : io/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy {
+	public static final field $stable I
+	public static final field Companion Lio/github/alimsrepo/navease/internal/navigation/scene/DialogSceneStrategy$Companion;
+	public fun <init> ()V
+	public fun calculateScene (Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategyScope;Ljava/util/List;)Lio/github/alimsrepo/navease/internal/navigation/scene/Scene;
+	public fun then (Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy;)Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/scene/DialogSceneStrategy$Companion {
+	public final fun dialog (Landroidx/compose/ui/window/DialogProperties;)Ljava/util/Map;
+	public static synthetic fun dialog$default (Lio/github/alimsrepo/navease/internal/navigation/scene/DialogSceneStrategy$Companion;Landroidx/compose/ui/window/DialogProperties;ILjava/lang/Object;)Ljava/util/Map;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/scene/DialogSceneStrategy$Companion$DialogKey : io/github/alimsrepo/navease/internal/runtime/NavMetadataKey {
+	public static final field $stable I
+	public static final field INSTANCE Lio/github/alimsrepo/navease/internal/navigation/scene/DialogSceneStrategy$Companion$DialogKey;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/scene/NavigationEventHandlerKt {
+	public static final fun NavigationBackHandler (Lio/github/alimsrepo/navease/internal/navigation/scene/SceneState;Landroidx/navigationevent/compose/NavigationEventState;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;II)V
+}
+
+public abstract interface class io/github/alimsrepo/navease/internal/navigation/scene/OverlayScene : io/github/alimsrepo/navease/internal/navigation/scene/Scene {
+	public abstract fun getOverlaidEntries ()Ljava/util/List;
+	public fun onRemove (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/scene/OverlayScene$DefaultImpls {
+	public static fun getMetadata (Lio/github/alimsrepo/navease/internal/navigation/scene/OverlayScene;)Ljava/util/Map;
+	public static fun onRemove (Lio/github/alimsrepo/navease/internal/navigation/scene/OverlayScene;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/scene/RememberNavigationEventStateKt {
+	public static final fun rememberNavigationEventState (Lio/github/alimsrepo/navease/internal/navigation/scene/SceneState;Landroidx/compose/runtime/Composer;I)Landroidx/navigationevent/compose/NavigationEventState;
+}
+
+public abstract interface class io/github/alimsrepo/navease/internal/navigation/scene/Scene {
+	public abstract fun getContent ()Lkotlin/jvm/functions/Function2;
+	public abstract fun getEntries ()Ljava/util/List;
+	public abstract fun getKey ()Ljava/lang/Object;
+	public fun getMetadata ()Ljava/util/Map;
+	public abstract fun getPreviousEntries ()Ljava/util/List;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/scene/Scene$DefaultImpls {
+	public static fun getMetadata (Lio/github/alimsrepo/navease/internal/navigation/scene/Scene;)Ljava/util/Map;
+}
+
+public abstract interface class io/github/alimsrepo/navease/internal/navigation/scene/SceneDecoratorStrategy {
+	public abstract fun decorateScene (Lio/github/alimsrepo/navease/internal/navigation/scene/SceneDecoratorStrategyScope;Lio/github/alimsrepo/navease/internal/navigation/scene/Scene;)Lio/github/alimsrepo/navease/internal/navigation/scene/Scene;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/scene/SceneDecoratorStrategyScope : io/github/alimsrepo/navease/internal/navigation/scene/SceneStrategyScope {
+	public static final field $stable I
+	public fun <init> ()V
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/scene/SceneInfo : androidx/navigationevent/NavigationEventInfo {
+	public static final field $stable I
+	public fun <init> (Lio/github/alimsrepo/navease/internal/navigation/scene/Scene;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getScene ()Lio/github/alimsrepo/navease/internal/navigation/scene/Scene;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/scene/SceneState {
+	public static final field $stable I
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCurrentScene ()Lio/github/alimsrepo/navease/internal/navigation/scene/Scene;
+	public final fun getEntries ()Ljava/util/List;
+	public final fun getOverlayScenes ()Ljava/util/List;
+	public final fun getPreviousScenes ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/scene/SceneStateKt {
+	public static final synthetic fun rememberSceneState (Ljava/util/List;Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;I)Lio/github/alimsrepo/navease/internal/navigation/scene/SceneState;
+	public static final fun rememberSceneState (Ljava/util/List;Ljava/util/List;Ljava/util/List;Landroidx/compose/animation/SharedTransitionScope;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;II)Lio/github/alimsrepo/navease/internal/navigation/scene/SceneState;
+}
+
+public abstract interface class io/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy {
+	public abstract fun calculateScene (Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategyScope;Ljava/util/List;)Lio/github/alimsrepo/navease/internal/navigation/scene/Scene;
+	public fun then (Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy;)Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy$DefaultImpls {
+	public static fun then (Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy;Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy;)Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy;
+}
+
+public class io/github/alimsrepo/navease/internal/navigation/scene/SceneStrategyScope {
+	public static final field $stable I
+	public fun <init> ()V
+	public final fun getOnBack ()Lkotlin/jvm/functions/Function0;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/scene/SinglePaneSceneStrategy : io/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun calculateScene (Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategyScope;Ljava/util/List;)Lio/github/alimsrepo/navease/internal/navigation/scene/Scene;
+	public fun then (Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy;)Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/ui/LocalNavAnimatedContentScopeKt {
+	public static final fun getLocalNavAnimatedContentScope ()Landroidx/compose/runtime/ProvidableCompositionLocal;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/ui/NavDisplay {
+	public static final field $stable I
+	public static final field INSTANCE Lio/github/alimsrepo/navease/internal/navigation/ui/NavDisplay;
+	public final fun popTransitionSpec (Lkotlin/jvm/functions/Function1;)Ljava/util/Map;
+	public final fun predictivePopTransitionSpec (Lkotlin/jvm/functions/Function2;)Ljava/util/Map;
+	public final fun transitionSpec (Lkotlin/jvm/functions/Function1;)Ljava/util/Map;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/ui/NavDisplay$PopTransitionKey : io/github/alimsrepo/navease/internal/runtime/NavMetadataKey {
+	public static final field $stable I
+	public static final field INSTANCE Lio/github/alimsrepo/navease/internal/navigation/ui/NavDisplay$PopTransitionKey;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/ui/NavDisplay$PredictivePopTransitionKey : io/github/alimsrepo/navease/internal/runtime/NavMetadataKey {
+	public static final field $stable I
+	public static final field INSTANCE Lio/github/alimsrepo/navease/internal/navigation/ui/NavDisplay$PredictivePopTransitionKey;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/ui/NavDisplay$TransitionKey : io/github/alimsrepo/navease/internal/runtime/NavMetadataKey {
+	public static final field $stable I
+	public static final field INSTANCE Lio/github/alimsrepo/navease/internal/navigation/ui/NavDisplay$TransitionKey;
+}
+
+public final class io/github/alimsrepo/navease/internal/navigation/ui/NavDisplayKt {
+	public static final fun NavDisplay (Lio/github/alimsrepo/navease/internal/navigation/scene/SceneState;Landroidx/navigationevent/compose/NavigationEventState;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/Alignment;Landroidx/compose/animation/SizeTransform;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final synthetic fun NavDisplay (Ljava/util/List;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/Alignment;Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy;Landroidx/compose/animation/SizeTransform;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;II)V
+	public static final fun NavDisplay (Ljava/util/List;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/Alignment;Ljava/util/List;Ljava/util/List;Landroidx/compose/animation/SharedTransitionScope;Landroidx/compose/animation/SizeTransform;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;III)V
+	public static final synthetic fun NavDisplay (Ljava/util/List;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/Alignment;Lkotlin/jvm/functions/Function0;Ljava/util/List;Lio/github/alimsrepo/navease/internal/navigation/scene/SceneStrategy;Landroidx/compose/animation/SizeTransform;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;III)V
+	public static final fun NavDisplay (Ljava/util/List;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/Alignment;Lkotlin/jvm/functions/Function0;Ljava/util/List;Ljava/util/List;Ljava/util/List;Landroidx/compose/animation/SharedTransitionScope;Landroidx/compose/animation/SizeTransform;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;III)V
+	public static final fun defaultPopTransitionSpec ()Lkotlin/jvm/functions/Function1;
+	public static final fun defaultPredictivePopTransitionSpec ()Lkotlin/jvm/functions/Function2;
+	public static final fun defaultTransitionSpec ()Lkotlin/jvm/functions/Function1;
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/DecoratedNavEntriesKt {
+	public static final fun rememberDecoratedNavEntries (Ljava/util/List;Ljava/util/List;Landroidx/compose/runtime/Composer;II)Ljava/util/List;
+	public static final fun rememberDecoratedNavEntries (Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)Ljava/util/List;
+}
+
+public abstract interface annotation class io/github/alimsrepo/navease/internal/runtime/EntryDsl : java/lang/annotation/Annotation {
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/EntryProviderKt {
+	public static final fun entryProvider (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)Lkotlin/jvm/functions/Function1;
+	public static synthetic fun entryProvider$default (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlin/jvm/functions/Function1;
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/EntryProviderScope {
+	public static final field $stable I
+	public fun <init> (Lkotlin/jvm/functions/Function1;)V
+	public final fun addEntryProvider (Ljava/lang/Object;Ljava/lang/Object;Ljava/util/Map;Lkotlin/jvm/functions/Function3;)V
+	public final fun addEntryProvider (Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;)V
+	public final fun addEntryProvider (Lkotlin/reflect/KClass;Lkotlin/jvm/functions/Function1;Ljava/util/Map;Lkotlin/jvm/functions/Function3;)V
+	public final fun addEntryProvider (Lkotlin/reflect/KClass;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;)V
+	public static synthetic fun addEntryProvider$default (Lio/github/alimsrepo/navease/internal/runtime/EntryProviderScope;Ljava/lang/Object;Ljava/lang/Object;Ljava/util/Map;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public static synthetic fun addEntryProvider$default (Lio/github/alimsrepo/navease/internal/runtime/EntryProviderScope;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public static synthetic fun addEntryProvider$default (Lio/github/alimsrepo/navease/internal/runtime/EntryProviderScope;Lkotlin/reflect/KClass;Lkotlin/jvm/functions/Function1;Ljava/util/Map;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public static synthetic fun addEntryProvider$default (Lio/github/alimsrepo/navease/internal/runtime/EntryProviderScope;Lkotlin/reflect/KClass;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public final fun build ()Lkotlin/jvm/functions/Function1;
+	public final fun entry (Lio/github/alimsrepo/navease/internal/runtime/EntryProviderScope;Ljava/lang/Object;Ljava/lang/Object;Ljava/util/Map;Lkotlin/jvm/functions/Function3;)V
+	public final fun entry (Lio/github/alimsrepo/navease/internal/runtime/EntryProviderScope;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;)V
+	public static synthetic fun entry$default (Lio/github/alimsrepo/navease/internal/runtime/EntryProviderScope;Lio/github/alimsrepo/navease/internal/runtime/EntryProviderScope;Ljava/lang/Object;Ljava/lang/Object;Ljava/util/Map;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public static synthetic fun entry$default (Lio/github/alimsrepo/navease/internal/runtime/EntryProviderScope;Lio/github/alimsrepo/navease/internal/runtime/EntryProviderScope;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+}
+
+public abstract interface annotation class io/github/alimsrepo/navease/internal/runtime/MetadataDsl : java/lang/annotation/Annotation {
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/MetadataScope {
+	public static final field $stable I
+	public fun <init> ()V
+	public final fun build ()Ljava/util/Map;
+	public final fun put (Lio/github/alimsrepo/navease/internal/runtime/NavMetadataKey;Ljava/lang/Object;)V
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/NavBackStack : androidx/compose/runtime/snapshots/StateObject, java/util/List, java/util/RandomAccess, kotlin/jvm/internal/markers/KMutableList {
+	public static final field $stable I
+	public static final field Companion Lio/github/alimsrepo/navease/internal/runtime/NavBackStack$Companion;
+	public fun <init> ()V
+	public fun <init> (Landroidx/compose/runtime/snapshots/SnapshotStateList;)V
+	public fun <init> ([Lio/github/alimsrepo/navease/internal/runtime/NavKey;)V
+	public fun add (ILio/github/alimsrepo/navease/internal/runtime/NavKey;)V
+	public synthetic fun add (ILjava/lang/Object;)V
+	public fun add (Lio/github/alimsrepo/navease/internal/runtime/NavKey;)Z
+	public synthetic fun add (Ljava/lang/Object;)Z
+	public fun addAll (ILjava/util/Collection;)Z
+	public fun addAll (Ljava/util/Collection;)Z
+	public fun clear ()V
+	public fun contains (Lio/github/alimsrepo/navease/internal/runtime/NavKey;)Z
+	public final fun contains (Ljava/lang/Object;)Z
+	public fun containsAll (Ljava/util/Collection;)Z
+	public fun get (I)Lio/github/alimsrepo/navease/internal/runtime/NavKey;
+	public synthetic fun get (I)Ljava/lang/Object;
+	public fun getFirstStateRecord ()Landroidx/compose/runtime/snapshots/StateRecord;
+	public fun getSize ()I
+	public fun indexOf (Lio/github/alimsrepo/navease/internal/runtime/NavKey;)I
+	public final fun indexOf (Ljava/lang/Object;)I
+	public fun isEmpty ()Z
+	public fun iterator ()Ljava/util/Iterator;
+	public fun lastIndexOf (Lio/github/alimsrepo/navease/internal/runtime/NavKey;)I
+	public final fun lastIndexOf (Ljava/lang/Object;)I
+	public fun listIterator ()Ljava/util/ListIterator;
+	public fun listIterator (I)Ljava/util/ListIterator;
+	public fun mergeRecords (Landroidx/compose/runtime/snapshots/StateRecord;Landroidx/compose/runtime/snapshots/StateRecord;Landroidx/compose/runtime/snapshots/StateRecord;)Landroidx/compose/runtime/snapshots/StateRecord;
+	public fun prependStateRecord (Landroidx/compose/runtime/snapshots/StateRecord;)V
+	public final fun remove (I)Lio/github/alimsrepo/navease/internal/runtime/NavKey;
+	public synthetic fun remove (I)Ljava/lang/Object;
+	public fun remove (Lio/github/alimsrepo/navease/internal/runtime/NavKey;)Z
+	public final fun remove (Ljava/lang/Object;)Z
+	public fun removeAll (Ljava/util/Collection;)Z
+	public fun removeAt (I)Lio/github/alimsrepo/navease/internal/runtime/NavKey;
+	public fun retainAll (Ljava/util/Collection;)Z
+	public fun set (ILio/github/alimsrepo/navease/internal/runtime/NavKey;)Lio/github/alimsrepo/navease/internal/runtime/NavKey;
+	public synthetic fun set (ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun size ()I
+	public fun subList (II)Ljava/util/List;
+	public fun toArray ()[Ljava/lang/Object;
+	public fun toArray ([Ljava/lang/Object;)[Ljava/lang/Object;
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/NavBackStack$Companion {
+	public final fun serializer (Lkotlinx/serialization/KSerializer;)Lkotlinx/serialization/KSerializer;
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/NavEntry {
+	public static final field $stable I
+	public fun <init> (Lio/github/alimsrepo/navease/internal/runtime/NavEntry;Lkotlin/jvm/functions/Function3;)V
+	public fun <init> (Ljava/lang/Object;Ljava/lang/Object;Ljava/util/Map;Lkotlin/jvm/functions/Function3;)V
+	public synthetic fun <init> (Ljava/lang/Object;Ljava/lang/Object;Ljava/util/Map;Lkotlin/jvm/functions/Function3;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun Content (Landroidx/compose/runtime/Composer;I)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContentKey ()Ljava/lang/Object;
+	public final fun getMetadata ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public class io/github/alimsrepo/navease/internal/runtime/NavEntryDecorator {
+	public static final field $stable I
+	public fun <init> (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;)V
+	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/NavEntryKt {
+	public static final fun defaultContentKey (Ljava/lang/Object;)Ljava/lang/Object;
+}
+
+public abstract interface class io/github/alimsrepo/navease/internal/runtime/NavKey {
+}
+
+public abstract interface class io/github/alimsrepo/navease/internal/runtime/NavMetadataKey {
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/NavMetadataKt {
+	public static final fun contains (Ljava/util/Map;Lio/github/alimsrepo/navease/internal/runtime/NavMetadataKey;)Z
+	public static final fun get (Ljava/util/Map;Lio/github/alimsrepo/navease/internal/runtime/NavMetadataKey;)Ljava/lang/Object;
+	public static final fun metadata (Lkotlin/jvm/functions/Function1;)Ljava/util/Map;
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/RememberNavBackStackKt {
+	public static final fun rememberNavBackStack (Landroidx/savedstate/serialization/SavedStateConfiguration;[Lio/github/alimsrepo/navease/internal/runtime/NavKey;Landroidx/compose/runtime/Composer;I)Lio/github/alimsrepo/navease/internal/runtime/NavBackStack;
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/SaveableStateHolderNavEntryDecorator : io/github/alimsrepo/navease/internal/runtime/NavEntryDecorator {
+	public static final field $stable I
+	public fun <init> (Landroidx/compose/runtime/saveable/SaveableStateHolder;)V
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/SaveableStateHolderNavEntryDecoratorKt {
+	public static final fun rememberSaveableStateHolderNavEntryDecorator (Landroidx/compose/runtime/saveable/SaveableStateHolder;Landroidx/compose/runtime/Composer;II)Lio/github/alimsrepo/navease/internal/runtime/SaveableStateHolderNavEntryDecorator;
+}
+
+public abstract class io/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkMatcher {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun match (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkMatcher$MatchResult;
+	protected abstract fun matchRequest (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkMatcher$MatchResult;
+}
+
+public abstract class io/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkMatcher$Filter {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/Object;)V
+	public abstract fun filterRequest (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;)Z
+}
+
+public class io/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkMatcher$MatchResult : java/lang/Comparable {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/Object;)V
+	public fun compareTo (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkMatcher$MatchResult;)I
+	public synthetic fun compareTo (Ljava/lang/Object;)I
+	public final fun getKey ()Ljava/lang/Object;
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest {
+	public static final field $stable I
+	public static final field Companion Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest$Companion;
+	public static final fun fromAction (Ljava/lang/String;Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;Ljava/lang/String;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;
+	public static final fun fromMimeType (Ljava/lang/String;Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;Ljava/lang/String;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;
+	public static final fun fromUri (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;Ljava/lang/String;Ljava/lang/String;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;
+	public static final fun fromUriString (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;
+	public final fun getAction ()Ljava/lang/String;
+	public final fun getMimeType ()Ljava/lang/String;
+	public final fun getUri ()Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest$Companion {
+	public final fun fromAction (Ljava/lang/String;Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;Ljava/lang/String;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;
+	public static synthetic fun fromAction$default (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest$Companion;Ljava/lang/String;Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;Ljava/lang/String;ILjava/lang/Object;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;
+	public final fun fromMimeType (Ljava/lang/String;Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;Ljava/lang/String;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;
+	public static synthetic fun fromMimeType$default (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest$Companion;Ljava/lang/String;Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;Ljava/lang/String;ILjava/lang/Object;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;
+	public final fun fromUri (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;Ljava/lang/String;Ljava/lang/String;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;
+	public static synthetic fun fromUri$default (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest$Companion;Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;
+	public final fun fromUriString (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;
+	public static synthetic fun fromUriString$default (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest$Companion;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;
+}
+
+public abstract class io/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri {
+	public static final field $stable I
+	public fun <init> ()V
+	public abstract fun getAuthority ()Ljava/lang/String;
+	public abstract fun getFragment ()Ljava/lang/String;
+	public abstract fun getPathSegments ()Ljava/util/List;
+	public abstract fun getQuery ()Ljava/lang/String;
+	public fun getQueryParameterNames ()Ljava/util/Set;
+	public fun getQueryParameters (Ljava/lang/String;)Ljava/util/List;
+	public abstract fun getScheme ()Ljava/lang/String;
+	public abstract fun isHierarchical ()Z
+	public abstract fun toString ()Ljava/lang/String;
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUriKt {
+	public static final fun DeepLinkUri (Ljava/lang/String;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/deeplink/StaticKeyDeepLinkMatcher : io/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkMatcher {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/Object;Ljava/util/List;)V
+	public final fun getKey ()Ljava/lang/Object;
+}
+
+public class io/github/alimsrepo/navease/internal/runtime/deeplink/UriDeepLinkMatcher : io/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkMatcher {
+	public static final field $stable I
+	public fun <init> (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;Lkotlinx/serialization/KSerializer;Ljava/util/List;)V
+	public synthetic fun <init> (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;Lkotlinx/serialization/KSerializer;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	protected fun matchArguments (Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/UriMatchResult;
+	public static synthetic fun matchArguments$default (Lio/github/alimsrepo/navease/internal/runtime/deeplink/UriDeepLinkMatcher;Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;ILjava/lang/Object;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/UriMatchResult;
+	public synthetic fun matchRequest (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkMatcher$MatchResult;
+	protected fun matchRequest (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkRequest;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/UriMatchResult;
+	protected fun matchUri (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkUri;)Lio/github/alimsrepo/navease/internal/runtime/deeplink/UriMatchResult;
+}
+
+public class io/github/alimsrepo/navease/internal/runtime/deeplink/UriMatchResult : io/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkMatcher$MatchResult {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/Object;Ljava/util/Map;)V
+	public fun compareTo (Lio/github/alimsrepo/navease/internal/runtime/deeplink/DeepLinkMatcher$MatchResult;)I
+	public synthetic fun compareTo (Ljava/lang/Object;)I
+	public final fun getArguments ()Ljava/util/Map;
+	protected final fun isExactPath ()Z
+	protected final fun setExactPath (Z)V
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/result/LocalResultEventBus {
+	public static final field $stable I
+	public static final field INSTANCE Lio/github/alimsrepo/navease/internal/runtime/result/LocalResultEventBus;
+	public final fun getCurrent (Landroidx/compose/runtime/Composer;I)Lio/github/alimsrepo/navease/internal/runtime/result/ResultEventBus;
+	public final fun provides (Lio/github/alimsrepo/navease/internal/runtime/result/ResultEventBus;)Landroidx/compose/runtime/ProvidedValue;
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/result/ResultEffectKt {
+	public static final fun ResultEffect (Ljava/lang/String;Lio/github/alimsrepo/navease/internal/runtime/result/ResultEventBus;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/result/ResultEventBus {
+	public static final field $stable I
+	public fun <init> ()V
+	public final fun conflateAsState (Ljava/lang/String;Ljava/lang/Object;Landroidx/compose/runtime/Composer;I)Landroidx/compose/runtime/State;
+	public final fun removeResult (Ljava/lang/String;)V
+	public final fun sendResult (Ljava/lang/String;Ljava/lang/Object;)V
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/result/ResultEventBusNavEntryDecorator : io/github/alimsrepo/navease/internal/runtime/NavEntryDecorator {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (Lio/github/alimsrepo/navease/internal/runtime/result/ResultEventBus;)V
+	public synthetic fun <init> (Lio/github/alimsrepo/navease/internal/runtime/result/ResultEventBus;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/result/ResultEventBusNavEntryDecoratorKt {
+	public static final fun rememberResultEventBusNavEntryDecorator (Landroidx/compose/runtime/Composer;I)Lio/github/alimsrepo/navease/internal/runtime/result/ResultEventBusNavEntryDecorator;
+}
+
+public final class io/github/alimsrepo/navease/internal/runtime/serialization/NavBackStackSerializer : kotlinx/serialization/KSerializer {
+	public static final field $stable I
+	public fun <init> (Lkotlinx/serialization/KSerializer;)V
+	public fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lio/github/alimsrepo/navease/internal/runtime/NavBackStack;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public fun serialize (Lkotlinx/serialization/encoding/Encoder;Lio/github/alimsrepo/navease/internal/runtime/NavBackStack;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+}
+
+public abstract interface class io/github/alimsrepo/navease/runtime/NavEaseRoot : io/github/alimsrepo/navease/internal/runtime/NavKey {
+}
+
 public abstract interface annotation class io/github/alimsrepo/navease/runtime/annotations/AutoRegister : java/lang/annotation/Annotation {
 }
 
-public abstract interface annotation class io/github/alimsrepo/navease/runtime/annotations/NavEaseArgs : java/lang/annotation/Annotation {
-}
-
-public abstract interface annotation class io/github/alimsrepo/navease/runtime/annotations/NavEaseResult : java/lang/annotation/Annotation {
-}
-
-public abstract interface annotation class io/github/alimsrepo/navease/runtime/annotations/NavEaseScreen : java/lang/annotation/Annotation {
-	public abstract fun route ()Ljava/lang/String;
-	public abstract fun startDestination ()Z
+public final class io/github/alimsrepo/navease/runtime/composition/LocalNavEaseAnimatedContentScopeKt {
+	public static final fun getLocalNavEaseAnimatedContentScope ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 }
 
 public final class io/github/alimsrepo/navease/runtime/composition/LocalNavEaseControllerKt {
@@ -20,70 +434,21 @@ public final class io/github/alimsrepo/navease/runtime/composition/LocalNavEaseS
 	public static final fun getLocalNavEaseSharedTransitionScope ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 }
 
-public abstract class io/github/alimsrepo/navease/runtime/domain/NavScreen {
-	public static final field $stable I
-	public fun <init> ()V
-	public abstract fun Content (Landroidx/navigation3/runtime/NavKey;Lio/github/alimsrepo/navease/runtime/navigation/NavEaseController;Landroidx/compose/runtime/Composer;I)V
-}
-
-public final class io/github/alimsrepo/navease/runtime/graph/NavEaseEntry {
-	public static final field $stable I
-	public fun <init> (Lkotlin/reflect/KClass;Lkotlinx/serialization/KSerializer;Lkotlin/jvm/functions/Function3;)V
-	public final fun getContent ()Lkotlin/jvm/functions/Function3;
-	public final fun getKeyClass ()Lkotlin/reflect/KClass;
-	public final fun getSerializer ()Lkotlinx/serialization/KSerializer;
-}
-
-public final class io/github/alimsrepo/navease/runtime/graph/NavEaseGraph {
-	public static final field $stable I
-	public fun <init> (Landroidx/navigation3/runtime/NavKey;Landroidx/savedstate/serialization/SavedStateConfiguration;Ljava/util/Map;)V
-	public final fun getStart ()Landroidx/navigation3/runtime/NavKey;
-}
-
-public final class io/github/alimsrepo/navease/runtime/graph/NavEaseGraphBuilder {
-	public static final field $stable I
-	public fun <init> ()V
-	public final fun build (Landroidx/navigation3/runtime/NavKey;)Lio/github/alimsrepo/navease/runtime/graph/NavEaseGraph;
-	public final fun getEntries ()Ljava/util/List;
-}
-
-public final class io/github/alimsrepo/navease/runtime/graph/NavEaseGraphBuilderKt {
-	public static final fun navEaseGraph (Landroidx/navigation3/runtime/NavKey;Lkotlin/jvm/functions/Function1;)Lio/github/alimsrepo/navease/runtime/graph/NavEaseGraph;
-}
-
-public final class io/github/alimsrepo/navease/runtime/graph/NavEaseScreenScope {
-	public static final field $stable I
-	public fun <init> ()V
-	public final fun getScreens ()Ljava/util/List;
-	public final fun getSerPairs ()Ljava/util/List;
-}
-
-public final class io/github/alimsrepo/navease/runtime/host/AppNavGraphKt {
-	public static final fun AppNavGraph (Landroidx/navigation3/runtime/NavKey;Landroidx/savedstate/serialization/SavedStateConfiguration;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/transition/NavTransition;Landroidx/compose/runtime/Composer;II)V
-}
-
 public final class io/github/alimsrepo/navease/runtime/host/NavEaseHostKt {
-	public static final fun NavEaseHost (Landroidx/navigation3/runtime/NavKey;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/transition/NavTransition;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
-	public static final fun NavEaseHost (Lio/github/alimsrepo/navease/runtime/graph/NavEaseGraph;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/transition/NavTransition;Landroidx/compose/runtime/Composer;II)V
-	public static final fun NavEaseHostForRoot (Lkotlin/reflect/KClass;Landroidx/navigation3/runtime/NavKey;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/transition/NavTransition;Landroidx/compose/runtime/Composer;II)V
-}
-
-public final class io/github/alimsrepo/navease/runtime/host/NavEaseNavGraphKt {
-	public static final fun NavEaseNavGraph (Landroidx/navigation3/runtime/NavKey;Landroidx/savedstate/serialization/SavedStateConfiguration;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/transition/NavTransition;Landroidx/compose/runtime/Composer;II)V
-	public static final fun NavEaseNavGraph (Lio/github/alimsrepo/navease/runtime/graph/NavEaseGraph;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/transition/NavTransition;Landroidx/compose/runtime/Composer;II)V
+	public static final fun NavEaseHostForRoot (Lkotlin/reflect/KClass;Lio/github/alimsrepo/navease/internal/runtime/NavKey;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/transition/NavTransition;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class io/github/alimsrepo/navease/runtime/navigation/NavEaseController {
 	public static final field $stable I
-	public fun <init> (Landroidx/navigation3/runtime/NavBackStack;Lkotlin/jvm/functions/Function0;Lio/github/alimsrepo/navease/runtime/transition/NavTransition;)V
-	public synthetic fun <init> (Landroidx/navigation3/runtime/NavBackStack;Lkotlin/jvm/functions/Function0;Lio/github/alimsrepo/navease/runtime/transition/NavTransition;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Lio/github/alimsrepo/navease/internal/runtime/NavBackStack;Lkotlin/jvm/functions/Function0;Lio/github/alimsrepo/navease/runtime/transition/NavTransition;)V
+	public synthetic fun <init> (Lio/github/alimsrepo/navease/internal/runtime/NavBackStack;Lkotlin/jvm/functions/Function0;Lio/github/alimsrepo/navease/runtime/transition/NavTransition;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun back ()V
 	public final fun getHistory ()Ljava/util/List;
-	public final fun navigate (Landroidx/navigation3/runtime/NavKey;ZZLio/github/alimsrepo/navease/runtime/transition/NavTransition;)V
-	public static synthetic fun navigate$default (Lio/github/alimsrepo/navease/runtime/navigation/NavEaseController;Landroidx/navigation3/runtime/NavKey;ZZLio/github/alimsrepo/navease/runtime/transition/NavTransition;ILjava/lang/Object;)V
+	public final fun navigate (Lio/github/alimsrepo/navease/internal/runtime/NavKey;ZZLio/github/alimsrepo/navease/runtime/transition/NavTransition;)V
+	public static synthetic fun navigate$default (Lio/github/alimsrepo/navease/runtime/navigation/NavEaseController;Lio/github/alimsrepo/navease/internal/runtime/NavKey;ZZLio/github/alimsrepo/navease/runtime/transition/NavTransition;ILjava/lang/Object;)V
 	public final fun popToIndex (I)V
-	public final fun popUpTo (Landroidx/navigation3/runtime/NavKey;Z)V
-	public static synthetic fun popUpTo$default (Lio/github/alimsrepo/navease/runtime/navigation/NavEaseController;Landroidx/navigation3/runtime/NavKey;ZILjava/lang/Object;)V
+	public final fun popUpTo (Lio/github/alimsrepo/navease/internal/runtime/NavKey;Z)V
+	public static synthetic fun popUpTo$default (Lio/github/alimsrepo/navease/runtime/navigation/NavEaseController;Lio/github/alimsrepo/navease/internal/runtime/NavKey;ZILjava/lang/Object;)V
 }
 
 public final class io/github/alimsrepo/navease/runtime/navigation/NavEaseControllerExtensionsKt {
@@ -91,73 +456,17 @@ public final class io/github/alimsrepo/navease/runtime/navigation/NavEaseControl
 	public static final fun resultOf (Lio/github/alimsrepo/navease/runtime/navigation/NavEaseController;Lkotlin/reflect/KClass;Landroidx/compose/runtime/Composer;I)Landroidx/compose/runtime/State;
 }
 
-public final class io/github/alimsrepo/navease/runtime/presentation/AppNavGraphKt {
-	public static final fun AppNavGraph (Landroidx/navigation3/runtime/NavKey;Landroidx/savedstate/serialization/SavedStateConfiguration;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/transition/NavTransition;Landroidx/compose/runtime/Composer;II)V
-}
-
-public final class io/github/alimsrepo/navease/runtime/presentation/LocalNavEaseControllerKt {
-	public static final fun getLocalNavEaseController ()Landroidx/compose/runtime/ProvidableCompositionLocal;
-}
-
-public final class io/github/alimsrepo/navease/runtime/presentation/LocalNavEaseSharedTransitionKt {
-	public static final fun getLocalNavEaseSharedTransitionScope ()Landroidx/compose/runtime/ProvidableCompositionLocal;
-}
-
-public final class io/github/alimsrepo/navease/runtime/presentation/NavEaseAutoRegistryKt {
-	public static final fun navEaseInit ()V
-}
-
-public final class io/github/alimsrepo/navease/runtime/presentation/NavEaseHostKt {
-	public static final fun NavEaseHost (Landroidx/navigation3/runtime/NavKey;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/transition/NavTransition;Landroidx/compose/runtime/Composer;II)V
-	public static final fun NavEaseHost (Landroidx/navigation3/runtime/NavKey;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/transition/NavTransition;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
-	public static final fun NavEaseHost (Lio/github/alimsrepo/navease/runtime/graph/NavEaseGraph;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/transition/NavTransition;Landroidx/compose/runtime/Composer;II)V
-}
-
-public final class io/github/alimsrepo/navease/runtime/presentation/NavEaseNavGraphKt {
-	public static final fun NavEaseNavGraph (Landroidx/navigation3/runtime/NavKey;Landroidx/savedstate/serialization/SavedStateConfiguration;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/transition/NavTransition;Landroidx/compose/runtime/Composer;II)V
-	public static final fun NavEaseNavGraph (Lio/github/alimsrepo/navease/runtime/graph/NavEaseGraph;Lkotlin/jvm/functions/Function0;ZLio/github/alimsrepo/navease/runtime/transition/NavTransition;Landroidx/compose/runtime/Composer;II)V
-}
-
 public final class io/github/alimsrepo/navease/runtime/registry/NavEaseAutoRegistry {
 	public static final field $stable I
 	public static final field INSTANCE Lio/github/alimsrepo/navease/runtime/registry/NavEaseAutoRegistry;
-	public final fun addEntry (Lio/github/alimsrepo/navease/runtime/screen/ActivityScreen;Lkotlin/reflect/KClass;Lkotlin/reflect/KClass;Lkotlinx/serialization/KSerializer;)V
-	public final fun getGeneratedClassHint ()Ljava/lang/String;
+	public final fun addEntry (Lkotlin/reflect/KClass;Lkotlin/reflect/KClass;Lkotlinx/serialization/KSerializer;Lkotlin/jvm/functions/Function0;)V
 	public final fun isInitialized ()Z
-	public final fun registerBootstrapHook (Lkotlin/jvm/functions/Function0;)V
-	public final fun setGeneratedClassHint (Ljava/lang/String;)V
-}
-
-public final class io/github/alimsrepo/navease/runtime/registry/NavEaseAutoRegistry$RegistryEntry {
-	public static final field $stable I
-	public fun <init> (Lkotlin/reflect/KClass;Lkotlin/reflect/KClass;Lkotlinx/serialization/KSerializer;Lio/github/alimsrepo/navease/runtime/screen/ActivityScreen;)V
-	public final fun component1 ()Lkotlin/reflect/KClass;
-	public final fun component2 ()Lkotlin/reflect/KClass;
-	public final fun component3 ()Lkotlinx/serialization/KSerializer;
-	public final fun component4 ()Lio/github/alimsrepo/navease/runtime/screen/ActivityScreen;
-	public final fun copy (Lkotlin/reflect/KClass;Lkotlin/reflect/KClass;Lkotlinx/serialization/KSerializer;Lio/github/alimsrepo/navease/runtime/screen/ActivityScreen;)Lio/github/alimsrepo/navease/runtime/registry/NavEaseAutoRegistry$RegistryEntry;
-	public static synthetic fun copy$default (Lio/github/alimsrepo/navease/runtime/registry/NavEaseAutoRegistry$RegistryEntry;Lkotlin/reflect/KClass;Lkotlin/reflect/KClass;Lkotlinx/serialization/KSerializer;Lio/github/alimsrepo/navease/runtime/screen/ActivityScreen;ILjava/lang/Object;)Lio/github/alimsrepo/navease/runtime/registry/NavEaseAutoRegistry$RegistryEntry;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getKeyClass ()Lkotlin/reflect/KClass;
-	public final fun getRootKeyClass ()Lkotlin/reflect/KClass;
-	public final fun getScreen ()Lio/github/alimsrepo/navease/runtime/screen/ActivityScreen;
-	public final fun getSerializer ()Lkotlinx/serialization/KSerializer;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class io/github/alimsrepo/navease/runtime/registry/NavEaseAutoRegistryKt {
-	public static final fun navEaseInit ()V
 }
 
 public abstract class io/github/alimsrepo/navease/runtime/screen/ActivityScreen {
 	public static final field $stable I
 	public fun <init> ()V
-	public abstract fun Content (Landroidx/navigation3/runtime/NavKey;Lio/github/alimsrepo/navease/runtime/navigation/NavEaseController;Landroidx/compose/runtime/Composer;I)V
-	public final fun get_keyClass ()Lkotlin/reflect/KClass;
-	public final fun get_serializer ()Lkotlinx/serialization/KSerializer;
-	public final fun set_keyClass (Lkotlin/reflect/KClass;)V
-	public final fun set_serializer (Lkotlinx/serialization/KSerializer;)V
+	public abstract fun Content (Lio/github/alimsrepo/navease/internal/runtime/NavKey;Lio/github/alimsrepo/navease/runtime/navigation/NavEaseController;Landroidx/compose/runtime/Composer;I)V
 }
 
 public abstract class io/github/alimsrepo/navease/runtime/transition/NavTransition {

@@ -1,0 +1,18 @@
+NavEase
+Copyright 2026 NavEase Contributors
+
+This product includes software developed as part of the Android Open Source
+Project (https://source.android.com), licensed under the Apache License,
+Version 2.0.
+
+Source files under
+  navease-runtime/src/*/kotlin/io/github/alimsrepo/navease/internal/
+are derived from AndroidX Navigation 3
+(https://github.com/androidx/androidx, androidx.navigation3), which is
+Copyright The Android Open Source Project and licensed under the Apache
+License, Version 2.0.
+
+Those files have been modified: repackaged under
+io.github.alimsrepo.navease.internal, and reduced to the subset NavEase uses.
+A copy of the Apache License, Version 2.0 is available at
+https://www.apache.org/licenses/LICENSE-2.0

@@ -1,0 +1,57 @@
+name: build
+
+# The plugin's multiplatform wiring cannot be covered by TestKit — it injects the
+# plugin into a classloader that is a parent of the build script's, so a Kotlin
+# Gradle plugin declared by a test project is invisible to it. Building :shared,
+# which applies the plugin through the composite build, is what covers that path.
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Processor and plugin tests
+        run: ./gradlew :navease-ksp:test :navease-gradle-plugin:test
+
+      - name: Public API check
+        run: ./gradlew apiCheck
+
+      - name: Compile the runtime for every target
+        run: ./gradlew :navease-runtime:assemble
+
+      - name: Runtime tests
+        run: ./gradlew :navease-runtime:jvmTest
+
+      - name: Compile the sample through the Gradle plugin
+        # Exercises KSP generation, the generated host overloads and the plugin's
+        # source-set wiring on every target. Compiling is what covers that;
+        # :shared:assemble would additionally link release iOS frameworks, which
+        # costs minutes and proves nothing extra here.
+        run: |
+          ./gradlew \
+            :shared:compileKotlinJvm \
+            :shared:compileKotlinJs \
+            :shared:compileKotlinWasmJs \
+            :shared:compileKotlinIosSimulatorArm64 \
+            :shared:assembleDebug

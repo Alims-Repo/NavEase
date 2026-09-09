@@ -2,7 +2,7 @@ package io.github.alimsrepo.navease.runtime.transition
 
 /**
  * Selects the screen-transition animation style used by
- * [NavEaseNavGraph][io.github.alimsrepo.navease.runtime.host.NavEaseNavGraph] /
+ * [NavEaseHost][io.github.alimsrepo.navease.runtime.host.NavEaseHost] /
  * [NavEaseHost][io.github.alimsrepo.navease.runtime.host.NavEaseHost].
  *
  * Pass as the `navTransition` parameter of `NavEaseHost`:

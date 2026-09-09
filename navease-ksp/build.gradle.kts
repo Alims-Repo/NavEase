@@ -23,6 +23,10 @@ dependencies {
 
     testImplementation(libs.kotlin.testJunit)
     testImplementation(libs.junit)
+    // Runs the processor over real sources so resolution and validation are covered,
+    // not just the emitted strings.
+    testImplementation(libs.kotlin.compile.testing.ksp)
+    testImplementation(libs.ksp.api)
 }
 
 mavenPublishing {
