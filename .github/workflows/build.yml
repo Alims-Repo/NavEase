@@ -54,4 +54,4 @@ jobs:
             :shared:compileKotlinJs \
             :shared:compileKotlinWasmJs \
             :shared:compileKotlinIosSimulatorArm64 \
-            :shared:assembleDebug
+            :shared:assembleAndroidMain
