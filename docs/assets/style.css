@@ -1278,3 +1278,39 @@ section { padding: 96px 0; }
       padding: 22px;
     }
   }
+/* ── Info callout ─────────────────────────────────────────────── */
+/* An aside that explains a mechanism, used where a code sample alone
+   would leave the "why" unanswered. */
+.info-callout {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 20px 24px;
+}
+
+.info-callout p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.info-callout p + p { margin-top: 12px; }
+
+.info-callout strong { color: var(--text); font-weight: 600; }
+
+.info-callout code {
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.86em;
+  color: var(--accent-2);
+}
+
+@media (max-width: 640px) {
+  .info-callout { padding: 16px 18px; }
+}

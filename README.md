@@ -1,28 +1,30 @@
 # NavEase
 
-**NavEase** is a navigation library for **Kotlin Multiplatform + Compose Multiplatform**.
+Navigation for **Kotlin Multiplatform + Compose Multiplatform**.
 
-Annotate a screen, and it is wired. No reflection, no string routes, no manual registry, no red
-underlines while you write.
+Annotate a screen, and it is wired. No reflection, no string routes, no manual registry, and no
+red underlines while you write.
 
-> ✅ **Status:** published to Maven Central — latest version: **0.1.4**
+> **Status:** published to Maven Central — latest version **0.2.0**
 
 ---
 
-## Table of Contents
+## Table of contents
 
 - [How it works](#how-it-works)
-- [Platform Support](#platform-support)
+- [Platform support](#platform-support)
 - [Setup](#setup)
 - [Quick start](#quick-start)
 - [NavEaseController](#naveasecontroller)
 - [Transitions](#transitions)
 - [Observing destination changes](#observing-destination-changes)
-- [Back-with-result](#back-with-result)
+- [Back with result](#back-with-result)
 - [Shared element transitions](#shared-element-transitions)
 - [Nested navigation](#nested-navigation)
+- [Multi-module projects](#multi-module-projects)
 - [What KSP generates](#what-ksp-generates)
-- [Constraints and gotchas](#constraints-and-gotchas)
+- [Constraints](#constraints)
+- [Troubleshooting](#troubleshooting)
 - [Module structure](#module-structure)
 - [Sample app](#sample-app)
 - [FAQ](#faq)
@@ -36,33 +38,35 @@ Three pieces, and nothing else:
 
 | Piece | What it is |
 |---|---|
-| `sealed class AppScreens : NavEaseRoot` | Your destinations. One subclass per screen; `data class` for arguments |
+| `sealed class AppScreens : NavEaseRoot` | Your destinations. One subclass per screen; `data class` when it carries arguments |
 | `@AutoRegister class HomeScreen : ActivityScreen<AppScreens.Home>()` | A screen. `Content()` receives its key **already typed** |
-| `NavEaseHost<AppScreens>(start = AppScreens.Splash)` | The host. Finds every screen belonging to that root |
+| `NavEaseHost<AppScreens>(start = AppScreens.Splash)` | The host. Serves every screen belonging to that root |
 
-KSP discovers the annotated classes at build time and generates the registry, a `KSerializer` for
-every key, and the `SavedStateConfiguration` the back stack restores from. You write none of it.
+At build time KSP finds the annotated classes and writes the registry, a `KSerializer` for every
+key, and the `SavedStateConfiguration` the back stack restores from.
 
 **What you don't write:** no `when (route)` factory, no serializers module, no `@Serializable` on
 your key class, no route strings, no manual `add(...)` list.
 
 ---
 
-## Platform Support
+## Platform support
 
 | Platform | Target | Entry point |
 |---|---|---|
 | Android | `android` | `MainActivity` → `setContent { App() }` |
 | iOS | `iosArm64`, `iosSimulatorArm64` | `MainViewController()` → `ComposeUIViewController { App() }` |
-| Desktop (JVM) | `jvm` | `application { Window { App() } }` |
+| Desktop | `jvm` | `application { Window { App() } }` |
 | Web (JS) | `js { browser() }` | `ComposeViewport { App() }` |
-| Web (WASM) | `wasmJs { browser() }` | `ComposeViewport { App() }` |
+| Web (Wasm) | `wasmJs { browser() }` | `ComposeViewport { App() }` |
+
+No per-platform initialisation. The same `App()` works everywhere.
 
 ---
 
 ## Setup
 
-### Recommended — the Gradle plugin
+### With the Gradle plugin
 
 ```kotlin
 // shared/build.gradle.kts
@@ -72,29 +76,35 @@ plugins {
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
 
-    id("io.github.alims-repo.navease") version "0.1.4"   // ← all wiring done ✅
+    id("io.github.alims-repo.navease") version "0.2.0"
 }
 ```
 
-The plugin:
+That is the whole build change. The plugin:
 
-- applies the KSP and Kotlin Serialization compiler plugins (skipped if you already declare them)
-- adds `navease-ksp` to `kspCommonMainMetadata`
-- registers `build/generated/ksp/metadata/commonMain/kotlin` as a `commonMain` source directory
-- makes every KMP compilation depend on `kspCommonMainKotlinMetadata`
-- adds `navease-runtime` to `commonMain`
+- applies KSP and the Kotlin serialization compiler plugin, skipping either one your build
+  already declares;
+- adds `navease-ksp` to `kspCommonMainMetadata` and `navease-runtime` to `commonMain`;
+- registers `build/generated/ksp/metadata/commonMain/kotlin` as a `commonMain` source directory;
+- makes every compilation depend on `kspCommonMainKotlinMetadata`;
+- gives the module its own generated package, so several modules can use NavEase side by side.
 
 Optional configuration:
 
 ```kotlin
 navease {
-    version = "0.1.4"                      // pin the artifacts (default: same as the plugin)
-    addRuntimeDependency = true            // false to manage navease-runtime yourself
-    generatedPackage = "com.myapp.nav"     // where KSP writes — see the note in Constraints
+    // Pin the artifacts. Defaults to the plugin's own version, so the three always match.
+    version = "0.2.0"
+
+    // Set false to declare navease-runtime yourself.
+    addRuntimeDependency = false
+
+    // Where KSP writes. Defaults to io.github.alimsrepo.navease.generated.<module name>.
+    generatedPackage = "com.example.app.navigation"
 }
 ```
 
-### Manual setup
+### Without the plugin
 
 ```kotlin
 plugins {
@@ -108,18 +118,29 @@ kotlin {
         commonMain {
             kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
             dependencies {
-                implementation("io.github.alims-repo:navease-runtime:0.1.4")
+                implementation("io.github.alims-repo:navease-runtime:0.2.0")
             }
         }
     }
 }
 
 dependencies {
-    add("kspCommonMainMetadata", "io.github.alims-repo:navease-ksp:0.1.4")
+    add("kspCommonMainMetadata", "io.github.alims-repo:navease-ksp:0.2.0")
+}
+
+ksp {
+    // Required in a multi-module build: two modules generating into one package produce
+    // duplicate classes.
+    arg("navease.generatedPackage", "com.example.app.navigation")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
     if (name != "kspCommonMainKotlinMetadata") dependsOn("kspCommonMainKotlinMetadata")
+}
+tasks.configureEach {
+    if (name != "kspCommonMainKotlinMetadata" && name.startsWith("ksp")) {
+        dependsOn("kspCommonMainKotlinMetadata")
+    }
 }
 ```
 
@@ -142,12 +163,13 @@ sealed class AppScreens : NavEaseRoot {
 }
 ```
 
-No `@Serializable`, and no `: NavKey` — `NavEaseRoot` covers both. KSP writes a serializer for each
-subclass from its constructor parameters.
+No `@Serializable`, and no `: NavKey`. `NavEaseRoot` covers both — KSP writes a serializer for
+each subclass from its constructor parameters.
 
 ### 2. Write the screens
 
 ```kotlin
+import androidx.compose.runtime.Composable
 import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
 import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import io.github.alimsrepo.navease.runtime.screen.ActivityScreen
@@ -168,14 +190,14 @@ class ProfileScreen : ActivityScreen<AppScreens.Profile>() {
 
     @Composable
     override fun Content(navKey: AppScreens.Profile, navEaseController: NavEaseController) {
-        Text("User ${navKey.userId}")            // ← typed. No casting, no args() extension.
+        Text("User ${navKey.userId}")     // typed — no casting, no args() helper
         if (navKey.isEditable) EditForm()
     }
 }
 ```
 
-`@AutoRegister` takes no arguments. The start destination is declared at the host, so a nested host
-can pick its own.
+`@AutoRegister` takes no arguments. The start destination is declared at the host, so a nested
+host can pick its own.
 
 ### 3. Host it
 
@@ -185,21 +207,20 @@ fun App() {
     MaterialTheme {
         NavEaseHost<AppScreens>(
             start = AppScreens.Splash,
-            onExitRequest = { finish() },        // back pressed on the root screen
+            onExitRequest = { finish() },     // back pressed on the root screen
         )
     }
 }
 ```
 
-That is the whole setup. Adding a screen later means writing the class and rebuilding — nothing
-else to update.
+That is the whole setup. Adding a screen later means writing the class and rebuilding.
 
 ---
 
 ## NavEaseController
 
 Received as the second parameter of `Content()`, and available from any composable below the host
-via `LocalNavEaseController.current`.
+through `LocalNavEaseController.current`.
 
 ```kotlin
 /** Push a screen onto the back stack. */
@@ -231,7 +252,7 @@ fun getHistory(): List<NavKey>
 | `navigate(key, navTransition = NavTransition.Fade)` | Override the animation for this one navigation |
 | `back()` | Pop, or `onExitRequest` at the root |
 
-Reaching it from deep in a tree:
+From deep in a tree:
 
 ```kotlin
 @Composable
@@ -264,7 +285,7 @@ The host value is the default; any single navigation can override it:
 nav.navigate(AppScreens.Detail(id, title), navTransition = NavTransition.Rise)
 ```
 
-The transition is recorded per push, so the matching reverse animation plays on the way back —
+The transition is recorded per push, so the matching reverse animation plays on the way back,
 including for the predictive-back gesture.
 
 ---
@@ -274,29 +295,29 @@ including for the predictive-back gesture.
 Every host takes an optional `onDestinationChanged`, called whenever the top of the back stack
 changes — including for the start destination on first composition.
 
-It is for the concerns that belong to the graph rather than to any one screen. Screen-view
-analytics is the obvious one: done per screen it is a line every screen has to remember, and
-nothing catches a new screen that forgets it.
+It is for concerns that belong to the graph rather than to any one screen. Screen-view analytics
+is the obvious one: done per screen it is a line every screen has to remember, and nothing catches
+a new screen that forgets it.
 
 ```kotlin
 NavEaseHost<AppScreens>(
     start = AppScreens.Splash,
     onDestinationChanged = { navKey ->
-        analytics.logScreenView(navKey.screenName)
+        analytics.logScreenView(navKey::class.simpleName.orEmpty())
     },
 )
 ```
 
 `NavEaseController` is the **receiver**, not a second parameter. The host owns its controller, so
-code outside it has no other way to reach one — a hook that only observes ignores the receiver, and
-a hook that needs to navigate uses it:
+code outside it has no other way to reach one — a hook that only observes ignores the receiver,
+and a hook that needs to navigate uses it:
 
 ```kotlin
 NavEaseHost<AppScreens>(
     start = AppScreens.Splash,
     onDestinationChanged = { navKey ->
-        if (navKey !is AppScreens.Main && deepLink.isPending) {
-            navigate(AppScreens.Main)          // `this` is the NavEaseController
+        if (navKey !is AppScreens.Home && deepLink.isPending) {
+            navigate(AppScreens.Home)          // `this` is the NavEaseController
         }
     },
 )
@@ -312,11 +333,11 @@ NavEaseHost<HomeNav>(
 )
 ```
 
-The callback runs outside composition, so call plain functions from it — not composables.
+The callback runs outside composition, so call plain functions from it, not composables.
 
 ---
 
-## Back-with-result
+## Back with result
 
 Send a value back to the screen underneath.
 
@@ -351,9 +372,12 @@ class HomeScreen : ActivityScreen<AppScreens.Home>() {
 }
 ```
 
-Results are held in a snapshot-state map scoped to that host's controller, so writing one
-recomposes the reader. `resultOf<T>()` consumes the entry as it reads it — it will not fire twice —
-and nothing is shared between independent hosts.
+Results live in a snapshot-state map scoped to that host's controller, so writing one recomposes
+the reader. `resultOf<T>()` consumes the entry as it reads it — it will not fire twice — and
+nothing is shared between independent hosts.
+
+Results are keyed by the result type's simple name, so it must be a named class, not an anonymous
+or local one.
 
 ---
 
@@ -362,16 +386,6 @@ and nothing is shared between independent hosts.
 **Off by default.** When `enableSharedTransitions = false`, no `SharedTransitionLayout` is created
 and `LocalNavEaseSharedTransitionScope` is `null` — zero overhead, and screens that don't use
 shared elements need no experimental opt-in.
-
-### Without shared elements
-
-Nothing to do. This is the default:
-
-```kotlin
-NavEaseHost<AppScreens>(start = AppScreens.Splash)
-```
-
-### With shared elements
 
 Turn it on at the host that owns the transition:
 
@@ -382,18 +396,18 @@ NavEaseHost<AppScreens>(
 )
 ```
 
-Then, in the two screens that share the element, read both scopes and match the key exactly:
+Then read both scopes in the two screens that share the element, matching the key exactly:
 
 ```kotlin
 import androidx.compose.animation.ExperimentalSharedTransitionApi
-import io.github.alimsrepo.navease.internal.navigation.ui.LocalNavAnimatedContentScope
+import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseAnimatedContentScope
 import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseSharedTransitionScope
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun Avatar(userId: String) {
     val sharedScope = LocalNavEaseSharedTransitionScope.current
-    val animScope = LocalNavAnimatedContentScope.current
+    val animScope = LocalNavEaseAnimatedContentScope.current
 
     val modifier = if (sharedScope != null) {
         with(sharedScope) {
@@ -408,21 +422,21 @@ fun Avatar(userId: String) {
 }
 ```
 
-**Rules:**
+Rules:
 
 - The key is any `Any` — a string like `"avatar_$userId"`, or a data class. It must match
   **exactly** on both screens, or nothing morphs.
 - `sharedBounds` for content that changes size or shape; `sharedElement` for content that doesn't.
 - Guard on `sharedScope != null` so the same composable still renders when the flag is off.
 - A shared element only morphs **within one host**. Two screens in different hosts each have their
-  own `SharedTransitionLayout`, so enable the flag on the host that actually contains both screens.
+  own `SharedTransitionLayout`, so enable the flag on the host that contains both screens.
 
 ---
 
 ## Nested navigation
 
-A nested graph is just another sealed root with its own screens and its own host. Entries are
-filtered by root type, so the two graphs never see each other's screens.
+A nested graph is another sealed root with its own screens and its own host. Entries are filtered
+by root, so the two graphs never see each other's screens.
 
 ```kotlin
 sealed class WizardStep : NavEaseRoot {
@@ -446,8 +460,34 @@ NavEaseHost<WizardStep>(
 )
 ```
 
-Each host owns an independent back stack, controller and result store, so nothing leaks between
-them. Put as many side by side as you need — bottom tabs, a wizard inside a screen, a detail pane.
+Each host owns an independent back stack, controller and result store, and gets its own screen
+instances, so nothing leaks between them. Put as many side by side as you need — bottom tabs, a
+wizard inside a screen, a detail pane.
+
+Two roots may safely declare keys with the same name; `AppScreens.Detail` and `WizardStep.Detail`
+are distinct throughout the generated code.
+
+---
+
+## Multi-module projects
+
+Apply the plugin to every module that declares `@AutoRegister` screens. Each module gets its own
+generated package (`io.github.alimsrepo.navease.generated.<module name>`) and its own bootstrap,
+so nothing collides.
+
+One rule: **all the screens for a given sealed root must live in one module.** The root's host
+overload is generated by the module that owns those screens, and two modules generating an
+overload for the same root would produce an ambiguous call. A root per feature module is the
+natural shape:
+
+```
+:app         AppScreens        — the shell
+:feature-cart CartScreens      — nested host, its own root
+:feature-account AccountScreens — nested host, its own root
+```
+
+The module that hosts a nested graph needs a dependency on the module that declares it, as it
+would for any other type.
 
 ---
 
@@ -457,62 +497,101 @@ After a build, in `build/generated/ksp/metadata/commonMain/kotlin/`:
 
 | File | Contents |
 |---|---|
-| `AutoRegisterScreens.kt` | A `KSerializer` per key, `NavEaseAutoInit` registering every screen, and `navEaseBootstrap()` |
-| `NavEaseHostOverloads.kt` | One `NavEaseHost` overload per sealed root, which bootstraps the registry and then hosts |
+| `<generatedPackage>/AutoRegisterScreens.kt` | A `KSerializer` per key, and `navEaseBootstrap()` registering every screen |
+| `io/github/alimsrepo/navease/runtime/host/NavEaseHostOverloads_<module>.kt` | One `NavEaseHost` overload per sealed root |
 
-Generated registration looks like this:
+Registration looks like this:
 
 ```kotlin
 private object NavEaseAutoInit {
     init {
-        NavEaseAutoRegistry.addEntry(HomeScreen(), Home::class, AppScreens::class, NavEase_Home_Ser)
-        NavEaseAutoRegistry.addEntry(ProfileScreen(), Profile::class, AppScreens::class, NavEase_Profile_Ser)
+        NavEaseAutoRegistry.addEntry(
+            AppScreens.Home::class,
+            AppScreens::class,
+            NavEaseSer_com_example_AppScreens_Home,
+        ) { HomeScreen() }
         // … one line per @AutoRegister screen
     }
 }
 ```
 
-**The generated overload is what initialises the registry.** `NavEaseHost<AppScreens>(...)` resolves
-to it in preference to the library's generic overload, and it calls `navEaseBootstrap()` before
-creating the host. This is what makes the registry work identically on every platform — it does not
-depend on JVM reflection or on a Kotlin/Native eager-init anchor.
+Screens are registered as **factories**, so each host builds its own instances and two hosts of
+one root never share a screen object.
+
+**The generated overload is what initialises the registry.** `NavEaseHost<AppScreens>(...)`
+resolves to it in preference to the runtime's generic overload, because its `start` parameter is
+the more specific type, and it calls `navEaseBootstrap()` before creating the host. That is what
+makes the registry work identically on every platform — it depends on neither JVM reflection nor
+a Kotlin/Native eager-init anchor.
+
+The overloads are generated into the runtime's `host` package so that your ordinary
+`import io.github.alimsrepo.navease.runtime.host.NavEaseHost` picks them up. The file name carries
+the module's generated package, so several modules never collide.
+
+Generated names are fully qualified and entries are sorted, so the output is byte-identical
+between builds.
 
 ---
 
-## Constraints and gotchas
+## Constraints
 
 **Screens must extend `ActivityScreen` directly.** KSP reads the key type `K` from the class's
-direct supertypes, so an intermediate base class of your own — a `TrackedScreen<K>` that centralises
-analytics, say — fails with *"@AutoRegister class must extend ActivityScreen<K>"*. Put shared
-behaviour in a composable you call from `Content()`, or use
-[onDestinationChanged](#observing-destination-changes) for anything graph-wide.
+direct supertypes, so an intermediate base class of your own — a `TrackedScreen<K>` that
+centralises analytics, say — fails the build. Put shared behaviour in a composable you call from
+`Content()`, or use [onDestinationChanged](#observing-destination-changes) for anything
+graph-wide.
 
-**One screen per key.** Registering two `@AutoRegister` screens for the same key is a build error.
+**Screens must be constructible with no arguments.** Generated code calls `HomeScreen()`. Obtain
+dependencies inside `Content()` — from a composition local, or your DI framework's composable
+accessor — rather than through the constructor.
+
+**One screen per key.** Two `@AutoRegister` screens handling the same key is a build error, and
+the message names both.
 
 **Key arguments must be serializable.** Kotlin primitives and `String` work as they are; anything
 else must be `@Serializable`. Sealed hierarchies are fine — the generated serializer delegates to
 the type's own.
 
-**R8 / ProGuard.** Generated serializers are not the compiler plugin's `$$serializer` classes, so a
-rule matching those will not cover them. Keep the generated package:
+**Changing a key's parameters invalidates a saved back stack.** NavEase writes every parameter, so
+restoring state saved before a parameter was added fails with a message naming that parameter.
+Removing one is safe: unknown elements are skipped.
+
+**Rebuild after adding a screen.** `@AutoRegister` is processed at build time, so a new screen
+needs `./gradlew :shared:kspCommonMainKotlinMetadata` — or any build — before the host can route
+to it.
+
+**R8 / ProGuard.** Generated serializers are not the compiler plugin's `$$serializer` classes, so
+a rule matching those will not cover them. Keep the generated package:
 
 ```proguard
--keep class com.myapp.nav.** { *; }
+-keep class com.example.app.navigation.** { *; }
 ```
 
-**`generatedPackage` and the Android fallback.** `NavEaseAutoRegistry.generatedClassHint` defaults
-to `io.github.alimsrepo.navease.generated.AutoRegisterScreensKt`. Setting a custom
-`generatedPackage` — or relying on the plugin's default, which appends the module name — means that
-`Class.forName` fallback no longer matches. It does not normally matter, because the generated
-overload above bootstraps first, but set the hint in `Application.onCreate()` if you want the
-fallback to stay live:
+---
 
-```kotlin
-NavEaseAutoRegistry.generatedClassHint = "com.myapp.nav.AutoRegisterScreensKt"
-```
+## Troubleshooting
 
-**Rebuild after adding a screen.** `@AutoRegister` is processed at build time, so a new screen needs
-`./gradlew :shared:kspCommonMainKotlinMetadata` (or any build) before the host can route to it.
+**"the screen registry is empty"**
+
+The host did not bind to the generated overload. Either the module has not been built since the
+screens were added, or the NavEase plugin is not applied to the module that declares them. Run
+`./gradlew :yourModule:kspCommonMainKotlinMetadata` and check that
+`build/generated/ksp/metadata/commonMain/kotlin` contains `AutoRegisterScreens.kt`.
+
+**"no @AutoRegister screens found for root 'X'"**
+
+The registry is populated, but nothing is registered under that root. The message lists the roots
+that *are* registered. The usual cause is a key nested under an intermediate sealed layer in a
+different root than expected — NavEase matches on the outermost sealed class of the key.
+
+**"must extend ActivityScreen&lt;K&gt; directly"**
+
+An intermediate base class hides `K` from KSP. See [Constraints](#constraints).
+
+**Duplicate class `NavEaseHostOverloads…` in a multi-module build**
+
+Two modules were given the same `generatedPackage`. Remove the explicit `generatedPackage` and let
+the plugin derive one per module, or give each module a distinct value.
 
 ---
 
@@ -521,15 +600,17 @@ NavEaseAutoRegistry.generatedClassHint = "com.myapp.nav.AutoRegisterScreensKt"
 ```
 NavEase/
 ├── navease-runtime/            ← KMP library, all platforms
-│   └── io/github/alimsrepo/navease/runtime/
-│       ├── NavEaseRoot.kt              ← marker for your sealed key class
-│       ├── annotations/AutoRegister.kt
-│       ├── screen/ActivityScreen.kt    ← base class for a screen
-│       ├── host/NavEaseHost.kt         ← the host overloads
-│       ├── navigation/                 ← NavEaseController + back-with-result
-│       ├── transition/                 ← NavTransition + the animations
-│       ├── composition/                ← LocalNavEaseController, LocalNavEaseSharedTransitionScope
-│       └── registry/                   ← NavEaseAutoRegistry
+│   └── io/github/alimsrepo/navease/
+│       ├── runtime/
+│       │   ├── NavEaseRoot.kt          ← marker for your sealed key class
+│       │   ├── annotations/            ← @AutoRegister
+│       │   ├── screen/                 ← ActivityScreen<K>
+│       │   ├── host/                   ← NavEaseHost + the display engine
+│       │   ├── navigation/             ← NavEaseController, back-with-result
+│       │   ├── transition/             ← NavTransition and the animations
+│       │   ├── composition/            ← LocalNavEaseController and the scopes
+│       │   └── registry/               ← NavEaseAutoRegistry
+│       └── internal/                   ← vendored AndroidX Navigation 3; not public API
 │
 ├── navease-ksp/                ← JVM KSP processor
 ├── navease-gradle-plugin/      ← id("io.github.alims-repo.navease")
@@ -537,6 +618,10 @@ NavEase/
 ├── shared/                     ← sample app (commonMain)
 ├── androidApp/  desktopApp/  webApp/  iosApp/
 ```
+
+Everything under `io.github.alimsrepo.navease.internal` is a fork of AndroidX Navigation 3. It is
+public for technical reasons but is not a supported surface, and it may change in any release.
+Nothing you write should import from it.
 
 ---
 
@@ -564,8 +649,8 @@ destinations, typed arguments, shared element transitions and a splash that repl
 ## FAQ
 
 **Do I have to register screens anywhere?**
-No. Annotate with `@AutoRegister` and rebuild. There is no factory to update and no list to keep in
-sync.
+No. Annotate with `@AutoRegister` and rebuild. There is no factory to update and no list to keep
+in sync.
 
 **Does my key class need `@Serializable`?**
 No. `NavEaseRoot` is enough — KSP writes the serializers. Argument *types* still need to be
@@ -577,6 +662,10 @@ serializers, so a key carrying arguments — including a sealed type — round-t
 
 **Can I have several graphs at once?**
 Yes. See [Nested navigation](#nested-navigation). Each host is fully independent.
+
+**Can a screen take constructor dependencies?**
+No — generated code calls `HomeScreen()`. Read them inside `Content()` instead. A screen is
+created per host, so it may hold state for the life of that host.
 
 **How do I show a confirmation before exiting?**
 Show it from `onExitRequest` and only finish on confirm:
@@ -594,7 +683,7 @@ at the root it falls through to the system, so the app closes normally unless yo
 Yes. `SharedTransitionLayout` is Compose Multiplatform, so iOS, Desktop and Web behave the same.
 
 **Do I need KSP?**
-Yes, for `@AutoRegister`. The Gradle plugin applies and wires it for you.
+Yes. The Gradle plugin applies and wires it for you.
 
 ---
 
@@ -609,3 +698,7 @@ You may obtain a copy of the License at
 
     https://www.apache.org/licenses/LICENSE-2.0
 ```
+
+Sources under `navease-runtime/.../navease/internal/` are derived from
+[AndroidX Navigation 3](https://github.com/androidx/androidx), Copyright The Android Open Source
+Project, also under Apache 2.0. See [NOTICE](NOTICE).

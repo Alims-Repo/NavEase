@@ -25,7 +25,7 @@ fun NavEaseController.backWithResult(result: Any) {
     val key = result::class.simpleName
         ?: error(
             "NavEase: Cannot use an anonymous or local class as a result. " +
-            "Declare a named data class annotated with @NavEaseResult instead."
+            "Declare a named data class or object instead."
         )
     results[key] = result
     back()
@@ -60,7 +60,7 @@ fun <T : Any> NavEaseController.resultOf(clazz: KClass<T>): State<T?> {
     val key = clazz.simpleName
         ?: error(
             "NavEase: Cannot observe results for an anonymous or local class. " +
-            "Use a named data class annotated with @NavEaseResult instead."
+            "Use a named data class or object instead."
         )
 
     // Stable local state that holds the consumed value for the caller to read.

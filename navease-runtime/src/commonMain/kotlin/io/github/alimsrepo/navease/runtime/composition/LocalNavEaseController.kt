@@ -8,7 +8,7 @@ import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
  * A [androidx.compose.runtime.CompositionLocal] that provides the nearest [NavEaseController]
  * to any composable in the tree without manual parameter passing.
  *
- * [NavEaseNavGraph][io.github.alimsrepo.navease.runtime.host.NavEaseNavGraph] automatically
+ * [NavEaseHost][io.github.alimsrepo.navease.runtime.host.NavEaseHost] automatically
  * provides the current [NavEaseController] via
  * [androidx.compose.runtime.CompositionLocalProvider], so all composables hosted inside it
  * can read the controller with:
