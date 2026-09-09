@@ -8,6 +8,7 @@ import io.github.alimsrepo.navease.runtime.NavEaseRoot
 import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController
 import io.github.alimsrepo.navease.runtime.graph.NavEaseGraph
 import io.github.alimsrepo.navease.runtime.graph.NavEaseScreenScope
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import io.github.alimsrepo.navease.runtime.registry.NavEaseAutoRegistry
 import io.github.alimsrepo.navease.runtime.screen.ActivityScreen
 import io.github.alimsrepo.navease.runtime.transition.NavTransition
@@ -37,12 +38,14 @@ fun NavEaseHost(
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
     navTransition: NavTransition = NavTransition.Push,
+    onDestinationChanged: (NavEaseController.(NavKey) -> Unit)? = null,
 ) {
     NavEaseNavGraph(
         graph = graph,
         onExitRequest = onExitRequest,
         enableSharedTransitions = enableSharedTransitions,
         navTransition = navTransition,
+        onDestinationChanged = onDestinationChanged,
     )
 }
 
@@ -88,6 +91,7 @@ fun <Root : NavEaseRoot> NavEaseHost(                   // ← NavKey → NavEas
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
     navTransition: NavTransition = NavTransition.Push,
+    onDestinationChanged: (NavEaseController.(NavKey) -> Unit)? = null,
     screens: NavEaseScreenScope<Root>.() -> Unit,
 ) {
     val scope = remember { NavEaseScreenScope<Root>().apply(screens) }
@@ -129,6 +133,7 @@ fun <Root : NavEaseRoot> NavEaseHost(                   // ← NavKey → NavEas
         onExitRequest        = onExitRequest,
         enableSharedTransitions = enableSharedTransitions,
         navTransition        = navTransition,
+        onDestinationChanged = onDestinationChanged,
     )
 }
 
@@ -171,6 +176,7 @@ inline fun <reified Root : NavEaseRoot> NavEaseHost(
     noinline onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
     navTransition: NavTransition = NavTransition.Push,
+    noinline onDestinationChanged: (NavEaseController.(NavKey) -> Unit)? = null,
 ) {
     require(start is Root) {
         "NavEase: start destination ${start::class.simpleName} is not a subtype of ${Root::class.simpleName}"
@@ -181,6 +187,7 @@ inline fun <reified Root : NavEaseRoot> NavEaseHost(
         onExitRequest = onExitRequest,
         enableSharedTransitions = enableSharedTransitions,
         navTransition = navTransition,
+        onDestinationChanged = onDestinationChanged,
     )
 }
 
@@ -197,6 +204,7 @@ fun NavEaseHostForRoot(
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
     navTransition: NavTransition = NavTransition.Push,
+    onDestinationChanged: (NavEaseController.(NavKey) -> Unit)? = null,
 ) {
     val registry = NavEaseAutoRegistry
 
@@ -254,6 +262,7 @@ fun NavEaseHostForRoot(
         onExitRequest        = onExitRequest,
         enableSharedTransitions = enableSharedTransitions,
         navTransition = navTransition,
+        onDestinationChanged = onDestinationChanged,
     )
 }
 

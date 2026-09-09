@@ -8,7 +8,9 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -24,6 +26,7 @@ import io.github.alimsrepo.navease.runtime.domain.NavScreen
 import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import io.github.alimsrepo.navease.runtime.transition.Animations
 import io.github.alimsrepo.navease.runtime.transition.NavTransition
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Internal core — shared by all public overloads
@@ -44,6 +47,7 @@ internal fun NavEaseNavGraphCore(
     onExitRequest: () -> Unit,
     enableSharedTransitions: Boolean,
     navTransition: NavTransition,
+    onDestinationChanged: (NavEaseController.(NavKey) -> Unit)? = null,
 ) {
     val applicationStack = rememberNavBackStack(
         configuration = savedStateConfig,
@@ -62,6 +66,17 @@ internal fun NavEaseNavGraphCore(
 
     SideEffect {
         navEaseController.defaultTransition = navTransition
+    }
+
+    val currentOnDestinationChanged by rememberUpdatedState(onDestinationChanged)
+    LaunchedEffect(applicationStack) {
+        snapshotFlow { applicationStack.lastOrNull() }
+            .distinctUntilChanged()
+            .collect { key ->
+                if (key != null) {
+                    currentOnDestinationChanged?.invoke(navEaseController, key)
+                }
+            }
     }
 
     @Composable
@@ -131,6 +146,7 @@ fun NavEaseNavGraph(
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
     navTransition: NavTransition = NavTransition.Push,
+    onDestinationChanged: (NavEaseController.(NavKey) -> Unit)? = null,
 ) = NavEaseNavGraphCore(
     initialScreen = initialScreen,
     savedStateConfig = savedStateConfig,
@@ -142,6 +158,7 @@ fun NavEaseNavGraph(
     onExitRequest = onExitRequest,
     enableSharedTransitions = enableSharedTransitions,
     navTransition = navTransition,
+    onDestinationChanged = onDestinationChanged,
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -176,6 +193,7 @@ fun NavEaseNavGraph(
     onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
     navTransition: NavTransition = NavTransition.Push,
+    onDestinationChanged: (NavEaseController.(NavKey) -> Unit)? = null,
 ) = NavEaseNavGraphCore(
     initialScreen = graph.start,
     savedStateConfig = graph.savedStateConfig,
@@ -190,5 +208,6 @@ fun NavEaseNavGraph(
     onExitRequest = onExitRequest,
     enableSharedTransitions = enableSharedTransitions,
     navTransition = navTransition,
+    onDestinationChanged = onDestinationChanged,
 )
 
