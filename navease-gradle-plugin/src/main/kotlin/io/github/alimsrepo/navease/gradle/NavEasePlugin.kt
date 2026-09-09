@@ -3,8 +3,6 @@ package io.github.alimsrepo.navease.gradle
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 /**
  * Wires KSP and the NavEase artifacts into a Kotlin Multiplatform module.
@@ -28,7 +26,10 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
  * - gives the module its own generated package, so several modules can use NavEase without
  *   generating colliding classes.
  *
- * Configure it through [NavEaseExtension]; see that class for the available options.
+ * Configure it through [NavEaseExtension].
+ *
+ * Kotlin Gradle plugin types are reached only through [KotlinMultiplatformWiring]; see that
+ * class for why.
  */
 class NavEasePlugin : Plugin<Project> {
 
@@ -36,24 +37,41 @@ class NavEasePlugin : Plugin<Project> {
         val extension = target.extensions.create("navease", NavEaseExtension::class.java)
         extension.addRuntimeDependency.convention(true)
 
-        applyCompilerPlugins(target)
-        wireKspTaskOrdering(target)
+        // Everything is deferred until Kotlin Multiplatform is present. Applying KSP to a
+        // project without a Kotlin plugin fails inside KSP with a NoClassDefFoundError, which
+        // says nothing about what the build is missing; and the plugins {} block does not
+        // guarantee that kotlin("multiplatform") is applied before this plugin.
+        var multiplatformApplied = false
+        target.pluginManager.withPlugin(KOTLIN_MULTIPLATFORM_ID) {
+            multiplatformApplied = true
+            applyCompilerPlugins(target)
+            KotlinMultiplatformWiring.wireTaskOrdering(target, KSP_METADATA_TASK)
+        }
 
         target.afterEvaluate { project ->
-            val kmp = project.extensions.findByType(KotlinMultiplatformExtension::class.java)
-                ?: throw GradleException(
+            if (!multiplatformApplied) {
+                throw GradleException(
                     "[NavEase] The Kotlin Multiplatform plugin is required. Apply " +
-                        "kotlin(\"multiplatform\") in the same module as io.github.alims-repo.navease.",
+                        "kotlin(\"multiplatform\") in the same module as " +
+                        "io.github.alims-repo.navease.",
                 )
+            }
 
             addProcessor(project, extension)
-            registerGeneratedSourceDir(project, kmp)
-            addRuntime(project, kmp, extension)
+            KotlinMultiplatformWiring.addGeneratedSourceDir(project, GENERATED_SOURCE_PATH)
+
+            if (extension.addRuntimeDependency.getOrElse(true)) {
+                KotlinMultiplatformWiring.addRuntimeDependency(
+                    project,
+                    extension.effectiveRuntimeDependency(),
+                )
+            } else {
+                project.logger.info("[NavEase] addRuntimeDependency = false — runtime not added.")
+            }
+
             configureGeneratedPackage(project, extension)
         }
     }
-
-    // ── Compiler plugins ─────────────────────────────────────────────────────
 
     private fun applyCompilerPlugins(project: Project) {
         // Both are skipped when already declared, so a build that pins its own KSP or
@@ -71,35 +89,13 @@ class NavEasePlugin : Plugin<Project> {
         }
     }
 
-    // ── Task wiring ──────────────────────────────────────────────────────────
-
-    /**
-     * Everything that compiles or processes Kotlin must run after the common-metadata KSP
-     * task, which is what produces `AutoRegisterScreens.kt`.
-     *
-     * Two hooks are needed: per-target KSP tasks are `KspAATask`s, not
-     * `KotlinCompilationTask`s, so one `withType` does not reach both.
-     */
-    private fun wireKspTaskOrdering(project: Project) {
-        project.tasks.withType(KotlinCompilationTask::class.java).configureEach { task ->
-            if (task.name != KSP_METADATA_TASK) task.dependsOn(KSP_METADATA_TASK)
-        }
-        project.tasks.configureEach { task ->
-            if (task.name != KSP_METADATA_TASK && task.name.startsWith("ksp")) {
-                task.dependsOn(KSP_METADATA_TASK)
-            }
-        }
-    }
-
-    // ── Dependencies ─────────────────────────────────────────────────────────
-
     private fun addProcessor(project: Project, extension: NavEaseExtension) {
         val dependency = extension.effectiveKspDependency()
         try {
             project.dependencies.add("kspCommonMainMetadata", dependency)
         } catch (e: Exception) {
-            // Failing here means no screens would ever be generated, and the build would
-            // instead fail much later with a confusing empty-registry error at runtime.
+            // Swallowing this would generate no screens at all, and the build would instead
+            // fail much later with a confusing empty-registry error at runtime.
             throw GradleException(
                 "[NavEase] Could not add '$dependency' to the kspCommonMainMetadata " +
                     "configuration. Check that the KSP plugin applied successfully.",
@@ -108,28 +104,6 @@ class NavEasePlugin : Plugin<Project> {
         }
         project.logger.info("[NavEase] Added KSP processor: $dependency")
     }
-
-    private fun registerGeneratedSourceDir(project: Project, kmp: KotlinMultiplatformExtension) {
-        val generatedDir = project.layout.buildDirectory.dir(GENERATED_SOURCE_PATH)
-        kmp.sourceSets.findByName("commonMain")?.kotlin?.srcDir(generatedDir)
-        project.logger.info("[NavEase] Registered generated source dir: $GENERATED_SOURCE_PATH")
-    }
-
-    private fun addRuntime(
-        project: Project,
-        kmp: KotlinMultiplatformExtension,
-        extension: NavEaseExtension,
-    ) {
-        if (!extension.addRuntimeDependency.getOrElse(true)) {
-            project.logger.info("[NavEase] addRuntimeDependency = false — not adding the runtime.")
-            return
-        }
-        val dependency = extension.effectiveRuntimeDependency()
-        kmp.sourceSets.findByName("commonMain")?.dependencies { implementation(dependency) }
-        project.logger.info("[NavEase] Added runtime: $dependency")
-    }
-
-    // ── Generated package ────────────────────────────────────────────────────
 
     private fun configureGeneratedPackage(project: Project, extension: NavEaseExtension) {
         val configured = extension.generatedPackage.orNull?.trim().orEmpty()
@@ -140,8 +114,8 @@ class NavEasePlugin : Plugin<Project> {
     }
 
     /**
-     * Sets a KSP argument reflectively, so the plugin does not need a compile-time
-     * dependency on the KSP Gradle plugin's API.
+     * Sets a KSP argument reflectively, so the plugin needs no compile-time dependency on the
+     * KSP Gradle plugin's API.
      */
     private fun forwardKspArg(project: Project, key: String, value: String) {
         val kspExtension = project.extensions.findByName("ksp")
@@ -162,6 +136,7 @@ class NavEasePlugin : Plugin<Project> {
     }
 
     internal companion object {
+        const val KOTLIN_MULTIPLATFORM_ID = "org.jetbrains.kotlin.multiplatform"
         const val KSP_METADATA_TASK = "kspCommonMainKotlinMetadata"
         const val GENERATED_SOURCE_PATH = "generated/ksp/metadata/commonMain/kotlin"
         const val DEFAULT_GENERATED_PACKAGE = "io.github.alimsrepo.navease.generated"
@@ -171,8 +146,7 @@ class NavEasePlugin : Plugin<Project> {
          * `my_feature`, and a name starting with a digit is prefixed so it stays an identifier.
          */
         internal fun String.toPackageSegment(): String {
-            val sanitized = replace(Regex("[^A-Za-z0-9_]"), "_")
-                .ifEmpty { "module" }
+            val sanitized = replace(Regex("[^A-Za-z0-9_]"), "_").ifEmpty { "module" }
             return if (sanitized.first().isDigit()) "_$sanitized" else sanitized
         }
     }
