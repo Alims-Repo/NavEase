@@ -4,7 +4,7 @@
 
 No reflection. No string routes. No red underlines while writing.
 
-> ✅ **Status:** published to Maven Central — latest version: **0.1.3**
+> ✅ **Status:** published to Maven Central — latest version: **0.1.4**
 
 ---
 
@@ -18,6 +18,7 @@ No reflection. No string routes. No red underlines while writing.
 - [Approach 2 — navEaseGraph DSL](#approach-2--naveasegraph-dsl)
 - [Approach 3 — ActivityScreen\<K\>](#approach-3--activityscreenk)
 - [NavController API](#navcontroller-api)
+- [Observing destination changes](#observing-destination-changes)
 - [Back-with-Result](#back-with-result)
 - [Shared Element Transitions](#shared-element-transitions)
 - [KSP-Generated Code](#ksp-generated-code)
@@ -98,7 +99,7 @@ plugins {
     id("com.android.kotlin.multiplatform.library")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("io.github.alims-repo.navease") version "0.1.3"  // ← all wiring done ✅
+    id("io.github.alims-repo.navease") version "0.1.4"  // ← all wiring done ✅
 }
 ```
 
@@ -112,7 +113,7 @@ The `navease` plugin automatically:
 Optional configuration via the `navease { }` extension:
 ```kotlin
 navease {
-    version = "0.1.3"                        // pin a specific version (default: same as plugin)
+    version = "0.1.4"                        // pin a specific version (default: same as plugin)
     addRuntimeDependency = true              // set false to manage navease-runtime yourself
     generatedPackage = "com.myapp.nav"       // custom package for generated files
 }
@@ -148,7 +149,7 @@ kotlin {
             kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
 
             dependencies {
-                implementation("io.github.alims-repo:navease-runtime:0.1.3")
+                implementation("io.github.alims-repo:navease-runtime:0.1.4")
             }
         }
     }
@@ -156,7 +157,7 @@ kotlin {
 
 // Only required for Approach 1:
 dependencies {
-    add("kspCommonMainMetadata", "io.github.alims-repo:navease-ksp:0.1.3")
+    add("kspCommonMainMetadata", "io.github.alims-repo:navease-ksp:0.1.4")
 }
 
 // Only required for Approach 1:
@@ -503,6 +504,51 @@ navController.navigate(
 ```
 
 Available transitions: `Push` (iOS-style slide) · `Fade` · `Rise` (slide up) · `Zoom` · `Depth` · `Instant`
+
+---
+
+## Observing destination changes
+
+Every `NavEaseHost` overload takes an optional `onDestinationChanged`, called whenever the top of
+the back stack changes — including for the start destination on first composition.
+
+It is for the concerns that belong to the graph rather than to any one screen. Screen-view
+analytics is the obvious one: done per screen it is a line each screen has to remember, and
+nothing catches a new screen that forgets it.
+
+```kotlin
+NavEaseHost<AppScreens>(
+    start = AppScreens.Splash,
+    onDestinationChanged = { navKey ->
+        analytics.logScreenView(navKey.screenName)
+    },
+)
+```
+
+`NavEaseController` is the **receiver**, not a parameter. The host owns its controller, so a caller
+outside it has no other way to reach one — a hook that only observes ignores the receiver, and a
+hook that needs to navigate can use it:
+
+```kotlin
+NavEaseHost<AppScreens>(
+    start = AppScreens.Splash,
+    onDestinationChanged = { navKey ->
+        if (navKey !is AppScreens.Main && deepLink.isPending) {
+            navigate(AppScreens.Main)   // `this` is the NavEaseController
+        }
+    },
+)
+```
+
+It is equally useful on a nested host — "which inner screen am I on" is what tells an outer shell
+whether to show or hide its bottom bar:
+
+```kotlin
+NavEaseHost(
+    graph = homeGraph,
+    onDestinationChanged = { navKey -> hideBottomBar(navKey !is HomeNav.Root) },
+)
+```
 
 ---
 
