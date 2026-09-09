@@ -1,177 +1,75 @@
+@file:OptIn(ExperimentalSharedTransitionApi::class)
+
 package io.github.alimsrepo.navease.runtime.host
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
-import io.github.alimsrepo.navease.internal.runtime.NavKey
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Modifier
 import androidx.savedstate.serialization.SavedStateConfiguration
+import io.github.alimsrepo.navease.internal.navigation.ui.NavDisplay
+import io.github.alimsrepo.navease.internal.runtime.NavEntry
+import io.github.alimsrepo.navease.internal.runtime.NavKey
+import io.github.alimsrepo.navease.internal.runtime.rememberNavBackStack
 import io.github.alimsrepo.navease.runtime.NavEaseRoot
 import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseController
-import io.github.alimsrepo.navease.runtime.graph.NavEaseGraph
-import io.github.alimsrepo.navease.runtime.graph.NavEaseScreenScope
+import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseSharedTransitionScope
 import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
 import io.github.alimsrepo.navease.runtime.registry.NavEaseAutoRegistry
 import io.github.alimsrepo.navease.runtime.screen.ActivityScreen
+import io.github.alimsrepo.navease.runtime.transition.Animations
 import io.github.alimsrepo.navease.runtime.transition.NavTransition
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlin.reflect.KClass
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NavEaseHost — DSL graph variant
+// Public API
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Zero-rebuild navigation host — **DSL graph variant**.
- *
- * Pass a [NavEaseGraph] built with [navEaseGraph][io.github.alimsrepo.navease.runtime.graph.navEaseGraph].
- * No code generation required.
- *
- * @param graph                   The navigation graph built via [navEaseGraph][io.github.alimsrepo.navease.runtime.graph.navEaseGraph].
- * @param onExitRequest           Called when back is pressed at the root screen.
- * @param enableSharedTransitions `true` to enable shared-element transitions.
- * @param navTransition           Default screen transition. Defaults to [NavTransition.Push].
- */
-@Composable
-fun NavEaseHost(
-    graph: NavEaseGraph,
-    onExitRequest: () -> Unit = {},
-    enableSharedTransitions: Boolean = false,
-    navTransition: NavTransition = NavTransition.Push,
-    onDestinationChanged: (NavEaseController.(NavKey) -> Unit)? = null,
-) {
-    NavEaseNavGraph(
-        graph = graph,
-        onExitRequest = onExitRequest,
-        enableSharedTransitions = enableSharedTransitions,
-        navTransition = navTransition,
-        onDestinationChanged = onDestinationChanged,
-    )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// NavEaseHost — ActivityScreen variant
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Zero-rebuild navigation host — **[ActivityScreen] variant**.
- *
- * Register screens via the trailing `screens` lambda using [NavEaseScreenScope.add].
- * Each [ActivityScreen] subclass receives a **typed** [navKey][ActivityScreen.Content] in
- * its [Content][ActivityScreen.Content] override — no casting or `.xxxArgs()` needed.
+ * Navigation host for every `@AutoRegister` screen whose key belongs to the sealed
+ * root [Root].
  *
  * ```kotlin
- * class DetailScreen : ActivityScreen<AppScreens.Detail>() {
- *     @Composable
- *     override fun Content(navKey: AppScreens.Detail, navController: NavController) {
- *         Text(navKey.id)   // ← typed, no casting
- *     }
- * }
- *
- * @Composable fun App() {
- *     NavEaseHost<AppScreens>(start = AppScreens.Home) {
- *         add(HomeScreen())
- *         add(AboutScreen())
- *         add(DetailScreen())
- *     }
- * }
- * ```
- *
- * @param Root                    The sealed [NavKey] root class (e.g. `AppScreens`).
- *                                Must be specified explicitly: `NavEaseHost<AppScreens>(...)`.
- * @param start                   The [NavKey] instance placed on the back stack first.
- * @param onExitRequest           Called when back is pressed at the root screen.
- * @param enableSharedTransitions `true` to enable shared-element transitions.
- * @param navTransition           Default screen transition. Defaults to [NavTransition.Push].
- * @param screens                 Registration block — call [NavEaseScreenScope.add] for each screen.
- */
-@Composable
-fun <Root : NavEaseRoot> NavEaseHost(                   // ← NavKey → NavEaseRoot
-    start: NavEaseRoot,                                  // ← Root → NavEaseRoot
-    onExitRequest: () -> Unit = {},
-    enableSharedTransitions: Boolean = false,
-    navTransition: NavTransition = NavTransition.Push,
-    onDestinationChanged: (NavEaseController.(NavKey) -> Unit)? = null,
-    screens: NavEaseScreenScope<Root>.() -> Unit,
-) {
-    val scope = remember { NavEaseScreenScope<Root>().apply(screens) }
-
-    val factory: Map<KClass<*>, ActivityScreen<*>> = remember(scope) {
-        scope.screens.associateBy { checkNotNull(it._keyClass) {
-            "ActivityScreen '${it::class.simpleName}' has a null _keyClass. " +
-            "Make sure it was registered via add(...) inside NavEaseHost { }."
-        }}
-    }
-
-    val savedStateConfig = remember(scope) {
-        SavedStateConfiguration {
-            serializersModule = SerializersModule {
-                @Suppress("UNCHECKED_CAST")
-                polymorphic(NavKey::class) {
-                    scope.serPairs.forEach { (kClass, ser) ->
-                        subclass(kClass as KClass<NavKey>, ser as KSerializer<NavKey>)
-                    }
-                }
-            }
-        }
-    }
-
-    NavEaseNavGraphCore(
-        initialScreen        = start,
-        savedStateConfig     = savedStateConfig,
-        contentProvider      = { key ->
-            @Suppress("UNCHECKED_CAST")
-            val screen = factory[key::class] as? ActivityScreen<NavKey>
-                ?: error(
-                    "NavEase: No screen registered for '${key::class.simpleName}'. " +
-                    "Add it inside NavEaseHost<...>(...) { add(${key::class.simpleName}()) }."
-                )
-            val nav = LocalNavEaseController.current
-                ?: error("NavEase: LocalNavEaseController is null — called outside NavEaseNavGraph.")
-            screen.Content(key, nav)
-        },
-        onExitRequest        = onExitRequest,
-        enableSharedTransitions = enableSharedTransitions,
-        navTransition        = navTransition,
-        onDestinationChanged = onDestinationChanged,
-    )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// NavEaseHost — typed auto-discover @AutoRegister variant
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * **Typed auto-discover navigation host** — screens whose `NavKey` belongs to the
- * sealed root class [Root] are discovered automatically from the global
- * [NavEaseAutoRegistry], which is populated by KSP-generated code.
- *
- * No explicit `{ add(XxxScreen()) }` lambda needed — just supply the type parameter
- * and the start destination:
- *
- * ```kotlin
- * // Root host — discovers all screens whose NavKey is an AppScreens subtype
- * @Composable fun App() {
+ * @Composable
+ * fun App() {
  *     NavEaseHost<AppScreens>(start = AppScreens.Splash, onExitRequest = { finish() })
  * }
- *
- * // Nested inner host — discovers only WizardStep screens
- * NavEaseHost<WizardStep>(
- *     start         = WizardStep.SelectRole,
- *     onExitRequest = { outerNav.back() },
- *     navTransition = NavTransition.Push,
- * )
  * ```
  *
- * @param Root                    The sealed [NavKey] root class whose screens to include
- *                                (e.g. `AppScreens` or `WizardStep`).
- * @param start                   The [NavKey] instance placed on the back stack first.
+ * Each host owns an independent back stack, controller and result store, so nested
+ * hosts for different roots never see each other's screens.
+ *
+ * After a build, KSP generates a same-named overload for each of your roots. It is
+ * strictly more specific than this declaration, so `NavEaseHost<AppScreens>(...)`
+ * binds to the generated one, which initialises the screen registry before
+ * delegating back to [NavEaseHostForRoot]. This declaration exists so your code
+ * still resolves in the IDE *before* the first build, and so that a call which
+ * somehow misses the generated overload fails with a clear message rather than a
+ * blank screen.
+ *
+ * @param Root                    The sealed key class whose screens this host serves.
+ * @param start                   The key placed on the back stack first.
  * @param onExitRequest           Called when back is pressed on the root screen.
- * @param enableSharedTransitions `true` to enable shared-element transitions.
+ * @param enableSharedTransitions `true` to wrap the host in a `SharedTransitionLayout`.
  * @param navTransition           Default screen-to-screen animation.
+ * @param onDestinationChanged    Called with [NavEaseController] as receiver whenever the
+ *                                top of the back stack changes, including on first composition.
  */
 @Composable
-inline fun <reified Root : NavEaseRoot> NavEaseHost(
+public inline fun <reified Root : NavEaseRoot> NavEaseHost(
     start: NavEaseRoot,
     noinline onExitRequest: () -> Unit = {},
     enableSharedTransitions: Boolean = false,
@@ -179,7 +77,8 @@ inline fun <reified Root : NavEaseRoot> NavEaseHost(
     noinline onDestinationChanged: (NavEaseController.(NavKey) -> Unit)? = null,
 ) {
     require(start is Root) {
-        "NavEase: start destination ${start::class.simpleName} is not a subtype of ${Root::class.simpleName}"
+        "NavEase: start destination ${start::class.simpleName} is not a subtype of " +
+            "${Root::class.simpleName}."
     }
     NavEaseHostForRoot(
         rootClass = Root::class,
@@ -192,13 +91,14 @@ inline fun <reified Root : NavEaseRoot> NavEaseHost(
 }
 
 /**
- * Non-inline implementation backing [NavEaseHost] (typed auto-discover variant).
+ * Non-inline implementation backing [NavEaseHost].
  *
- * Separated from the `inline reified` function so that the body (which contains
- * `@Composable` state calls like [remember]) is not inlined at every call site.
+ * Also the target of the KSP-generated `NavEaseHost` overloads, which call
+ * `navEaseBootstrap()` before delegating here. Prefer [NavEaseHost] in application
+ * code; this entry point is public only so generated code can reach it.
  */
 @Composable
-fun NavEaseHostForRoot(
+public fun NavEaseHostForRoot(
     rootClass: KClass<*>,
     start: NavKey,
     onExitRequest: () -> Unit = {},
@@ -206,63 +106,117 @@ fun NavEaseHostForRoot(
     navTransition: NavTransition = NavTransition.Push,
     onDestinationChanged: (NavEaseController.(NavKey) -> Unit)? = null,
 ) {
-    val registry = NavEaseAutoRegistry
-
-    val scope = remember(rootClass) {
-        registry.ensureInitialized()
-        check(registry.isInitialized) {
-            "NavEase: Registry is empty. Rebuild the project " +
-            "(./gradlew :shared:kspCommonMainKotlinMetadata) to generate @AutoRegister screen entries."
-        }
-        // Filter entries to only those belonging to this Root type
-        val filtered = registry.entries.filter { it.rootKeyClass == rootClass }
-        check(filtered.isNotEmpty()) {
-            "NavEase: No @AutoRegister screens found for root type '${rootClass.simpleName}'. " +
-            "Ensure the screen classes are annotated with @AutoRegister and the project has been rebuilt."
-        }
-        NavEaseScreenScope<NavKey>().also { s ->
-            filtered.forEach { entry ->
-                s.addUnchecked(entry.screen, entry.keyClass, entry.serializer)
-            }
-        }
+    val screens: Map<KClass<*>, ActivityScreen<*>> = remember(rootClass) {
+        NavEaseAutoRegistry.screensForRoot(rootClass)
     }
 
-    val factory: Map<KClass<*>, ActivityScreen<*>> = remember(scope) {
-        scope.screens.associateBy { checkNotNull(it._keyClass) }
-    }
-
-    val savedStateConfig = remember(scope) {
+    val savedStateConfig = remember(rootClass) {
+        val serializers = NavEaseAutoRegistry.serializersForRoot(rootClass)
         SavedStateConfiguration {
             serializersModule = SerializersModule {
-                @Suppress("UNCHECKED_CAST")
                 polymorphic(NavKey::class) {
-                    scope.serPairs.forEach { (kClass, ser) ->
-                        subclass(kClass as KClass<NavKey>, ser as KSerializer<NavKey>)
+                    serializers.forEach { (keyClass, serializer) ->
+                        @Suppress("UNCHECKED_CAST")
+                        subclass(keyClass as KClass<NavKey>, serializer as KSerializer<NavKey>)
                     }
                 }
             }
         }
     }
 
-    NavEaseNavGraphCore(
+    NavEaseDisplay(
         initialScreen = start,
-        savedStateConfig     = savedStateConfig,
-        contentProvider      = { key ->
-            @Suppress("UNCHECKED_CAST")
-            val screen = factory[key::class] as? ActivityScreen<NavKey>
-                ?: error(
-                    "NavEase: No screen registered for '${key::class.simpleName}' " +
-                    "in root '${rootClass.simpleName}'. " +
-                    "Ensure it is annotated with @AutoRegister and the project has been rebuilt."
-                )
-            val nav = LocalNavEaseController.current
-                ?: error("NavEase: LocalNavEaseController is null — called outside NavEaseNavGraph.")
-            screen.Content(key, nav)
-        },
-        onExitRequest        = onExitRequest,
+        savedStateConfig = savedStateConfig,
+        onExitRequest = onExitRequest,
         enableSharedTransitions = enableSharedTransitions,
         navTransition = navTransition,
         onDestinationChanged = onDestinationChanged,
-    )
+    ) { key ->
+        @Suppress("UNCHECKED_CAST")
+        val screen = screens[key::class] as? ActivityScreen<NavKey>
+            ?: error(
+                "NavEase: no screen registered for '${key::class.simpleName}' under root " +
+                    "'${rootClass.simpleName}'. Annotate its screen class with @AutoRegister " +
+                    "and rebuild."
+            )
+        val controller = LocalNavEaseController.current
+            ?: error("NavEase: LocalNavEaseController is null — Content() called outside a host.")
+        screen.Content(key, controller)
+    }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Engine
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The rendering engine shared by every host: owns the back stack, the controller,
+ * the transition wiring and the optional shared-element layer.
+ *
+ * @param content Renders the current key. [LocalNavEaseController] is already provided.
+ */
+@Composable
+internal fun NavEaseDisplay(
+    initialScreen: NavKey,
+    savedStateConfig: SavedStateConfiguration,
+    onExitRequest: () -> Unit,
+    enableSharedTransitions: Boolean,
+    navTransition: NavTransition,
+    onDestinationChanged: (NavEaseController.(NavKey) -> Unit)?,
+    content: @Composable (NavKey) -> Unit,
+) {
+    val backStack = rememberNavBackStack(configuration = savedStateConfig, initialScreen)
+
+    val currentOnExitRequest by rememberUpdatedState(onExitRequest)
+
+    val controller = remember(backStack) {
+        NavEaseController(
+            backStack = backStack,
+            showExitDialog = { currentOnExitRequest() },
+            defaultTransition = navTransition,
+        )
+    }
+
+    SideEffect { controller.defaultTransition = navTransition }
+
+    val currentOnDestinationChanged by rememberUpdatedState(onDestinationChanged)
+    LaunchedEffect(backStack) {
+        snapshotFlow { backStack.lastOrNull() }
+            .distinctUntilChanged()
+            .collect { key -> if (key != null) currentOnDestinationChanged?.invoke(controller, key) }
+    }
+
+    @Composable
+    fun Display(sharedScope: SharedTransitionScope?) {
+        CompositionLocalProvider(LocalNavEaseController provides controller) {
+            NavDisplay(
+                modifier = Modifier.fillMaxSize(),
+                backStack = backStack,
+                sharedTransitionScope = sharedScope,
+                transitionSpec = {
+                    Animations.forward(controller.transitionStore[targetState.key] ?: navTransition)
+                },
+                popTransitionSpec = {
+                    Animations.back(controller.transitionStore[initialState.key] ?: navTransition)
+                },
+                // Predictive back reuses the pop spec so the gesture and the button
+                // animate identically, shared elements included.
+                predictivePopTransitionSpec = {
+                    Animations.back(controller.transitionStore[initialState.key] ?: navTransition)
+                },
+            ) { key ->
+                NavEntry(key) { content(key) }
+            }
+        }
+    }
+
+    if (enableSharedTransitions) {
+        SharedTransitionLayout {
+            CompositionLocalProvider(LocalNavEaseSharedTransitionScope provides this) {
+                Display(sharedScope = this)
+            }
+        }
+    } else {
+        Display(sharedScope = null)
+    }
+}

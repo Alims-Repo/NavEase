@@ -6,153 +6,106 @@ import kotlinx.serialization.KSerializer
 import kotlin.reflect.KClass
 
 /**
- * Global registry populated by NavEase KSP-generated code.
+ * Registry of every `@AutoRegister` screen, populated by KSP-generated code.
  *
- * Holds all screens annotated with `@AutoRegister`.
- * Used by the auto-discover [NavEaseHost][io.github.alimsrepo.navease.runtime.host.NavEaseHost] overload.
+ * You do not interact with this object directly. Each module's generated
+ * `AutoRegisterScreens.kt` declares a `navEaseBootstrap()` function that fills it in,
+ * and the generated `NavEaseHost` overloads call that function before composing a host.
  *
- * **You do not normally interact with this object directly.**
- * It is populated automatically by the KSP-generated `NavEaseAutoInit` initializer.
- *
- * The start destination is **not** stored here — it is declared explicitly at the host level
- * via the `start` parameter of [NavEaseHost][io.github.alimsrepo.navease.runtime.host.NavEaseHost].
- *
- * Initialization per platform:
- *
- * - **Android / JVM / Desktop**: automatic — [NavEaseHost][io.github.alimsrepo.navease.runtime.host.NavEaseHost]
- *   loads the generated class via `Class.forName` on first composition.
- * - **iOS / Native**: automatic via `@EagerInitialization` in the Gradle-plugin-generated glue file.
- * - **JS / WasmJS**: automatic — module-level property init runs at module load time.
+ * Registration is idempotent: calling `navEaseBootstrap()` more than once — from
+ * several hosts, or from several modules — adds each key exactly once.
  */
-object NavEaseAutoRegistry {
+public object NavEaseAutoRegistry {
+
+    private val entries = LinkedHashMap<KClass<*>, RegistryEntry>()
+
+    /** `true` once at least one screen has been registered. */
+    public val isInitialized: Boolean get() = entries.isNotEmpty()
 
     /**
-     * Fully-qualified class name of the KSP-generated initializer file.
+     * One registered screen.
      *
-     * Defaults to `io.github.alimsrepo.navease.generated.AutoRegisterScreensKt`.
-     * Override only when using a custom `generatedPackage` KSP option.
-     * Set it **before** first composition — e.g. inside `Application.onCreate()`.
+     * @property keyClass      The specific key type this screen handles, e.g. `AppScreens.Detail`.
+     * @property rootKeyClass  The sealed root [keyClass] belongs to, e.g. `AppScreens`. Hosts
+     *                         filter on this so nested graphs stay independent.
+     * @property serializer    Serializer for [keyClass], used to restore the back stack.
+     * @property screenFactory Creates the screen. Called once per host, never shared between hosts.
      */
-    var generatedClassHint: String =
-        "io.github.alimsrepo.navease.generated.AutoRegisterScreensKt"
-
-    internal val entries: MutableList<RegistryEntry> = mutableListOf()
-
-    /** `true` once [entries] has been populated by the KSP-generated initializer. */
-    val isInitialized: Boolean get() = entries.isNotEmpty()
-
-    /**
-     * Optional hook set by the KSP-generated `_navEaseAutoInit` property initializer.
-     *
-     * When the generated class is loaded (JVM) or `navEaseBootstrap()` is called,
-     * this hook is registered so that future calls to [ensureInitialized] can re-trigger
-     * initialization without another `Class.forName` lookup.
-     */
-    internal var bootstrapHook: (() -> Unit)? = null
-
-    /**
-     * A registered screen entry produced by [addEntry].
-     *
-     * @property keyClass     Runtime [KClass] of the specific [NavKey] subtype handled by [screen]
-     *                        (e.g. `WizardStep.SelectRole::class`).
-     * @property rootKeyClass Runtime [KClass] of the sealed root type that [keyClass] belongs to
-     *                        (e.g. `WizardStep::class`). Used by the typed
-     *                        [NavEaseHost][io.github.alimsrepo.navease.runtime.host.NavEaseHost]
-     *                        overload to filter entries for a specific nav-graph root.
-     * @property serializer   [KSerializer] for the [NavKey] subtype.
-     * @property screen       [ActivityScreen] instance registered for this key.
-     */
-    data class RegistryEntry(
-        val keyClass: KClass<*>,
-        val rootKeyClass: KClass<*>,
-        val serializer: KSerializer<*>,
-        val screen: ActivityScreen<*>,
+    public class RegistryEntry(
+        public val keyClass: KClass<*>,
+        public val rootKeyClass: KClass<*>,
+        public val serializer: KSerializer<*>,
+        public val screenFactory: () -> ActivityScreen<*>,
     )
 
     /**
-     * Registers one screen into this registry.
+     * Registers one screen. Called from generated code only.
      *
-     * Called directly from the KSP-generated `NavEaseAutoInit.init {}` block.
+     * Re-registering the same [keyClass] is a no-op, so a module whose bootstrap runs
+     * twice does not duplicate entries. A *different* screen claiming a key that is
+     * already taken is a programming error and throws — KSP rejects that case at build
+     * time within a module, but two modules can only be caught here.
      *
-     * @param screen        Screen instance.
-     * @param keyClass      Runtime [KClass] of [K] (the specific NavKey subtype).
-     * @param rootKeyClass  Runtime [KClass] of the sealed root that [K] belongs to.
-     *                      Used to filter entries in the typed [NavEaseHost] overload.
-     * @param serializer    [KSerializer] for [K].
+     * @param keyClass      Runtime class of [K].
+     * @param rootKeyClass  Runtime class of the sealed root [K] belongs to.
+     * @param serializer    Serializer for [K].
+     * @param screenFactory Creates the screen handling [K].
      */
-    @Suppress("UNCHECKED_CAST")
-    fun <K : NavKey> addEntry(
-        screen: ActivityScreen<K>,
+    public fun <K : NavKey> addEntry(
         keyClass: KClass<K>,
         rootKeyClass: KClass<*>,
         serializer: KSerializer<K>,
+        screenFactory: () -> ActivityScreen<K>,
     ) {
-        entries.add(
-            RegistryEntry(
-                keyClass     = keyClass     as KClass<*>,
-                rootKeyClass = rootKeyClass as KClass<*>,
-                serializer   = serializer   as KSerializer<*>,
-                screen       = screen,
-            )
-        )
+        val existing = entries[keyClass]
+        if (existing != null) {
+            check(existing.rootKeyClass == rootKeyClass) {
+                "NavEase: key '${keyClass.simpleName}' is registered under two different roots " +
+                    "('${existing.rootKeyClass.simpleName}' and '${rootKeyClass.simpleName}'). " +
+                    "A key may belong to only one sealed root."
+            }
+            return
+        }
+        entries[keyClass] = RegistryEntry(keyClass, rootKeyClass, serializer, screenFactory)
     }
 
     /**
-     * Called by the KSP-generated `AutoRegisterScreens.kt` when `_navEaseAutoInit` is
-     * first accessed, registering the lambda that can re-trigger `NavEaseAutoInit.init {}`.
-     */
-    fun registerBootstrapHook(hook: () -> Unit) {
-        bootstrapHook = hook
-    }
-
-    /**
-     * Ensures the registry is populated.
+     * Builds the key-to-screen map for [rootClass], creating one screen instance per call
+     * so that two hosts of the same root never share screen objects.
      *
-     * - On **JVM/Android/Desktop**: triggers `Class.forName` via [navEaseAutoTriggerInit],
-     *   which loads the generated class and runs `NavEaseAutoInit.init {}`.
-     * - On **iOS/Native/Web**: No manual call is required. The generated `NavEaseHost`
-     *   automatically calls `navEaseBootstrap()` on first composition.
+     * @throws IllegalStateException if no screens are registered for [rootClass].
      */
-    internal fun ensureInitialized() {
-        if (isInitialized) return
+    internal fun screensForRoot(rootClass: KClass<*>): Map<KClass<*>, ActivityScreen<*>> =
+        entriesForRoot(rootClass).associate { it.keyClass to it.screenFactory() }
 
-        // Try the bootstrap hook first (fast path for all platforms)
-        bootstrapHook?.invoke()
+    /** Key-to-serializer pairs for [rootClass], for the host's `SavedStateConfiguration`. */
+    internal fun serializersForRoot(rootClass: KClass<*>): List<Pair<KClass<*>, KSerializer<*>>> =
+        entriesForRoot(rootClass).map { it.keyClass to it.serializer }
 
-        // JVM Class.forName fallback
-        if (!isInitialized) {
-            navEaseAutoTriggerInit()
+    private fun entriesForRoot(rootClass: KClass<*>): List<RegistryEntry> {
+        check(isInitialized) {
+            "NavEase: the screen registry is empty. Either the project has not been rebuilt " +
+                "since the last change (run ./gradlew kspCommonMainKotlinMetadata), or this host " +
+                "did not bind to the KSP-generated NavEaseHost overload. The generated overload " +
+                "is what initialises the registry — check that the NavEase Gradle plugin is " +
+                "applied to the module that declares your @AutoRegister screens."
         }
-
-        // Final check with helpful error message
-        if (!isInitialized) {
-            error(
-                "NavEase: Registry initialization failed. This usually means:\n" +
-                "  • The project needs to be rebuilt (./gradlew build)\n" +
-                "  • KSP hasn't generated the screen registry yet\n" +
-                "  • No @AutoRegister screens were found\n" +
-                "Ensure you have at least one screen annotated with @AutoRegister and rebuild."
-            )
+        val matching = entries.values.filter { it.rootKeyClass == rootClass }
+        check(matching.isNotEmpty()) {
+            val known = entries.values
+                .map { it.rootKeyClass.simpleName }
+                .distinct()
+                .sortedBy { it ?: "" }
+            "NavEase: no @AutoRegister screens found for root '${rootClass.simpleName}'. " +
+                "Registered roots: ${known.joinToString()}. Screens are matched by the outermost " +
+                "sealed class of their key, so check that your key really is a direct subtype of " +
+                "'${rootClass.simpleName}'."
         }
+        return matching
+    }
+
+    /** Removes every registration. Test-only. */
+    internal fun clear() {
+        entries.clear()
     }
 }
-
-// ── Platform hook ─────────────────────────────────────────────────────────────
-
-/**
- * Platform-specific trigger for auto-initialising the KSP-generated registry.
- *
- * - **JVM / Android**: loads [NavEaseAutoRegistry.generatedClassHint] via `Class.forName`.
- * - **iOS / Native / JS / Wasm**: no-op — initialisation is handled by the runtime.
- */
-internal expect fun navEaseAutoTriggerInit()
-
-// ── Public initialisation helpers ─────────────────────────────────────────────
-
-/**
- * Triggers the NavEase screen registry initialisation (JVM/Android only convenience).
- *
- * **No longer required** — NavEase bootstraps automatically on all platforms.
- * This function is kept for backward compatibility; calling it is safe but unnecessary.
- */
-fun navEaseInit() = NavEaseAutoRegistry.ensureInitialized()

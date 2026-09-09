@@ -5,33 +5,31 @@ import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 
 /**
- * KSP processor provider for NavEase.
+ * Entry point KSP loads to create the NavEase processor.
  *
- * ## KSP options
+ * ## Options
  *
- * | Option | Default | Description |
+ * | Option | Default | Meaning |
  * |---|---|---|
- * | `navease.generatedPackage` | `io.github.alimsrepo.navease.generated` | Package for all generated files. Override to avoid namespace collisions or to align with your app package. |
+ * | `navease.generatedPackage` | `io.github.alimsrepo.navease.generated` | Package for `AutoRegisterScreens.kt`. |
  *
- * ### Configuring in `build.gradle.kts`
+ * The NavEase Gradle plugin sets this for you, appending the module name so that several
+ * modules never generate into the same package. Set it by hand only in a manual setup:
  *
  * ```kotlin
  * ksp {
- *     arg("navease.generatedPackage", "com.myapp.navigation.generated")
+ *     arg("navease.generatedPackage", "com.example.app.navigation")
  * }
  * ```
  */
 class NavEaseProcessorProvider : SymbolProcessorProvider {
-    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
-        val generatedPackage = environment.options["navease.generatedPackage"]
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-            ?: "io.github.alimsrepo.navease.generated"
-
-        return NavEaseProcessor(
+    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor =
+        NavEaseProcessor(
             codeGenerator = environment.codeGenerator,
             logger = environment.logger,
-            generatedPackage = generatedPackage,
+            generatedPackage = environment.options["navease.generatedPackage"]
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?: NavEaseProcessor.DEFAULT_GENERATED_PACKAGE,
         )
-    }
 }
