@@ -1,8 +1,9 @@
 # NavEase
 
-**NavEase** is a KMP navigation library for **Kotlin Multiplatform + Compose Multiplatform** that offers three levels of integration — pick the one that fits your workflow.
+**NavEase** is a navigation library for **Kotlin Multiplatform + Compose Multiplatform**.
 
-No reflection. No string routes. No red underlines while writing.
+Annotate a screen, and it is wired. No reflection, no string routes, no manual registry, no red
+underlines while you write.
 
 > ✅ **Status:** published to Maven Central — latest version: **0.1.4**
 
@@ -10,67 +11,40 @@ No reflection. No string routes. No red underlines while writing.
 
 ## Table of Contents
 
-- [Features](#features)
-- [Three Approaches](#three-approaches)
+- [How it works](#how-it-works)
 - [Platform Support](#platform-support)
 - [Setup](#setup)
-- [Approach 1 — KSP Annotations](#approach-1--ksp-annotations)
-- [Approach 2 — navEaseGraph DSL](#approach-2--naveasegraph-dsl)
-- [Approach 3 — ActivityScreen\<K\>](#approach-3--activityscreenk)
-- [NavController API](#navcontroller-api)
+- [Quick start](#quick-start)
+- [NavEaseController](#naveasecontroller)
+- [Transitions](#transitions)
 - [Observing destination changes](#observing-destination-changes)
-- [Back-with-Result](#back-with-result)
-- [Shared Element Transitions](#shared-element-transitions)
-- [KSP-Generated Code](#ksp-generated-code)
-- [Module Structure](#module-structure)
-- [Sample App](#sample-app)
+- [Back-with-result](#back-with-result)
+- [Shared element transitions](#shared-element-transitions)
+- [Nested navigation](#nested-navigation)
+- [What KSP generates](#what-ksp-generates)
+- [Constraints and gotchas](#constraints-and-gotchas)
+- [Module structure](#module-structure)
+- [Sample app](#sample-app)
 - [FAQ](#faq)
 - [License](#license)
 
 ---
 
-## Features
+## How it works
 
-| Feature | KSP Annotations | navEaseGraph DSL | ActivityScreen\<K\> |
-|---|:---:|:---:|:---:|
-| **Zero boilerplate** | ✅ KSP-generated | ✅ Pure Kotlin DSL | ✅ Class registration |
-| **Typed navKey** | `navKey.xxxArgs()` cast | `(key: K) -> …` lambda | `navKey: K` parameter |
-| **Typed arguments** | `@NavEaseArgs` → `xxxArgs()` | Direct field access on `K` | Direct field access on `K` |
-| **Typed results** | `@NavEaseResult` → generated | `backWithResult()` / `resultOf<T>()` | `backWithResult()` / `resultOf<T>()` |
-| **Rebuild required** | After every new screen | ❌ Never | ❌ Never |
-| **IDE navigation** | Generated extensions | Sealed-class members | Sealed-class members |
-| **Shared transitions** | ✅ | ✅ | ✅ |
-| **State restoration** | ✅ Auto-generated | ✅ Auto-built | ✅ Auto-built |
-| **Back stack** | ✅ Navigation3 | ✅ Navigation3 | ✅ Navigation3 |
+Three pieces, and nothing else:
 
----
+| Piece | What it is |
+|---|---|
+| `sealed class AppScreens : NavEaseRoot` | Your destinations. One subclass per screen; `data class` for arguments |
+| `@AutoRegister class HomeScreen : ActivityScreen<AppScreens.Home>()` | A screen. `Content()` receives its key **already typed** |
+| `NavEaseHost<AppScreens>(start = AppScreens.Splash)` | The host. Finds every screen belonging to that root |
 
-## Three Approaches
+KSP discovers the annotated classes at build time and generates the registry, a `KSerializer` for
+every key, and the `SavedStateConfiguration` the back stack restores from. You write none of it.
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Approach 1 — KSP Annotations                                           │
-│  @NavEaseScreen / @NavEaseArgs / @NavEaseResult → KSP generates         │
-│  AppScreens, ScreenFactory, navigateToXxx(), xxxArgs(), xxxResult()     │
-│  ✓ Zero manual boilerplate after annotation                              │
-│  ✗ Requires a rebuild after adding / changing a screen                   │
-├─────────────────────────────────────────────────────────────────────────┤
-│  Approach 2 — navEaseGraph DSL                                           │
-│  navEaseGraph { screen<K> { … } } + NavEaseHost(graph)                  │
-│  ✓ No rebuild ever — IDE sees types immediately                          │
-│  ✓ Typed lambda receives K — direct field access                         │
-│  ✓ Back-with-result via backWithResult() / resultOf<T>()                 │
-├─────────────────────────────────────────────────────────────────────────┤
-│  Approach 3 — ActivityScreen<K>                                          │
-│  class MyScreen : ActivityScreen<AppScreens.MyKey>() { … }              │
-│  NavEaseHost<AppScreens>(start) { add(MyScreen()) }                     │
-│  ✓ Class-based — familiar OOP structure                                  │
-│  ✓ Typed navKey in Content() — no casting, no extensions                 │
-│  ✓ Back-with-result via nested Result data class                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-All three share the same `NavController`, shared-element support, and `NavDisplay` engine.
+**What you don't write:** no `when (route)` factory, no serializers module, no `@Serializable` on
+your key class, no route strings, no manual `add(...)` list.
 
 ---
 
@@ -88,9 +62,7 @@ All three share the same `NavController`, shared-element support, and `NavDispla
 
 ## Setup
 
-> **TL;DR — use the Gradle plugin** to skip all the boilerplate below.
-
-### Recommended: Gradle plugin (zero boilerplate)
+### Recommended — the Gradle plugin
 
 ```kotlin
 // shared/build.gradle.kts
@@ -99,55 +71,42 @@ plugins {
     id("com.android.kotlin.multiplatform.library")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("io.github.alims-repo.navease") version "0.1.4"  // ← all wiring done ✅
+
+    id("io.github.alims-repo.navease") version "0.1.4"   // ← all wiring done ✅
 }
 ```
 
-The `navease` plugin automatically:
-- applies the KSP and Kotlin Serialization compiler plugins
-- adds `navease-ksp` to `kspCommonMainMetadata`
-- registers `build/generated/ksp/metadata/commonMain/kotlin` as a `commonMain` srcDir
-- makes every KMP compilation depend on `kspCommonMainKotlinMetadata`
-- adds `navease-runtime` to `commonMain` dependencies
+The plugin:
 
-Optional configuration via the `navease { }` extension:
+- applies the KSP and Kotlin Serialization compiler plugins (skipped if you already declare them)
+- adds `navease-ksp` to `kspCommonMainMetadata`
+- registers `build/generated/ksp/metadata/commonMain/kotlin` as a `commonMain` source directory
+- makes every KMP compilation depend on `kspCommonMainKotlinMetadata`
+- adds `navease-runtime` to `commonMain`
+
+Optional configuration:
+
 ```kotlin
 navease {
-    version = "0.1.4"                        // pin a specific version (default: same as plugin)
-    addRuntimeDependency = true              // set false to manage navease-runtime yourself
-    generatedPackage = "com.myapp.nav"       // custom package for generated files
+    version = "0.1.4"                      // pin the artifacts (default: same as the plugin)
+    addRuntimeDependency = true            // false to manage navease-runtime yourself
+    generatedPackage = "com.myapp.nav"     // where KSP writes — see the note in Constraints
 }
 ```
 
-> For Approach 2 (`navEaseGraph`) and Approach 3 (`ActivityScreen<K>`) **only `navease-runtime` is required** — no KSP needed. If you don't use annotations, omit the KSP plugin and the `ksp` dependency.
-
----
-
-### Manual setup (if you prefer full control)
-
-#### 1. Apply plugins in your shared KMP module
+### Manual setup
 
 ```kotlin
-// shared/build.gradle.kts
 plugins {
     kotlin("multiplatform")
-    id("com.android.kotlin.multiplatform.library")
-    id("org.jetbrains.compose")
-    id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.devtools.ksp")   // only needed for Approach 1
+    id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
-```
 
-#### 2. Add dependencies
-
-```kotlin
-// shared/build.gradle.kts
 kotlin {
     sourceSets {
         commonMain {
-            // Point KSP metadata output to commonMain — only required for Approach 1:
             kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
-
             dependencies {
                 implementation("io.github.alims-repo:navease-runtime:0.1.4")
             }
@@ -155,365 +114,168 @@ kotlin {
     }
 }
 
-// Only required for Approach 1:
 dependencies {
     add("kspCommonMainMetadata", "io.github.alims-repo:navease-ksp:0.1.4")
 }
 
-// Only required for Approach 1:
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
-    if (name != "kspCommonMainKotlinMetadata") {
-        dependsOn("kspCommonMainKotlinMetadata")
-    }
-}
-```
-
-#### 3. (Optional) Configure KSP options
-
-```kotlin
-ksp {
-    // Override the package for all generated files.
-    // Default: "io.github.alimsrepo.navease.generated"
-    arg("navease.generatedPackage", "com.myapp.navigation.generated")
+    if (name != "kspCommonMainKotlinMetadata") dependsOn("kspCommonMainKotlinMetadata")
 }
 ```
 
 ---
 
-## Approach 1 — KSP Annotations
+## Quick start
 
-The **fully automated** approach: annotate your screen classes and let KSP generate everything.
-
-### Step 1 — Annotate your screens
-
-```kotlin
-import io.github.alimsrepo.navease.runtime.annotations.NavEaseScreen
-import io.github.alimsrepo.navease.runtime.domain.NavScreen
-import io.github.alimsrepo.navease.runtime.navigation.NavController
-import androidx.navigation3.runtime.NavKey
-// Generated imports (available after first KSP build):
-import io.github.alimsrepo.navease.generated.navigateToMain
-import io.github.alimsrepo.navease.generated.mainArgs
-
-// ── Screen with no arguments ──────────────────────────────────────────────────
-
-@NavEaseScreen(route = "Splash", startDestination = true)
-class SplashScreen : NavScreen() {
-
-    @Composable
-    override fun Content(navKey: NavKey, navController: NavController) {
-        LaunchedEffect(Unit) {
-            delay(1_000)
-            navController.navigateToMain(userId = "alim", age = 28)   // generated ✅
-        }
-    }
-}
-
-// ── Screen with typed arguments ───────────────────────────────────────────────
-
-@NavEaseScreen(route = "Main")
-class MainScreen : NavScreen() {
-
-    @NavEaseArgs
-    data class Args(val userId: String, val age: Int)
-
-    @NavEaseResult
-    data class Result(val updated: Boolean)
-
-    @Composable
-    override fun Content(navKey: NavKey, navController: NavController) {
-        val args = navKey.mainArgs()   // generated extension ✅
-        Text("Hello, ${args.userId}!")
-        Button(onClick = { navController.backWithMainResult(updated = true) }) {
-            Text("Save")
-        }
-    }
-}
-```
-
-**Annotation rules:**
-- `@NavEaseScreen(route = "…")` — unique name per screen; becomes the sealed subclass name
-- `startDestination = true` on exactly one screen
-- Extend plain `NavScreen` — no type parameter needed
-- `@NavEaseArgs` on a nested `data class` — KSP adds those fields to the sealed subclass
-- `@NavEaseResult` on a nested `data class` — KSP generates `backWithXxxResult()` + `xxxResult()`
-
-### Step 2 — Trigger code generation
-
-```bash
-./gradlew :shared:kspCommonMainKotlinMetadata
-```
-
-### Step 3 — Launch `NavEaseHost`
-
-```kotlin
-// commonMain
-@Composable
-fun App() {
-    MaterialTheme {
-        NavEaseHost(enableSharedTransitions = true)
-    }
-}
-
-// Android
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            MaterialTheme {
-                NavEaseHost(onExitRequest = { finish() })
-            }
-        }
-    }
-}
-```
-
----
-
-## Approach 2 — navEaseGraph DSL
-
-The **zero-rebuild** alternative. Define a plain Kotlin sealed class for your routes and wire screens in a DSL block — no annotations, no code generation, no rebuild required after adding a screen.
-
-### Step 1 — Define NavKeys
-
-```kotlin
-import androidx.navigation3.runtime.NavKey
-import kotlinx.serialization.Serializable
-
-@Serializable
-sealed class AppScreen : NavKey {
-    @Serializable data object Home   : AppScreen()
-    @Serializable data object About  : AppScreen()
-    @Serializable data class  Detail(val id: String) : AppScreen()
-}
-```
-
-### Step 2 — Build the graph
-
-```kotlin
-import io.github.alimsrepo.navease.runtime.presentation.navEaseGraph
-
-val appGraph = navEaseGraph(start = AppScreen.Home) {
-    screen<AppScreen.Home>   { HomeScreen() }
-    screen<AppScreen.About>  { AboutScreen() }
-    screen<AppScreen.Detail> { key -> DetailScreen(id = key.id) }
-    //                         ^^^  typed — direct field access, no casting
-}
-```
-
-`screen<K>` receives the typed `K` key so you can forward route arguments directly.
-
-### Step 3 — Host the graph
-
-```kotlin
-@Composable
-fun App() {
-    MaterialTheme {
-        NavEaseHost(
-            graph = appGraph,
-            enableSharedTransitions = true,
-        )
-    }
-}
-```
-
-### Step 4 — Navigate
-
-```kotlin
-val nav = LocalNavEaseController.current ?: return
-
-nav.navigate(AppScreen.Detail(id = "abc"))
-nav.navigate(AppScreen.Home, finish = true)       // replace current screen
-nav.navigate(AppScreen.About, singleTop = true)   // skip if already on top
-```
-
-### Back-with-Result (navEaseGraph)
-
-```kotlin
-data class DetailResult(val confirmed: Boolean)
-
-// Child screen:
-nav.backWithResult(DetailResult(confirmed = true))
-
-// Parent screen:
-val result by nav.resultOf<DetailResult>()
-result?.let { Text("Confirmed: ${it.confirmed}") }
-```
-
----
-
-## Approach 3 — ActivityScreen\<K\>
-
-The **class-based, typed** approach. Each screen extends `ActivityScreen<K>` where `K` is the specific `NavKey` subclass it handles — `Content()` receives a fully-typed navKey, no casting or generated extensions needed.
-
-### Step 1 — Define NavKeys
-
-Same sealed class as Approach 2:
-
-```kotlin
-@Serializable
-sealed class AppScreens : NavKey {
-    @Serializable data object Home   : AppScreens()
-    @Serializable data object About  : AppScreens()
-    @Serializable data class  Detail(val id: String) : AppScreens()
-}
-```
-
-**Optional @AutoRegister path (no @Serializable needed):**
-
-If you annotate screens with `@AutoRegister`, NavEase generates serializers internally.
-You can skip `@Serializable` and extend `NavEaseRoot` instead of `NavKey`:
+### 1. Declare your destinations
 
 ```kotlin
 import io.github.alimsrepo.navease.runtime.NavEaseRoot
 
 sealed class AppScreens : NavEaseRoot {
-    data object Home   : AppScreens()
-    data object About  : AppScreens()
-    data class  Detail(val id: String) : AppScreens()
+
+    data object Splash : AppScreens()
+    data object Home : AppScreens()
+
+    data class Profile(val userId: String, val isEditable: Boolean = false) : AppScreens()
+    data class Detail(val itemId: String, val title: String) : AppScreens()
 }
 ```
 
-### Step 2 — Define screens
+No `@Serializable`, and no `: NavKey` — `NavEaseRoot` covers both. KSP writes a serializer for each
+subclass from its constructor parameters.
+
+### 2. Write the screens
 
 ```kotlin
-import io.github.alimsrepo.navease.runtime.presentation.ActivityScreen
+import io.github.alimsrepo.navease.runtime.annotations.AutoRegister
+import io.github.alimsrepo.navease.runtime.navigation.NavEaseController
+import io.github.alimsrepo.navease.runtime.screen.ActivityScreen
 
+@AutoRegister
 class HomeScreen : ActivityScreen<AppScreens.Home>() {
 
     @Composable
-    override fun Content(navKey: AppScreens.Home, navController: NavController) {
-        Button(onClick = { navController.navigate(AppScreens.Detail(id = "abc")) }) {
-            Text("Open Detail")
+    override fun Content(navKey: AppScreens.Home, navEaseController: NavEaseController) {
+        Button(onClick = { navEaseController.navigate(AppScreens.Profile(userId = "alim")) }) {
+            Text("Open profile")
         }
     }
 }
 
-class DetailScreen : ActivityScreen<AppScreens.Detail>() {
+@AutoRegister
+class ProfileScreen : ActivityScreen<AppScreens.Profile>() {
 
     @Composable
-    override fun Content(navKey: AppScreens.Detail, navController: NavController) {
-        Text(navKey.id)   // ← typed! direct access, no cast, no xxxArgs()
-        Button(onClick = { navController.back() }) { Text("Back") }
+    override fun Content(navKey: AppScreens.Profile, navEaseController: NavEaseController) {
+        Text("User ${navKey.userId}")            // ← typed. No casting, no args() extension.
+        if (navKey.isEditable) EditForm()
     }
 }
 ```
 
-### Step 3 — Host with NavEaseHost\<Root\>
+`@AutoRegister` takes no arguments. The start destination is declared at the host, so a nested host
+can pick its own.
+
+### 3. Host it
 
 ```kotlin
 @Composable
 fun App() {
     MaterialTheme {
         NavEaseHost<AppScreens>(
-            start = AppScreens.Home,
-            enableSharedTransitions = true,
-        ) {
-            add(HomeScreen())
-            add(AboutScreen())
-            add(DetailScreen())
-        }
+            start = AppScreens.Splash,
+            onExitRequest = { finish() },        // back pressed on the root screen
+        )
     }
 }
 ```
 
-`add(Screen())` registers each screen — the reified type captures `K` automatically from the class's type parameter.
+That is the whole setup. Adding a screen later means writing the class and rebuilding — nothing
+else to update.
 
-### Back-with-Result (ActivityScreen\<K\>)
+---
 
-Nest the result class inside the child screen for clear ownership:
+## NavEaseController
+
+Received as the second parameter of `Content()`, and available from any composable below the host
+via `LocalNavEaseController.current`.
 
 ```kotlin
-// ── Child screen ──────────────────────────────────────────────────────────────
+/** Push a screen onto the back stack. */
+fun navigate(
+    navKey: NavKey,
+    finish: Boolean = false,
+    singleTop: Boolean = false,
+    navTransition: NavTransition? = null,
+)
 
-class ProfileScreen : ActivityScreen<AppScreens.Profile>() {
+/** Pop one screen. At the root, calls the host's onExitRequest instead. */
+fun back()
 
-    data class Result(val selectedUserId: Int)
+/** Pop until [key]'s screen. Matched by runtime class — argument values are ignored. */
+fun popUpTo(key: NavKey, inclusive: Boolean = false)
 
-    @Composable
-    override fun Content(navKey: AppScreens.Profile, navController: NavController) {
-        Button(onClick = {
-            navController.backWithResult(Result(selectedUserId = 42))
-        }) { Text("Select User") }
-    }
-}
+/** Pop everything above [index] (0 = root). */
+fun popToIndex(index: Int)
 
-// ── Parent screen ─────────────────────────────────────────────────────────────
+/** The current back stack, oldest entry first. */
+fun getHistory(): List<NavKey>
+```
 
-class HomeScreen : ActivityScreen<AppScreens.Home>() {
+| Call | Effect |
+|---|---|
+| `navigate(key)` | Push |
+| `navigate(key, finish = true)` | Push and drop the screen underneath — replace, as a splash does |
+| `navigate(key, singleTop = true)` | Skip if that screen class is already on top |
+| `navigate(key, navTransition = NavTransition.Fade)` | Override the animation for this one navigation |
+| `back()` | Pop, or `onExitRequest` at the root |
 
-    @Composable
-    override fun Content(navKey: AppScreens.Home, navController: NavController) {
+Reaching it from deep in a tree:
 
-        val result by navController.resultOf<ProfileScreen.Result>()
-
-        result?.let { Text("Selected user #${it.selectedUserId}") }
-
-        Button(onClick = { navController.navigate(AppScreens.Profile) }) {
-            Text("Open Profile")
-        }
-    }
+```kotlin
+@Composable
+fun DeepWidget() {
+    val nav = LocalNavEaseController.current ?: return   // null outside a host, e.g. in a preview
+    Button(onClick = { nav.back() }) { Text("Back") }
 }
 ```
 
 ---
 
-## NavController API
-
-`NavController` is the same across all three approaches. It is received as a parameter in `Content()` and is also available via `LocalNavEaseController.current` from any nested composable.
+## Transitions
 
 ```kotlin
-class NavController {
-
-    /** Navigate to a screen, pushing it onto the back stack. */
-    fun navigate(navKey: NavKey, finish: Boolean = false, singleTop: Boolean = false, navTransition: NavTransition? = null)
-
-    /** Go back one screen. If at the root, calls the onExitRequest lambda. */
-    fun back()
-
-    /** Pop until [key]'s screen. Matching is by runtime class — args ignored. */
-    fun popUpTo(key: NavKey, inclusive: Boolean = false)
-
-    /** Pop all screens down to [index] in the back stack (0 = root). */
-    fun popToIndex(index: Int)
-
-    /** Returns the current back stack as an ordered list, oldest first. */
-    fun getHistory(): List<NavKey>
-}
+NavEaseHost<AppScreens>(start = AppScreens.Splash, navTransition = NavTransition.Depth)
 ```
 
-| Method | Description |
+| Transition | Motion |
 |---|---|
-| `navigate(key)` | Push screen onto back stack |
-| `navigate(key, finish = true)` | Push new screen and remove the current one (replace) |
-| `navigate(key, singleTop = true)` | Push only if key class is not already the top screen |
-| `navigate(key, navTransition = NavTransition.Fade)` | Override the transition for this navigation only |
-| `back()` | Pop current screen; calls `onExitRequest` if at root |
-| `popUpTo(key)` | Pop everything above the destination (non-inclusive) |
-| `popUpTo(key, inclusive = true)` | Pop including the destination screen |
-| `popToIndex(index)` | Pop everything above the given back-stack index |
-| `getHistory()` | Inspect the current back stack |
+| `Push` *(default)* | Horizontal slide with parallax — the native-mobile feel |
+| `Fade` | Symmetric cross-dissolve |
+| `Rise` | Rises from the bottom; good for sheet-like steps |
+| `Zoom` | Scales up from ~86% while fading in |
+| `Depth` | Material Z-axis shared-axis motion |
+| `Instant` | No animation |
 
-### Per-navigate transitions
+The host value is the default; any single navigation can override it:
 
 ```kotlin
-navController.navigate(
-    AppScreens.Detail(id = "abc"),
-    navTransition = NavTransition.Fade,   // only this navigation uses Fade
-)
+nav.navigate(AppScreens.Detail(id, title), navTransition = NavTransition.Rise)
 ```
 
-Available transitions: `Push` (iOS-style slide) · `Fade` · `Rise` (slide up) · `Zoom` · `Depth` · `Instant`
+The transition is recorded per push, so the matching reverse animation plays on the way back —
+including for the predictive-back gesture.
 
 ---
 
 ## Observing destination changes
 
-Every `NavEaseHost` overload takes an optional `onDestinationChanged`, called whenever the top of
-the back stack changes — including for the start destination on first composition.
+Every host takes an optional `onDestinationChanged`, called whenever the top of the back stack
+changes — including for the start destination on first composition.
 
 It is for the concerns that belong to the graph rather than to any one screen. Screen-view
-analytics is the obvious one: done per screen it is a line each screen has to remember, and
+analytics is the obvious one: done per screen it is a line every screen has to remember, and
 nothing catches a new screen that forgets it.
 
 ```kotlin
@@ -525,383 +287,314 @@ NavEaseHost<AppScreens>(
 )
 ```
 
-`NavEaseController` is the **receiver**, not a parameter. The host owns its controller, so a caller
-outside it has no other way to reach one — a hook that only observes ignores the receiver, and a
-hook that needs to navigate can use it:
+`NavEaseController` is the **receiver**, not a second parameter. The host owns its controller, so
+code outside it has no other way to reach one — a hook that only observes ignores the receiver, and
+a hook that needs to navigate uses it:
 
 ```kotlin
 NavEaseHost<AppScreens>(
     start = AppScreens.Splash,
     onDestinationChanged = { navKey ->
         if (navKey !is AppScreens.Main && deepLink.isPending) {
-            navigate(AppScreens.Main)   // `this` is the NavEaseController
+            navigate(AppScreens.Main)          // `this` is the NavEaseController
         }
     },
 )
 ```
 
-It is equally useful on a nested host — "which inner screen am I on" is what tells an outer shell
-whether to show or hide its bottom bar:
+On a nested host it answers "which inner screen am I on", which is what tells an outer shell
+whether to show its bottom bar:
 
 ```kotlin
-NavEaseHost(
-    graph = homeGraph,
+NavEaseHost<HomeNav>(
+    start = HomeNav.Root,
     onDestinationChanged = { navKey -> hideBottomBar(navKey !is HomeNav.Root) },
 )
 ```
 
----
-
-## Back-with-Result
-
-NavEase provides a type-safe back-with-result pattern across all three approaches. Results are scoped to the `NavController` instance — no global state, no cross-contamination.
-
-### Low-level API (all approaches)
-
-```kotlin
-// Child screen — post a result before popping:
-navController.backWithResult(MyResult(value = 42))
-
-// Parent screen — observe the result (consumed exactly once):
-val result by navController.resultOf<MyResult>()
-```
-
-`resultOf<T>()` returns a `State<T?>` backed by a `SnapshotStateMap` inside `NavController`. Recomposition happens automatically the frame the child calls `backWithResult()`. The value is consumed in the same frame via `SideEffect` — no one-frame null window.
-
-### Approach 1 — KSP-generated typed extensions
-
-KSP wraps the low-level API with named functions so you never touch `backWithResult()` / `resultOf()` directly:
-
-```kotlin
-// Child screen (from @NavEaseResult data class Result(val starred: Boolean)):
-navController.backWithLibraryDetailResult(starred = true)
-
-// Parent screen:
-val result by navController.libraryDetailResult()   // State<LibraryDetailResult?>
-result?.let { if (it.starred) Text("⭐ Starred!") }
-```
-
-### Approach 2 — navEaseGraph DSL
-
-```kotlin
-data class PickerResult(val imageUri: String)
-
-// Child:
-navController.backWithResult(PickerResult(imageUri = "content://…"))
-
-// Parent:
-val pickerResult by navController.resultOf<PickerResult>()
-```
-
-### Approach 3 — ActivityScreen\<K\>
-
-```kotlin
-class ImagePickerScreen : ActivityScreen<AppScreens.ImagePicker>() {
-    data class Result(val imageUri: String)
-    // …
-    navController.backWithResult(Result(imageUri = "content://…"))
-}
-
-// Parent:
-val pickerResult by navController.resultOf<ImagePickerScreen.Result>()
-```
+The callback runs outside composition, so call plain functions from it — not composables.
 
 ---
 
-## Shared Element Transitions
+## Back-with-result
 
-NavEase has **optional** shared element transition support. It is **off by default** — zero overhead when not used.
-
-### Enable shared transitions
+Send a value back to the screen underneath.
 
 ```kotlin
-// All three approaches accept the same parameter:
-NavEaseHost(enableSharedTransitions = true)                              // Approach 1
-NavEaseHost(graph, enableSharedTransitions = true)                      // Approach 2
-NavEaseHost<Root>(start, enableSharedTransitions = true) { … }         // Approach 3
-```
+import io.github.alimsrepo.navease.runtime.navigation.backWithResult
+import io.github.alimsrepo.navease.runtime.navigation.resultOf
 
-When `true`, NavEase wraps `NavDisplay` in a `SharedTransitionLayout` and provides the scope via `LocalNavEaseSharedTransitionScope`.
+data class ProfileResult(val saved: Boolean)
 
-### Use shared elements in screens
-
-```kotlin
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.navigation3.ui.LocalNavAnimatedContentScope
-import io.github.alimsrepo.navease.runtime.presentation.LocalNavEaseSharedTransitionScope
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun MyCard(username: String) {
-    // Both locals return null when enableSharedTransitions = false (safe)
-    val sharedScope   = LocalNavEaseSharedTransitionScope.current
-    val animatedScope = LocalNavAnimatedContentScope.current
-
-    val avatarModifier = if (sharedScope != null && animatedScope != null) {
-        with(sharedScope) {
-            Modifier.sharedBounds(
-                sharedContentState = rememberSharedContentState(key = "avatar_$username"),
-                animatedVisibilityScope = animatedScope,
-            )
+// On the screen returning a value:
+@AutoRegister
+class ProfileScreen : ActivityScreen<AppScreens.Profile>() {
+    @Composable
+    override fun Content(navKey: AppScreens.Profile, navEaseController: NavEaseController) {
+        Button(onClick = { navEaseController.backWithResult(ProfileResult(saved = true)) }) {
+            Text("Save")
         }
-    } else Modifier
-
-    Box(modifier = avatarModifier.size(88.dp)) { /* avatar */ }
+    }
 }
-```
 
-**Rules for shared element keys:**
-- Keys are plain `Any` values — use a string like `"avatar_$username"` or a data class
-- The key must match **exactly** between the source and destination screen
-- Use `sharedBounds` for containers that change size/shape; use `sharedElement` for same-size content
+// On the screen waiting for it:
+@AutoRegister
+class HomeScreen : ActivityScreen<AppScreens.Home>() {
+    @Composable
+    override fun Content(navKey: AppScreens.Home, navEaseController: NavEaseController) {
+        val result by navEaseController.resultOf<ProfileResult>()
 
----
-
-## KSP-Generated Code
-
-**Approach 1 only.** After running `./gradlew :shared:kspCommonMainKotlinMetadata`, NavEase writes five files:
-
-```
-shared/build/generated/ksp/metadata/commonMain/kotlin/
-  io/github/alimsrepo/navease/generated/
-    AppScreens.kt         ← @Serializable sealed class NavKey hierarchy
-    ScreenFactory.kt      ← maps NavKey → NavScreen
-    NavEaseExtensions.kt  ← navigateToXxx() + xxxArgs() typed extensions
-    NavEaseResults.kt     ← result data classes + backWithXxxResult() + xxxResult()
-    NavEaseHost.kt        ← @Composable NavEaseHost(…) entry point
-```
-
-### `AppScreens.kt`
-
-```kotlin
-@Stable
-@Serializable
-sealed class AppScreens : NavKey {
-    @Serializable data object Splash : AppScreens()
-    @Serializable data object Home : AppScreens()
-    @Serializable data class LibraryDetail(val libId: String, val libName: String) : AppScreens()
-    // … one subclass per @NavEaseScreen
-
-    companion object {
-        val startDestination: AppScreens get() = Splash
-        val savedStateConfig = SavedStateConfiguration { … }
+        LaunchedEffect(result) {
+            if (result?.saved == true) showSnackbar("Profile saved")
+        }
     }
 }
 ```
 
-### `NavEaseExtensions.kt`
+Results are held in a snapshot-state map scoped to that host's controller, so writing one
+recomposes the reader. `resultOf<T>()` consumes the entry as it reads it — it will not fire twice —
+and nothing is shared between independent hosts.
+
+---
+
+## Shared element transitions
+
+**Off by default.** When `enableSharedTransitions = false`, no `SharedTransitionLayout` is created
+and `LocalNavEaseSharedTransitionScope` is `null` — zero overhead, and screens that don't use
+shared elements need no experimental opt-in.
+
+### Without shared elements
+
+Nothing to do. This is the default:
 
 ```kotlin
-fun NavController.navigateToHome(finish: Boolean = false, navTransition: NavTransition? = null) { … }
-fun NavController.navigateToLibraryDetail(
-    libId: String, libName: String,
-    finish: Boolean = false, navTransition: NavTransition? = null
-) { … }
-
-fun NavKey.libraryDetailArgs(): LibraryDetailScreen.Args { … }
+NavEaseHost<AppScreens>(start = AppScreens.Splash)
 ```
 
-### `NavEaseResults.kt`
+### With shared elements
+
+Turn it on at the host that owns the transition:
 
 ```kotlin
-data class LibraryDetailResult(val starred: Boolean)
-
-fun NavController.backWithLibraryDetailResult(starred: Boolean) { … }
-
-@Composable fun NavController.libraryDetailResult(): State<LibraryDetailResult?> = …
+NavEaseHost<AppScreens>(
+    start = AppScreens.Splash,
+    enableSharedTransitions = true,
+)
 ```
 
-### `NavEaseHost.kt`
+Then, in the two screens that share the element, read both scopes and match the key exactly:
 
 ```kotlin
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import io.github.alimsrepo.navease.internal.navigation.ui.LocalNavAnimatedContentScope
+import io.github.alimsrepo.navease.runtime.composition.LocalNavEaseSharedTransitionScope
+
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun NavEaseHost(
-    onExitRequest: () -> Unit = {},
-    enableSharedTransitions: Boolean = false,
-    navTransition: NavTransition = NavTransition.Push,
-) {
-    NavEaseNavGraph(
-        initialScreen = AppScreens.startDestination,
-        savedStateConfig = AppScreens.savedStateConfig,
-        screenFactory = ScreenFactory::createScreen,
-        onExitRequest = onExitRequest,
-        enableSharedTransitions = enableSharedTransitions,
-        navTransition = navTransition,
-    )
+fun Avatar(userId: String) {
+    val sharedScope = LocalNavEaseSharedTransitionScope.current
+    val animScope = LocalNavAnimatedContentScope.current
+
+    val modifier = if (sharedScope != null) {
+        with(sharedScope) {
+            Modifier.sharedBounds(
+                sharedContentState = rememberSharedContentState(key = "avatar_$userId"),
+                animatedVisibilityScope = animScope,
+            )
+        }
+    } else Modifier
+
+    Box(modifier.size(88.dp)) { /* … */ }
 }
 ```
 
+**Rules:**
+
+- The key is any `Any` — a string like `"avatar_$userId"`, or a data class. It must match
+  **exactly** on both screens, or nothing morphs.
+- `sharedBounds` for content that changes size or shape; `sharedElement` for content that doesn't.
+- Guard on `sharedScope != null` so the same composable still renders when the flag is off.
+- A shared element only morphs **within one host**. Two screens in different hosts each have their
+  own `SharedTransitionLayout`, so enable the flag on the host that actually contains both screens.
+
 ---
 
-## Module Structure
+## Nested navigation
+
+A nested graph is just another sealed root with its own screens and its own host. Entries are
+filtered by root type, so the two graphs never see each other's screens.
+
+```kotlin
+sealed class WizardStep : NavEaseRoot {
+    data object PickRole : WizardStep()
+    data class Confirm(val role: String) : WizardStep()
+}
+
+@AutoRegister
+class PickRoleScreen : ActivityScreen<WizardStep.PickRole>() { /* … */ }
+
+@AutoRegister
+class ConfirmScreen : ActivityScreen<WizardStep.Confirm>() { /* … */ }
+```
+
+```kotlin
+// Inside a screen of the outer graph:
+NavEaseHost<WizardStep>(
+    start = WizardStep.PickRole,
+    // Back on the nested root leaves the whole feature.
+    onExitRequest = { outerController.back() },
+)
+```
+
+Each host owns an independent back stack, controller and result store, so nothing leaks between
+them. Put as many side by side as you need — bottom tabs, a wizard inside a screen, a detail pane.
+
+---
+
+## What KSP generates
+
+After a build, in `build/generated/ksp/metadata/commonMain/kotlin/`:
+
+| File | Contents |
+|---|---|
+| `AutoRegisterScreens.kt` | A `KSerializer` per key, `NavEaseAutoInit` registering every screen, and `navEaseBootstrap()` |
+| `NavEaseHostOverloads.kt` | One `NavEaseHost` overload per sealed root, which bootstraps the registry and then hosts |
+
+Generated registration looks like this:
+
+```kotlin
+private object NavEaseAutoInit {
+    init {
+        NavEaseAutoRegistry.addEntry(HomeScreen(), Home::class, AppScreens::class, NavEase_Home_Ser)
+        NavEaseAutoRegistry.addEntry(ProfileScreen(), Profile::class, AppScreens::class, NavEase_Profile_Ser)
+        // … one line per @AutoRegister screen
+    }
+}
+```
+
+**The generated overload is what initialises the registry.** `NavEaseHost<AppScreens>(...)` resolves
+to it in preference to the library's generic overload, and it calls `navEaseBootstrap()` before
+creating the host. This is what makes the registry work identically on every platform — it does not
+depend on JVM reflection or on a Kotlin/Native eager-init anchor.
+
+---
+
+## Constraints and gotchas
+
+**Screens must extend `ActivityScreen` directly.** KSP reads the key type `K` from the class's
+direct supertypes, so an intermediate base class of your own — a `TrackedScreen<K>` that centralises
+analytics, say — fails with *"@AutoRegister class must extend ActivityScreen<K>"*. Put shared
+behaviour in a composable you call from `Content()`, or use
+[onDestinationChanged](#observing-destination-changes) for anything graph-wide.
+
+**One screen per key.** Registering two `@AutoRegister` screens for the same key is a build error.
+
+**Key arguments must be serializable.** Kotlin primitives and `String` work as they are; anything
+else must be `@Serializable`. Sealed hierarchies are fine — the generated serializer delegates to
+the type's own.
+
+**R8 / ProGuard.** Generated serializers are not the compiler plugin's `$$serializer` classes, so a
+rule matching those will not cover them. Keep the generated package:
+
+```proguard
+-keep class com.myapp.nav.** { *; }
+```
+
+**`generatedPackage` and the Android fallback.** `NavEaseAutoRegistry.generatedClassHint` defaults
+to `io.github.alimsrepo.navease.generated.AutoRegisterScreensKt`. Setting a custom
+`generatedPackage` — or relying on the plugin's default, which appends the module name — means that
+`Class.forName` fallback no longer matches. It does not normally matter, because the generated
+overload above bootstraps first, but set the hint in `Application.onCreate()` if you want the
+fallback to stay live:
+
+```kotlin
+NavEaseAutoRegistry.generatedClassHint = "com.myapp.nav.AutoRegisterScreensKt"
+```
+
+**Rebuild after adding a screen.** `@AutoRegister` is processed at build time, so a new screen needs
+`./gradlew :shared:kspCommonMainKotlinMetadata` (or any build) before the host can route to it.
+
+---
+
+## Module structure
 
 ```
 NavEase/
-├── navease-runtime/                    ← KMP library (all platforms via commonMain)
-│   └── src/commonMain/kotlin/io/github/alimsrepo/navease/runtime/
-│       ├── annotations/
-│       │   ├── NavEaseScreen.kt        ← @NavEaseScreen annotation (Approach 1)
-│       │   ├── NavEaseArgs.kt          ← @NavEaseArgs annotation (Approach 1)
-│       │   ├── NavEaseResult.kt        ← @NavEaseResult annotation (Approach 1)
-│       │   └── AutoRegister.kt         ← @AutoRegister annotation (Approach 3 auto-discover)
-│       ├── NavEaseRoot.kt              ← hides NavKey + @Serializable for @AutoRegister keys
-│       ├── domain/
-│       │   └── NavScreen.kt            ← abstract class NavScreen — Approach 1 base
-│       ├── navigation/
-│       │   ├── NavController.kt        ← navigate / back / popUpTo / popToIndex / singleTop
-│       │   └── NavControllerExtensions.kt ← backWithResult() / resultOf<T>() — all approaches
-│       └── presentation/
-│           ├── ActivityScreen.kt       ← ActivityScreen<K> — Approach 3 base class
-│           ├── NavEaseGraph.kt         ← NavEaseGraph / navEaseGraph() DSL — Approach 2
-│           ├── NavEaseHost.kt          ← NavEaseHost overloads (graph DSL + ActivityScreen)
-│           ├── NavEaseNavGraph.kt      ← core host (KSP + graph DSL variants)
-│           ├── NavTransition.kt        ← Push / Fade / Rise / Zoom / Depth / Instant
-│           ├── Animations.kt           ← ContentTransform pairs for each NavTransition
-│           ├── LocalNavEaseController.kt   ← CompositionLocal<NavController?>
-│           └── LocalNavEaseSharedTransition.kt ← CompositionLocal<SharedTransitionScope?>
+├── navease-runtime/            ← KMP library, all platforms
+│   └── io/github/alimsrepo/navease/runtime/
+│       ├── NavEaseRoot.kt              ← marker for your sealed key class
+│       ├── annotations/AutoRegister.kt
+│       ├── screen/ActivityScreen.kt    ← base class for a screen
+│       ├── host/NavEaseHost.kt         ← the host overloads
+│       ├── navigation/                 ← NavEaseController + back-with-result
+│       ├── transition/                 ← NavTransition + the animations
+│       ├── composition/                ← LocalNavEaseController, LocalNavEaseSharedTransitionScope
+│       └── registry/                   ← NavEaseAutoRegistry
 │
-├── navease-ksp/                        ← JVM KSP processor (Approach 1 only)
-│   └── src/main/kotlin/io/github/alimsrepo/navease/ksp/
-│       ├── NavEaseProcessor.kt         ← generates AppScreens, ScreenFactory, Extensions, Results, Host
-│       └── NavEaseProcessorProvider.kt
+├── navease-ksp/                ← JVM KSP processor
+├── navease-gradle-plugin/      ← id("io.github.alims-repo.navease")
 │
-├── navease-gradle-plugin/              ← Gradle plugin (id: io.github.alims-repo.navease)
-│   └── src/main/kotlin/io/github/alimsrepo/navease/gradle/
-│       ├── NavEasePlugin.kt            ← Plugin<Project> — wires KSP, srcDir, task deps
-│       ├── NavEaseExtension.kt         ← navease { } DSL extension block
-│       └── NavEaseVersion.kt           ← bundled artifact version constants
-│
-├── shared/                             ← Sample app — KMP shared module (Approach 1 demo)
-│   └── src/commonMain/kotlin/com/alim/navease/screens/
-│       ├── App.kt                      ← MaterialTheme { NavEaseHost(enableSharedTransitions = true) }
-│       ├── LibraryData.kt              ← Library data class + allLibraries catalogue
-│       ├── ThemeUtils.kt               ← containerColorAt / accentColorAt helpers
-│       ├── SharedComposables.kt        ← NavBackButton shared composable
-│       ├── SplashScreen.kt             ← start destination; animated branding; navigates to Home
-│       ├── HomeScreen.kt               ← library catalogue list; shared bounds; @NavEaseResult banner
-│       ├── LibraryDetailScreen.kt      ← @NavEaseArgs + @NavEaseResult; sharedBounds; per-lib navTransition
-│       ├── NavEaseDemoScreen.kt        ← 6-transition picker; per-navigate NavTransition override
-│       ├── TransitionPreviewScreen.kt  ← @NavEaseArgs; live transition preview
-│       ├── SecureVaultDemoScreen.kt    ← SecureVault KMP library demo
-│       ├── FlowTabDemoScreen.kt        ← FlowTab CMP library demo
-│       ├── PrayerTimesDemoScreen.kt    ← Prayer Times KMM library demo
-│       ├── CrashGuardDemoScreen.kt     ← CrashGuard library demo
-│       └── PdfDemoScreen.kt            ← Pdf Generator library demo
-│
-├── androidApp/                         ← Android sample entry point
-├── desktopApp/                         ← Desktop (JVM) sample entry point
-├── webApp/                             ← Web (JS/WASM) sample entry point
-└── iosApp/                             ← iOS sample entry point (Xcode project)
+├── shared/                     ← sample app (commonMain)
+├── androidApp/  desktopApp/  webApp/  iosApp/
 ```
 
 ---
 
-## Sample App
+## Sample app
 
-The `shared` module contains a 10-screen demo app — the **alims-repo library catalogue** — showcasing Approach 1 (KSP annotations) with shared element transitions, typed arguments, typed results, and per-navigate transition overrides.
+`shared/` is a small multi-screen demo built exactly the way this README describes — six
+destinations, typed arguments, shared element transitions and a splash that replaces itself.
 
-| Screen | Route | `startDestination` | Demonstrates |
-|---|---|---|---|
-| `SplashScreen` | `"Splash"` | ✅ yes | Animated branding · auto-navigate with `finish = true` |
-| `HomeScreen` | `"Home"` | ❌ no | Library list · shared bounds · `@NavEaseResult` observe banner |
-| `LibraryDetailScreen` | `"LibraryDetail"` | ❌ no | `@NavEaseArgs` · `@NavEaseResult` · `sharedBounds` from home card · per-lib `navTransition` |
-| `NavEaseDemoScreen` | `"NavEaseDemo"` | ❌ no | 6-transition picker · per-navigate `NavTransition` override |
-| `TransitionPreviewScreen` | `"TransitionPreview"` | ❌ no | `@NavEaseArgs` · live transition preview |
-| `SecureVaultDemoScreen` | `"SecureVaultDemo"` | ❌ no | Library feature demo |
-| `FlowTabDemoScreen` | `"FlowTabDemo"` | ❌ no | Library feature demo |
-| `PrayerTimesDemoScreen` | `"PrayerTimesDemo"` | ❌ no | Library feature demo |
-| `CrashGuardDemoScreen` | `"CrashGuardDemo"` | ❌ no | Library feature demo |
-| `PdfDemoScreen` | `"PdfDemo"` | ❌ no | Library feature demo |
+| Screen | Key | Shows |
+|---|---|---|
+| `SplashScreen` | `Splash` | Auto-navigate with `finish = true` |
+| `HomeScreen` | `Home` | The hub; shared bounds into detail |
+| `ProfileScreen` | `Profile(userId, isEditable)` | Typed arguments with a default |
+| `SettingsScreen` | `Settings` | Plain destination |
+| `GalleryScreen` | `Gallery` | List navigation |
+| `DetailScreen` | `Detail(itemId, title)` | Typed arguments; shared element target |
 
-### Navigation flow
-
-```
-SplashScreen ──(auto, finish=true)──▶ HomeScreen ──(shared bounds)──▶ LibraryDetailScreen
-                                                                              │
-                                           ┌──────────────────────────────────┤
-                                           ▼                                  │
-                                     NavEaseDemoScreen                        │
-                                           │                                  │
-                                           ▼                                  │
-                                 TransitionPreviewScreen              demo screens…
-                                                            (SecureVaultDemo, FlowTabDemo,
-                                                             PrayerTimesDemo, CrashGuardDemo,
-                                                             PdfDemo)
-```
-
-**Run on Android:**
 ```bash
-./gradlew :androidApp:installDebug
-```
-
-**Run on Desktop:**
-```bash
-./gradlew :desktopApp:run
+./gradlew :androidApp:installDebug   # Android
+./gradlew :desktopApp:run            # Desktop
 ```
 
 ---
 
 ## FAQ
 
-**Q: Which approach should I choose?**
+**Do I have to register screens anywhere?**
+No. Annotate with `@AutoRegister` and rebuild. There is no factory to update and no list to keep in
+sync.
 
-| If you want… | Use |
-|---|---|
-| Maximum automation, typed extensions, no manual route management | Approach 1 — KSP Annotations |
-| No annotation processing, instant IDE feedback, functional style | Approach 2 — navEaseGraph DSL |
-| Class-based OOP, typed navKey in Content(), no code generation | Approach 3 — ActivityScreen\<K\> |
+**Does my key class need `@Serializable`?**
+No. `NavEaseRoot` is enough — KSP writes the serializers. Argument *types* still need to be
+serializable.
 
-All three co-exist — you can mix them or progressively migrate.
+**What happens on process death?**
+The back stack is restored. NavEase assembles the `SavedStateConfiguration` from the generated
+serializers, so a key carrying arguments — including a sealed type — round-trips intact.
 
----
+**Can I have several graphs at once?**
+Yes. See [Nested navigation](#nested-navigation). Each host is fully independent.
 
-**Q: Do I need to manually register screens anywhere?**  
-- **Approach 1:** No. Annotate with `@NavEaseScreen` and rebuild.
-- **Approach 2:** Register with `screen<K> { … }` in the `navEaseGraph` block.
-- **Approach 3:** Register with `add(ScreenInstance())` in the `NavEaseHost<Root> { }` block.
-
-**Q: What happens when I add a new screen?**  
-- **Approach 1:** Add `@NavEaseScreen`, run `./gradlew :shared:kspCommonMainKotlinMetadata`.
-- **Approach 2/3:** Add a subclass to your sealed class, register it — no build step required.
-
-**Q: Can I have nested navigation (e.g. bottom tabs)?**  
-Yes. Each `NavEaseNavGraph` / `NavEaseHost` call creates an independent `NavController` and back stack. Place multiple hosts side-by-side for parallel nav graphs.
-
-**Q: How do I handle Android back-press at the root?**
+**How do I show a confirmation before exiting?**
+Show it from `onExitRequest` and only finish on confirm:
 
 ```kotlin
-NavEaseHost(onExitRequest = { finish() })
+NavEaseHost<AppScreens>(start = AppScreens.Splash, onExitRequest = { showExitDialog = true })
 ```
 
-For a confirmation dialog, show it inside `onExitRequest` and only call `finish()` on confirm.
+**Is the back gesture handled?**
+Yes, including predictive back on Android. Back is only consumed while there is something to pop —
+at the root it falls through to the system, so the app closes normally unless you handle
+`onExitRequest`.
 
-**Q: How do I access NavController from a deeply nested composable?**
+**Do shared elements work outside Android?**
+Yes. `SharedTransitionLayout` is Compose Multiplatform, so iOS, Desktop and Web behave the same.
 
-```kotlin
-@Composable
-fun DeepNestedWidget() {
-    val navController = LocalNavEaseController.current ?: return
-    Button(onClick = { navController.back() }) { Text("Back") }
-}
-```
-
-**Q: What argument types can I use in `@NavEaseArgs` (Approach 1)?**  
-Primitives (`String`, `Int`, `Long`, `Boolean`, `Double`, `Float`) work automatically. Custom types must be `@Serializable`.
-
-**Q: Can NavEase be used without KSP (Approaches 2 and 3)?**  
-Yes — only `navease-runtime` is required. No KSP plugin, no annotation processor dependency.
-
-**Q: Are shared element transitions required?**  
-No. `enableSharedTransitions` defaults to `false`. When false, `LocalNavEaseSharedTransitionScope` returns `null` — zero overhead.
-
-**Q: Do shared element transitions work on iOS/Desktop/Web?**  
-Yes. `SharedTransitionLayout` is part of Compose Multiplatform and works on all supported platforms.
-
-**Q: How does back-with-result work internally?**  
-Results are stored in a `SnapshotStateMap` inside `NavController`. Writing a result triggers recomposition. `resultOf<T>()` reads the map reactively via `derivedStateOf` and removes the entry via `SideEffect` in the same frame — no one-frame null window.
-
-**Q: Can I mix approaches in the same project?**  
-Yes. Approach 1 uses KSP-generated `NavEaseHost()` with `AppScreens`. Approaches 2 and 3 use their own sealed classes and `NavEaseHost` overloads. Each approach gets its own independent `NavController` instance.
+**Do I need KSP?**
+Yes, for `@AutoRegister`. The Gradle plugin applies and wires it for you.
 
 ---
 
