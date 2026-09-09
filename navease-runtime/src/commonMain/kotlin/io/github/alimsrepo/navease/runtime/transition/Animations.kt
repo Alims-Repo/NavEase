@@ -19,7 +19,7 @@ import androidx.compose.animation.slideOutVertically
  * Pre-computed [ContentTransform] pairs for every [NavTransition] style.
  *
  * All values are internal singletons — no allocation occurs during navigation.
- * [NavEaseNavGraph][io.github.alimsrepo.navease.runtime.host.NavEaseNavGraph] calls
+ * [NavEaseHost][io.github.alimsrepo.navease.runtime.host.NavEaseHost] calls
  * [forward] / [back] with the chosen [NavTransition] to feed into `NavDisplay`'s
  * `transitionSpec` / `popTransitionSpec`.
  */

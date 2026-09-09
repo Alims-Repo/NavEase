@@ -37,10 +37,21 @@ jobs:
       - name: Public API check
         run: ./gradlew apiCheck
 
-      - name: Build the runtime for every target
+      - name: Compile the runtime for every target
         run: ./gradlew :navease-runtime:assemble
 
-      - name: Build the sample through the Gradle plugin
+      - name: Runtime tests
+        run: ./gradlew :navease-runtime:jvmTest
+
+      - name: Compile the sample through the Gradle plugin
         # Exercises KSP generation, the generated host overloads and the plugin's
-        # source-set wiring on JVM, Android, JS and Wasm.
-        run: ./gradlew :shared:assemble
+        # source-set wiring on every target. Compiling is what covers that;
+        # :shared:assemble would additionally link release iOS frameworks, which
+        # costs minutes and proves nothing extra here.
+        run: |
+          ./gradlew \
+            :shared:compileKotlinJvm \
+            :shared:compileKotlinJs \
+            :shared:compileKotlinWasmJs \
+            :shared:compileKotlinIosSimulatorArm64 \
+            :shared:assembleDebug

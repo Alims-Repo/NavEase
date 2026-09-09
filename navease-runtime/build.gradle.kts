@@ -71,13 +71,13 @@ kotlin {
                 implementation("org.jetbrains.compose.runtime:runtime:1.11.0")
                 implementation("org.jetbrains.compose.animation:animation:1.11.0")
 
-                // Serialization — needed for KSerializer in NavEaseGraph DSL
+                // Serialization — the generated key serializers and the saved-state config
                 implementation(libs.kotlinx.serializationCore)
             }
         }
 
-        androidMain.dependencies {
-            implementation("androidx.core:core-ktx:1.1.0")
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }

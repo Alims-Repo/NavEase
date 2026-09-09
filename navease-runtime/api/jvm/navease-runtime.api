@@ -463,15 +463,6 @@ public final class io/github/alimsrepo/navease/runtime/registry/NavEaseAutoRegis
 	public final fun isInitialized ()Z
 }
 
-public final class io/github/alimsrepo/navease/runtime/registry/NavEaseAutoRegistry$RegistryEntry {
-	public static final field $stable I
-	public fun <init> (Lkotlin/reflect/KClass;Lkotlin/reflect/KClass;Lkotlinx/serialization/KSerializer;Lkotlin/jvm/functions/Function0;)V
-	public final fun getKeyClass ()Lkotlin/reflect/KClass;
-	public final fun getRootKeyClass ()Lkotlin/reflect/KClass;
-	public final fun getScreenFactory ()Lkotlin/jvm/functions/Function0;
-	public final fun getSerializer ()Lkotlinx/serialization/KSerializer;
-}
-
 public abstract class io/github/alimsrepo/navease/runtime/screen/ActivityScreen {
 	public static final field $stable I
 	public fun <init> ()V

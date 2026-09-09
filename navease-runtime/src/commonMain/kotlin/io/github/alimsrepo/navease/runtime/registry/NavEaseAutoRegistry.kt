@@ -31,11 +31,11 @@ public object NavEaseAutoRegistry {
      * @property serializer    Serializer for [keyClass], used to restore the back stack.
      * @property screenFactory Creates the screen. Called once per host, never shared between hosts.
      */
-    public class RegistryEntry(
-        public val keyClass: KClass<*>,
-        public val rootKeyClass: KClass<*>,
-        public val serializer: KSerializer<*>,
-        public val screenFactory: () -> ActivityScreen<*>,
+    private class RegistryEntry(
+        val keyClass: KClass<*>,
+        val rootKeyClass: KClass<*>,
+        val serializer: KSerializer<*>,
+        val screenFactory: () -> ActivityScreen<*>,
     )
 
     /**
