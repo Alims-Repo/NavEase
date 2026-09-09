@@ -847,6 +847,7 @@ class NavEaseProcessor(
                 noinline onExitRequest: () -> Unit = {},
                 enableSharedTransitions: Boolean = false,
                 navTransition: NavTransition = NavTransition.Push,
+                noinline onDestinationChanged: (NavEaseController.(NavKey) -> Unit)? = null,
             ) {
                 $generatedPackage.navEaseBootstrap()
                 NavEaseHostForRoot(
@@ -855,6 +856,7 @@ class NavEaseProcessor(
                     onExitRequest = onExitRequest,
                     enableSharedTransitions = enableSharedTransitions,
                     navTransition = navTransition,
+                    onDestinationChanged = onDestinationChanged,
                 )
             }
             """.trimIndent()
@@ -866,6 +868,8 @@ class NavEaseProcessor(
             appendLine("package $hostPackage")
             appendLine()
             appendLine("import androidx.compose.runtime.Composable")
+            appendLine("import io.github.alimsrepo.navease.internal.runtime.NavKey")
+            appendLine("import io.github.alimsrepo.navease.runtime.navigation.NavEaseController")
             appendLine("import io.github.alimsrepo.navease.runtime.transition.NavTransition")
             appendLine(rootImports)
             appendLine()
